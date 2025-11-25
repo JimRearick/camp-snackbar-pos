@@ -1,0 +1,74 @@
+╔════════════════════════════════════════════════════════════════╗
+║  FILES TO COPY FROM CLAUDE ARTIFACTS                           ║
+╚════════════════════════════════════════════════════════════════╝
+
+The following large files need to be copied from artifacts:
+
+1. backend/app.py
+   → Copy from artifact: "backend_app"
+   → ~800 lines of Python code
+
+2. frontend/src/App.js
+   → Copy from artifact: "react_app"
+   → ~100 lines
+
+3. frontend/src/App.css
+   → Copy from artifact: "main_css"
+   → ~200 lines
+
+4. frontend/src/components/POSScreen.js
+   → Copy from artifact: "pos_screen"
+   → ~400 lines
+
+5. frontend/src/components/POSScreen.css
+   → Copy from artifact: "pos_css"
+   → ~250 lines
+
+6. frontend/src/components/AccountList.js
+   → Copy from artifact: "account_list"
+   → ~100 lines
+
+7. frontend/src/components/AccountDetail.js
+   → Copy from artifact: "account_detail"
+   → ~150 lines
+
+8. frontend/src/components/AdminLogin.js
+   → Copy from artifact: "admin_login"
+   → ~100 lines
+
+9. frontend/src/components/AdminPanel.js
+   → Copy from artifact: "admin_panel"
+   → ~250 lines
+
+10. frontend/src/components/Reports.js
+    → Copy from artifact: "reports_component"
+    → ~150 lines
+
+11. Component CSS files (all in one artifact: "additional_css")
+    → frontend/src/components/AccountList.css
+    → frontend/src/components/AccountDetail.css
+    → frontend/src/components/AdminLogin.css
+    → frontend/src/components/AdminPanel.css
+    → frontend/src/components/Reports.css
+
+12. SETUP_GUIDE.md
+    → Copy from artifact: "setup_guide"
+    → Complete setup instructions
+
+13. DEPLOYMENT_CHECKLIST.md
+    → Copy from artifact: "deployment_checklist"
+    → Pre-launch checklist
+
+14. PROJECT_STRUCTURE.md
+    → Copy from artifact: "project_structure"
+    → Code organization guide
+
+═══════════════════════════════════════════════════════════════
+
+AFTER COPYING ALL FILES:
+
+1. Run: docker-compose build
+2. Run: docker-compose up -d
+3. Access: http://localhost:5000
+
+═══════════════════════════════════════════════════════════════
