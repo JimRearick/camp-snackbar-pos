@@ -1,0 +1,445 @@
+/* ===========================
+   ADMIN PANEL LAYOUT
+   =========================== */
+
+.admin-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 3px solid #667eea;
+  flex-wrap: wrap;
+}
+
+.admin-header h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #2c3e50;
+  flex: 1;
+}
+
+.admin-actions {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.btn-reports,
+.btn-backup {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  color: white;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+.btn-reports:hover,
+.btn-backup:hover {
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-logout {
+  background-color: #dc3545;
+  color: white;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+.btn-logout:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+/* ===========================
+   TAB NAVIGATION
+   =========================== */
+
+.admin-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  padding: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1rem;
+  background-color: transparent;
+  color: #6c757d;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.tab-btn:hover {
+  background-color: #f8f9fa;
+  color: #2c3e50;
+}
+
+.tab-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* ===========================
+   ADMIN CONTENT
+   =========================== */
+
+.admin-content {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ===========================
+   FORM SECTION
+   =========================== */
+
+.admin-form-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.admin-form-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.form-input,
+.form-select {
+  padding: 0.8rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+textarea.form-input {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 2px solid #e0e0e0;
+}
+
+/* ===========================
+   LIST SECTION
+   =========================== */
+
+.admin-list-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.admin-list-section h3 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2c3e50;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background-color: #f8f9fa;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  gap: 1rem;
+}
+
+.admin-list-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  transform: translateY(-2px);
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item-info strong {
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.badge.individual {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #17a2b8;
+}
+
+.badge.family {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #28a745;
+}
+
+.badge.category {
+  background-color: #e2e3e5;
+  color: #383d41;
+  border: 1px solid #6c757d;
+}
+
+.item-detail {
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.8rem;
+  flex-shrink: 0;
+}
+
+.btn-edit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.9rem;
+}
+
+.btn-edit:hover {
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+  padding: 0.7rem 1.2rem;
+  font-size: 0.9rem;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+  transform: translateY(-2px);
+}
+
+/* ===========================
+   ALERT CLOSE BUTTON
+   =========================== */
+
+.alert-close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 0;
+  margin-left: 1rem;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
+/* ===========================
+   RESPONSIVE DESIGN
+   =========================== */
+
+@media (max-width: 1024px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .admin-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .admin-actions {
+    width: 100%;
+  }
+
+  .admin-actions button {
+    flex: 1;
+  }
+
+  .admin-tabs {
+    flex-direction: column;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    gap: 0.5rem;
+  }
+
+  .tab-btn {
+    padding: 0.8rem;
+    font-size: 1rem;
+    border: 2px solid #e0e0e0;
+    background: white;
+  }
+
+  .tab-btn.active {
+    border-color: #667eea;
+  }
+
+  .admin-form-section,
+  .admin-list-section {
+    padding: 1.5rem;
+  }
+
+  .admin-form-section h3,
+  .admin-list-section h3 {
+    font-size: 1.3rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .admin-list-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .item-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===========================
+   TABLET OPTIMIZATIONS
+   =========================== */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .form-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .admin-list-item {
+    flex-wrap: wrap;
+  }
+
+  .item-info {
+    flex: 1 1 60%;
+  }
+
+  .item-actions {
+    flex: 1 1 auto;
+  }
+}
+
+/* ===========================
+   SCROLLBAR STYLING
+   =========================== */
+
+.admin-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.admin-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.admin-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
