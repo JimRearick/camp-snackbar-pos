@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Camp Snackbar POS</title>
+    <link rel="stylesheet" href="/static/css/pos.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🏕️ Camp Snackbar</h1>
+            <div id="selectedAccount" class="account-display">
+                <button class="btn-select-account" onclick="showAccountSelector()">
+                    Select Account
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Products Grid -->
+            <div class="products-section">
+                <h2>Products</h2>
+                <div id="productsGrid" class="products-grid">
+                    <!-- Products loaded dynamically -->
+                </div>
+            </div>
+
+            <!-- Cart Section -->
+            <div class="cart-section">
+                <h2>Current Order</h2>
+                <div id="cartItems" class="cart-items">
+                    <div class="empty-cart">
+                        <p>Cart is empty</p>
+                        <p class="hint">Tap items to add</p>
+                    </div>
+                </div>
+                <div class="cart-total">
+                    <span>Total:</span>
+                    <span id="cartTotal" class="total-amount">$0.00</span>
+                </div>
+                <div class="cart-actions">
+                    <button class="btn-clear" onclick="clearCart()">Clear</button>
+                    <button class="btn-checkout" onclick="checkout()">Checkout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Selector Modal -->
+    <div id="accountModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Select Account</h2>
+                <button class="btn-close" onclick="hideAccountSelector()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="accountSearch" class="search-input" 
+                       placeholder="Search accounts..." oninput="filterAccounts()">
+                <div id="accountsList" class="accounts-list">
+                    <!-- Accounts loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Clear Modal -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header">
+                <h2>Clear Everything?</h2>
+            </div>
+            <div class="modal-body">
+                <p class="confirm-message">This will clear the cart and deselect the account.</p>
+                <p class="confirm-hint">All items will be removed.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="hideConfirmClear()">Cancel</button>
+                <button class="btn-confirm" onclick="confirmClear()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div id="successMessage" class="toast hidden">
+        Transaction completed successfully!
+    </div>
+
+    <!-- Error Message -->
+    <div id="errorMessage" class="toast toast-error hidden">
+        <span id="errorText"></span>
+    </div>
+
+    <script src="/static/js/pos.js"></script>
+</body>
+</html>

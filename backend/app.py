@@ -16,15 +16,17 @@ import schedule
 import threading
 import time
 
-app = Flask(__name__, static_folder='../frontend/build')
+app = Flask(__name__, static_folder='../static', static_url_path='/static')
 app.config['SECRET_KEY'] = secrets.token_hex(32)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Configuration
-DB_PATH = os.getenv('DB_PATH', '/app/data/camp_snackbar.db')
-BACKUP_DIR = os.getenv('BACKUP_DIR', '/app/backups')
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+# Configuration - Simple local paths for Debian/Raspberry Pi deployment
+DB_PATH = os.getenv('DB_PATH', 'camp_snackbar.db')
+BACKUP_DIR = os.getenv('BACKUP_DIR', 'backups')
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
+
+# Create backup directory if it doesn't exist
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # Simple session storage (in production, use Redis)
@@ -689,16 +691,18 @@ def update_settings():
     return jsonify({'success': True})
 
 # ============================================================================
-# Serve React Frontend
+# Serve POS Interface
 # ============================================================================
 
-@app.route('/', defaults={'path': ''})
+@app.route('/')
+def serve_pos():
+    """Serve the POS interface"""
+    return send_from_directory(STATIC_DIR, 'index.html')
+
 @app.route('/<path:path>')
-def serve_frontend(path):
-    """Serve React frontend"""
-    if path and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    return send_from_directory(app.static_folder, 'index.html')
+def serve_static(path):
+    """Serve static files"""
+    return send_from_directory(STATIC_DIR, path)
 
 # ============================================================================
 # Scheduled Tasks
@@ -748,5 +752,5 @@ if __name__ == '__main__':
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
     
-    # Run server
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+    # Run server (allow_unsafe_werkzeug for development/testing)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
