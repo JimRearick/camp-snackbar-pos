@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Camp Snackbar</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <img src="/static/images/IF_logo.png" alt="Camp Logo" class="login-logo">
+            <h1>Admin Login</h1>
+            <form id="loginForm" onsubmit="login(event)">
+                <input type="password" id="loginPassword" class="login-input"
+                       placeholder="Enter admin password" required>
+                <button type="submit" class="login-button">Login</button>
+            </form>
+            <div id="loginError" class="login-error hidden"></div>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="admin-dashboard hidden">
+        <header class="admin-header">
+            <div class="header-left">
+                <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
+                <h1>Camp Snackbar Admin</h1>
+            </div>
+            <button class="btn-logout" onclick="logout()">Logout</button>
+        </header>
+
+        <div class="admin-content">
+            <!-- Navigation Tabs -->
+            <nav class="admin-tabs">
+                <button class="tab-button active" onclick="showTab('accounts')">Accounts</button>
+                <button class="tab-button" onclick="showTab('transactions')">Transactions</button>
+                <button class="tab-button" onclick="showTab('inventory')">Products</button>
+                <button class="tab-button" onclick="showTab('categories')">Categories</button>
+            </nav>
+
+            <!-- Inventory Tab -->
+            <div id="inventoryTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>Inventory Management</h2>
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="toggleInactiveBtn" class="btn-secondary" onclick="toggleInactiveProducts()">Show Inactive</button>
+                        <button class="btn-primary" onclick="showAddProductForm()">+ Add Product</button>
+                    </div>
+                </div>
+
+                <div class="products-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Product Name</th>
+                                <th>Price</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <!-- Products loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div id="categoriesTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>Category Management</h2>
+                    <button class="btn-primary" onclick="showAddCategoryForm()">+ Add Category</button>
+                </div>
+
+                <div class="products-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Category Name</th>
+                                <th>Product Count</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="categoriesTableBody">
+                            <!-- Categories loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Accounts Tab -->
+            <div id="accountsTab" class="tab-content active">
+                <div class="tab-header">
+                    <h2>Account Management</h2>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <div class="search-box">
+                            <input type="text" id="accountSearchInput" class="search-input"
+                                   placeholder="Search accounts..." oninput="filterAccountsTable()">
+                        </div>
+                        <button class="btn-primary" onclick="showAddAccountForm()">+ Add Account</button>
+                    </div>
+                </div>
+
+                <div class="accounts-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Account #</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Balance</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accountsTableBody">
+                            <!-- Accounts loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Transactions Tab -->
+            <div id="transactionsTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>Transaction History</h2>
+                    <div class="filter-controls">
+                        <select id="transactionTypeFilter" class="filter-select" onchange="loadTransactions()">
+                            <option value="">All Types</option>
+                            <option value="purchase">Purchase</option>
+                            <option value="payment">Payment</option>
+                            <option value="adjustment">Adjustment</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="transactions-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Account</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Balance After</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsTableBody">
+                            <!-- Transactions loaded dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal -->
+    <div id="productModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="productModalTitle">Add Product</h2>
+                <button class="btn-close" onclick="hideProductModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm" class="admin-form">
+                    <input type="hidden" id="productId">
+                    <div class="form-group">
+                        <label for="productCategory">Category *</label>
+                        <select id="productCategory" class="form-input" required>
+                            <!-- Categories loaded dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="productName">Product Name *</label>
+                        <input type="text" id="productName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productPrice">Price ($) *</label>
+                        <input type="number" id="productPrice" class="form-input"
+                               step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="productActive" checked>
+                            Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideProductModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveProduct()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Category Modal -->
+    <div id="categoryModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="categoryModalTitle">Add Category</h2>
+                <button class="btn-close" onclick="hideCategoryModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm" class="admin-form">
+                    <input type="hidden" id="categoryId">
+                    <div class="form-group">
+                        <label for="categoryName">Category Name *</label>
+                        <input type="text" id="categoryName" class="form-input" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideCategoryModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveCategory()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transaction Details Modal -->
+    <div id="transactionModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Transaction Details</h2>
+                <button class="btn-close" onclick="hideTransactionModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="transactionDetails" class="transaction-details">
+                    <!-- Details loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideTransactionModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Account Modal -->
+    <div id="accountModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="accountModalTitle">Add Account</h2>
+                <button class="btn-close" onclick="hideAccountModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="accountForm" class="admin-form">
+                    <input type="hidden" id="accountId">
+                    <div class="form-group">
+                        <label for="accountName">Account Name *</label>
+                        <input type="text" id="accountName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="accountType">Account Type *</label>
+                        <select id="accountType" class="form-input" required onchange="toggleFamilyMembersField()">
+                            <option value="individual">Individual</option>
+                            <option value="family">Family</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="initialBalance">Initial Balance ($)</label>
+                        <input type="number" id="initialBalance" class="form-input"
+                               step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="accountNotes">Notes</label>
+                        <textarea id="accountNotes" class="form-input" rows="3"
+                                  style="min-height: auto; resize: vertical;"></textarea>
+                    </div>
+                    <div class="form-group" id="familyMembersGroup" style="display: none;">
+                        <label for="familyMembers">Family Members (one per line)</label>
+                        <textarea id="familyMembers" class="form-input" rows="4"
+                                  style="min-height: auto; resize: vertical;"
+                                  placeholder="Enter family member names, one per line"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideAccountModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveAccount()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Details Modal -->
+    <div id="accountDetailsModal" class="modal hidden">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Account Details</h2>
+                <button class="btn-close" onclick="hideAccountDetailsModal()">✕</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh;">
+                <div id="accountDetailsContent">
+                    <!-- Details loaded dynamically -->
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideAccountDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Messages -->
+    <div id="successToast" class="toast toast-success hidden"></div>
+    <div id="errorToast" class="toast toast-error hidden"></div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

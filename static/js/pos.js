@@ -32,28 +32,34 @@ async function loadProducts() {
 function displayProducts(categories) {
     const grid = document.getElementById('productsGrid');
     grid.innerHTML = '';
-    
+
     categories.forEach(category => {
-        // Add category header
-        const categoryHeader = document.createElement('div');
-        categoryHeader.className = 'category-header';
-        categoryHeader.textContent = category.name;
-        grid.appendChild(categoryHeader);
-        
-        // Add products
-        category.products.forEach(product => {
-            const card = document.createElement('button');
-            card.className = 'product-card';
-            card.onclick = () => addToCart(product);
-            card.disabled = !selectedAccount;
-            
-            card.innerHTML = `
-                <div class="product-name">${product.name}</div>
-                <div class="product-price">$${product.price.toFixed(2)}</div>
-            `;
-            
-            grid.appendChild(card);
-        });
+        // Filter only active products
+        const activeProducts = category.products.filter(product => product.active === 1 || product.active === true);
+
+        // Only show category if it has active products
+        if (activeProducts.length > 0) {
+            // Add category header
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'category-header';
+            categoryHeader.textContent = category.name;
+            grid.appendChild(categoryHeader);
+
+            // Add only active products
+            activeProducts.forEach(product => {
+                const card = document.createElement('button');
+                card.className = 'product-card';
+                card.onclick = () => addToCart(product);
+                card.disabled = !selectedAccount;
+
+                card.innerHTML = `
+                    <div class="product-name">${product.name}</div>
+                    <div class="product-price">$${product.price.toFixed(2)}</div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
     });
 }
 
@@ -341,11 +347,110 @@ function showSuccess() {
 function showError(message) {
     const toast = document.getElementById('errorMessage');
     const text = document.getElementById('errorText');
-    
+
     text.textContent = message;
     toast.classList.remove('hidden');
-    
+
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+// Toggle family members field visibility
+function toggleFamilyMembersField() {
+    const accountType = document.getElementById('accountType').value;
+    const familyMembersGroup = document.getElementById('familyMembersGroup');
+
+    if (accountType === 'family') {
+        familyMembersGroup.style.display = 'flex';
+    } else {
+        familyMembersGroup.style.display = 'none';
+    }
+}
+
+// Show new account form
+function showNewAccountForm() {
+    // Hide account selector
+    hideAccountSelector();
+
+    // Reset form
+    document.getElementById('newAccountForm').reset();
+
+    // Show new account modal
+    document.getElementById('newAccountModal').classList.remove('hidden');
+    document.getElementById('accountName').focus();
+
+    // Set initial visibility of family members field (default is family)
+    toggleFamilyMembersField();
+}
+
+// Hide new account form
+function hideNewAccountForm() {
+    document.getElementById('newAccountModal').classList.add('hidden');
+
+    // Show account selector again
+    showAccountSelector();
+}
+
+// Create new account
+async function createNewAccount() {
+    const accountName = document.getElementById('accountName').value.trim();
+    const accountType = document.getElementById('accountType').value;
+    const initialBalance = parseFloat(document.getElementById('initialBalance').value) || 0;
+    const notes = document.getElementById('notes').value.trim();
+    const familyMembersText = document.getElementById('familyMembers').value.trim();
+
+    // Validate
+    if (!accountName) {
+        showError('Please enter an account name');
+        return;
+    }
+
+    // Parse family members (one per line)
+    const familyMembers = familyMembersText
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+
+    // Prepare data
+    const accountData = {
+        account_name: accountName,
+        account_type: accountType,
+        initial_balance: initialBalance,
+        notes: notes,
+        family_members: familyMembers
+    };
+
+    try {
+        const response = await fetch(`${API_URL}/accounts`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(accountData)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create account');
+        }
+
+        const result = await response.json();
+
+        // Reload accounts
+        await loadAccounts();
+
+        // Hide form and show success
+        hideNewAccountForm();
+        showSuccess();
+
+        // Auto-select the new account if we can find it
+        const newAccount = accounts.find(acc => acc.account_number === result.account_number);
+        if (newAccount) {
+            selectAccount(newAccount);
+        }
+
+    } catch (error) {
+        showError('Failed to create account: ' + error.message);
+        console.error('Create account error:', error);
+    }
 }

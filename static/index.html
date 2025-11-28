@@ -10,7 +10,7 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1>🏕️ Camp Snackbar</h1>
+            <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
             <div id="selectedAccount" class="account-display">
                 <button class="btn-select-account" onclick="showAccountSelector()">
                     Select Account
@@ -57,11 +57,63 @@
                 <button class="btn-close" onclick="hideAccountSelector()">✕</button>
             </div>
             <div class="modal-body">
-                <input type="text" id="accountSearch" class="search-input" 
+                <input type="text" id="accountSearch" class="search-input"
                        placeholder="Search accounts..." oninput="filterAccounts()">
                 <div id="accountsList" class="accounts-list">
                     <!-- Accounts loaded dynamically -->
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-add-account" onclick="showNewAccountForm()">+ Add New Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Account Form Modal -->
+    <div id="newAccountModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Account</h2>
+                <button class="btn-close" onclick="hideNewAccountForm()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="newAccountForm" class="account-form">
+                    <div class="form-group">
+                        <label for="accountName">Account Name *</label>
+                        <input type="text" id="accountName" class="form-input"
+                               placeholder="e.g., Smith Family or John Doe" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="accountType">Account Type *</label>
+                        <select id="accountType" class="form-input" required onchange="toggleFamilyMembersField()">
+                            <option value="family">Family</option>
+                            <option value="individual">Individual</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="initialBalance">Initial Balance ($)</label>
+                        <input type="number" id="initialBalance" class="form-input"
+                               placeholder="0.00" step="0.01" min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes (Optional)</label>
+                        <textarea id="notes" class="form-input form-textarea"
+                                  placeholder="Additional information..." rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group" id="familyMembersGroup" style="display: flex;">
+                        <label for="familyMembers">Family Members (one per line)</label>
+                        <textarea id="familyMembers" class="form-input form-textarea"
+                                  placeholder="Enter family member names, one per line" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="hideNewAccountForm()">Cancel</button>
+                <button class="btn-confirm" onclick="createNewAccount()">Create Account</button>
             </div>
         </div>
     </div>

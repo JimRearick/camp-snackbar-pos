@@ -29,16 +29,41 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
 # Create backup directory if it doesn't exist
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# Simple session storage (in production, use Redis)
-active_sessions = {}
+# Session storage - using database for persistence across restarts
+def get_active_sessions():
+    """Get active sessions from database"""
+    conn = get_db()
+    cursor = conn.execute(
+        "SELECT token, expires_at FROM admin_sessions WHERE expires_at > datetime('now')"
+    )
+    sessions = {row['token']: datetime.fromisoformat(row['expires_at']) for row in cursor.fetchall()}
+    conn.close()
+    return sessions
+
+def save_session(token, expires_at):
+    """Save session to database"""
+    conn = get_db()
+    conn.execute(
+        "INSERT OR REPLACE INTO admin_sessions (token, expires_at) VALUES (?, ?)",
+        (token, expires_at.isoformat())
+    )
+    conn.commit()
+    conn.close()
+
+def delete_session(token):
+    """Delete session from database"""
+    conn = get_db()
+    conn.execute("DELETE FROM admin_sessions WHERE token = ?", (token,))
+    conn.commit()
+    conn.close()
 
 # ============================================================================
 # Database Helper Functions
 # ============================================================================
 
 def get_db():
-    """Get database connection"""
-    conn = sqlite3.connect(DB_PATH)
+    """Get database connection with timeout for better concurrency"""
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -61,15 +86,22 @@ def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
-        
-        if not token or token not in active_sessions:
-            return jsonify({'error': 'Unauthorized'}), 401
-        
-        # Check if session is expired
-        if active_sessions[token] < datetime.now():
-            del active_sessions[token]
-            return jsonify({'error': 'Session expired'}), 401
-        
+
+        if not token:
+            return jsonify({'error': 'Unauthorized - No token provided'}), 401
+
+        # Check if session exists and is valid
+        conn = get_db()
+        cursor = conn.execute(
+            "SELECT expires_at FROM admin_sessions WHERE token = ? AND expires_at > datetime('now')",
+            (token,)
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row:
+            return jsonify({'error': 'Unauthorized - Invalid or expired session'}), 401
+
         return f(*args, **kwargs)
     return decorated_function
 
@@ -91,8 +123,8 @@ def login():
     if row and row['value'] == password:
         token = secrets.token_urlsafe(32)
         expires_at = datetime.now() + timedelta(hours=8)
-        active_sessions[token] = expires_at
-        
+        save_session(token, expires_at)
+
         return jsonify({
             'success': True,
             'token': token,
@@ -270,7 +302,7 @@ def get_products():
     
     for cat_row in cursor.fetchall():
         products_cursor = conn.execute(
-            "SELECT * FROM products WHERE category_id = ? AND active = 1 ORDER BY display_order",
+            "SELECT * FROM products WHERE category_id = ? ORDER BY display_order",
             (cat_row['id'],)
         )
         
@@ -281,7 +313,8 @@ def get_products():
                 'name': prod_row['name'],
                 'price': prod_row['price'],
                 'inventory_quantity': prod_row['inventory_quantity'],
-                'track_inventory': bool(prod_row['track_inventory'])
+                'track_inventory': bool(prod_row['track_inventory']),
+                'active': bool(prod_row['active'])
             })
         
         categories.append({
@@ -320,20 +353,87 @@ def create_product():
 def update_product(product_id):
     """Update product"""
     data = request.get_json()
-    
+
     conn = get_db()
     conn.execute(
-        """UPDATE products 
-           SET name = ?, price = ?, inventory_quantity = ?, track_inventory = ?, updated_at = CURRENT_TIMESTAMP
+        """UPDATE products
+           SET name = ?, price = ?, category_id = ?, active = ?, inventory_quantity = ?, track_inventory = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?""",
-        (data['name'], data['price'], data.get('inventory_quantity', 0), data.get('track_inventory', False), product_id)
+        (data['name'], data['price'], data.get('category_id'), data.get('active', 1), data.get('inventory_quantity', 0), data.get('track_inventory', False), product_id)
     )
-    
+
     conn.commit()
     conn.close()
-    
+
     socketio.emit('product_updated', {'product_id': product_id})
-    
+
+    return jsonify({'success': True})
+
+# ============================================================================
+# Category Routes
+# ============================================================================
+
+@app.route('/api/categories', methods=['POST'])
+@admin_required
+def create_category():
+    """Create new category"""
+    data = request.get_json()
+
+    conn = get_db()
+    cursor = conn.execute(
+        "INSERT INTO categories (name) VALUES (?)",
+        (data['name'],)
+    )
+    category_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    socketio.emit('category_created', {'category_id': category_id})
+
+    return jsonify({'success': True, 'category_id': category_id}), 201
+
+@app.route('/api/categories/<int:category_id>', methods=['PUT'])
+@admin_required
+def update_category(category_id):
+    """Update category"""
+    data = request.get_json()
+
+    conn = get_db()
+    conn.execute(
+        "UPDATE categories SET name = ? WHERE id = ?",
+        (data['name'], category_id)
+    )
+    conn.commit()
+    conn.close()
+
+    socketio.emit('category_updated', {'category_id': category_id})
+
+    return jsonify({'success': True})
+
+@app.route('/api/categories/<int:category_id>', methods=['DELETE'])
+@admin_required
+def delete_category(category_id):
+    """Delete category (only if it has no products)"""
+    conn = get_db()
+
+    # Check if category has products
+    cursor = conn.execute(
+        "SELECT COUNT(*) as count FROM products WHERE category_id = ?",
+        (category_id,)
+    )
+    count = cursor.fetchone()['count']
+
+    if count > 0:
+        conn.close()
+        return jsonify({'error': 'Cannot delete category with products'}), 400
+
+    # Delete category
+    conn.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+    conn.commit()
+    conn.close()
+
+    socketio.emit('category_deleted', {'category_id': category_id})
+
     return jsonify({'success': True})
 
 # ============================================================================
@@ -406,6 +506,56 @@ def get_transactions():
     
     conn.close()
     return jsonify({'transactions': transactions})
+
+@app.route('/api/transactions/<int:transaction_id>', methods=['GET'])
+@admin_required
+def get_transaction(transaction_id):
+    """Get single transaction details"""
+    conn = get_db()
+
+    cursor = conn.execute("""
+        SELECT t.*, a.account_name
+        FROM transactions t
+        JOIN accounts a ON t.account_id = a.id
+        WHERE t.id = ?
+    """, (transaction_id,))
+
+    row = cursor.fetchone()
+
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Transaction not found'}), 404
+
+    # Get line items
+    items_cursor = conn.execute(
+        "SELECT * FROM transaction_items WHERE transaction_id = ?",
+        (transaction_id,)
+    )
+
+    items = []
+    for item_row in items_cursor.fetchall():
+        items.append({
+            'product_name': item_row['product_name'],
+            'quantity': item_row['quantity'],
+            'unit_price': item_row['unit_price'],
+            'line_total': item_row['line_total']
+        })
+
+    transaction = {
+        'id': row['id'],
+        'account_id': row['account_id'],
+        'account_name': row['account_name'],
+        'transaction_type': row['transaction_type'],
+        'total_amount': row['total_amount'],
+        'balance_after': row['balance_after'],
+        'operator_name': row['operator_name'],
+        'notes': row['notes'],
+        'created_at': row['created_at'],
+        'items': items
+    }
+
+    conn.close()
+    return jsonify(transaction)
 
 @app.route('/api/transactions', methods=['POST'])
 def create_transaction():
