@@ -416,6 +416,11 @@ body {
     z-index: 1100;
 }
 
+/* Add Funds Modal - highest z-index to appear on top of account details */
+#addFundsModal {
+    z-index: 1150;
+}
+
 /* Transaction Modal - highest z-index to appear on top when opened from account details */
 #transactionModal {
     z-index: 1200;

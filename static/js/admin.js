@@ -531,6 +531,9 @@ function showAddAccountForm() {
     document.getElementById('initialBalance').value = '0';
     document.getElementById('accountModal').classList.remove('hidden');
 
+    // Show initial balance field for new accounts
+    document.getElementById('initialBalanceGroup').style.display = 'flex';
+
     // Set initial visibility of family members field
     toggleFamilyMembersField();
 }
@@ -544,7 +547,6 @@ async function editAccount(accountId) {
         document.getElementById('accountId').value = account.id;
         document.getElementById('accountName').value = account.account_name;
         document.getElementById('accountType').value = account.account_type;
-        document.getElementById('initialBalance').value = account.initial_balance || 0;
         document.getElementById('accountNotes').value = account.notes || '';
 
         // Load family members (one per line)
@@ -552,6 +554,9 @@ async function editAccount(accountId) {
         document.getElementById('familyMembers').value = familyMembers.join('\n');
 
         document.getElementById('accountModal').classList.remove('hidden');
+
+        // Hide initial balance field when editing
+        document.getElementById('initialBalanceGroup').style.display = 'none';
 
         // Toggle family members field based on account type
         toggleFamilyMembersField();
@@ -628,6 +633,9 @@ async function viewAccountDetailsModal(accountId) {
         // Fetch account details
         const accountResponse = await fetch(`${API_URL}/accounts/${accountId}`);
         const account = await accountResponse.json();
+
+        // Store account for Add Funds feature
+        currentAccountForFunds = account;
 
         // Fetch transactions for this account
         const transactionsResponse = await fetch(`${API_URL}/transactions?account_id=${accountId}`);
@@ -751,6 +759,82 @@ async function viewAccountDetailsModal(accountId) {
 
 function hideAccountDetailsModal() {
     document.getElementById('accountDetailsModal').classList.add('hidden');
+}
+
+// ============================================================================
+// Add Funds to Account
+// ============================================================================
+
+let currentAccountForFunds = null;
+
+function showAddFundsModal() {
+    // Get the current account ID
+    const accountId = currentAccountForFunds?.id;
+
+    if (!accountId) {
+        showError('Please select an account first');
+        return;
+    }
+
+    // Reset form
+    document.getElementById('addFundsForm').reset();
+    document.getElementById('fundsAccountId').value = accountId;
+    document.getElementById('fundsAccountName').value = currentAccountForFunds.account_name;
+    document.getElementById('fundsAmount').value = '';
+    document.getElementById('fundsNotes').value = '';
+
+    // Show modal
+    document.getElementById('addFundsModal').classList.remove('hidden');
+    document.getElementById('fundsAmount').focus();
+}
+
+function hideAddFundsModal() {
+    document.getElementById('addFundsModal').classList.add('hidden');
+}
+
+async function addFundsToAccount() {
+    const accountId = document.getElementById('fundsAccountId').value;
+    const amount = parseFloat(document.getElementById('fundsAmount').value);
+    const notes = document.getElementById('fundsNotes').value.trim();
+
+    // Validate
+    if (!amount || amount <= 0) {
+        showError('Please enter a valid amount');
+        return;
+    }
+
+    try {
+        const paymentData = {
+            account_id: parseInt(accountId),
+            transaction_type: 'payment',
+            total_amount: amount,
+            notes: notes || 'Funds added to account'
+        };
+
+        const response = await fetch(`${API_URL}/transactions`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(paymentData)
+        });
+
+        if (response.ok) {
+            showSuccess(`$${amount.toFixed(2)} added successfully`);
+            hideAddFundsModal();
+
+            // Reload account details and accounts list
+            await viewAccountDetailsModal(accountId);
+            loadAccounts();
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Failed to add funds');
+        }
+    } catch (error) {
+        showError('Failed to add funds: ' + error.message);
+        console.error('Error:', error);
+    }
 }
 
 // ============================================================================

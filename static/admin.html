@@ -260,7 +260,7 @@
                             <option value="family">Family</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="initialBalanceGroup">
                         <label for="initialBalance">Initial Balance ($)</label>
                         <input type="number" id="initialBalance" class="form-input"
                                step="0.01" value="0">
@@ -298,7 +298,43 @@
                 </div>
             </div>
             <div class="modal-actions">
+                <button class="btn-primary" onclick="showAddFundsModal()">Add Funds</button>
                 <button class="btn-secondary" onclick="hideAccountDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Funds Modal -->
+    <div id="addFundsModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Funds</h2>
+                <button class="btn-close" onclick="hideAddFundsModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="addFundsForm" class="admin-form">
+                    <input type="hidden" id="fundsAccountId">
+                    <div class="form-group">
+                        <label for="fundsAccountName">Account</label>
+                        <input type="text" id="fundsAccountName" class="form-input" readonly
+                               style="background: #f8f9fa; cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label for="fundsAmount">Amount ($) *</label>
+                        <input type="number" id="fundsAmount" class="form-input"
+                               step="0.01" min="0.01" required placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="fundsNotes">Notes (Optional)</label>
+                        <textarea id="fundsNotes" class="form-input" rows="3"
+                                  style="min-height: auto; resize: vertical;"
+                                  placeholder="Reason for payment..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideAddFundsModal()">Cancel</button>
+                <button class="btn-primary" onclick="addFundsToAccount()">Add Funds</button>
             </div>
         </div>
     </div>

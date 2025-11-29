@@ -216,40 +216,63 @@ def get_account(account_id):
 def create_account():
     """Create new account"""
     data = request.get_json()
-    
+
     conn = get_db()
-    
-    # Generate unique account number
-    cursor = conn.execute("SELECT MAX(CAST(SUBSTR(account_number, 2) AS INTEGER)) as max_num FROM accounts WHERE account_number LIKE 'A%'")
-    row = cursor.fetchone()
-    next_num = (row['max_num'] or 0) + 1
-    account_number = f"A{next_num:03d}"
-    
-    family_members_json = json.dumps(data.get('family_members', []))
-    
-    cursor = conn.execute(
-        """INSERT INTO accounts (account_number, account_name, account_type, family_members, initial_balance, current_balance, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
-        (account_number, data['account_name'], data['account_type'], family_members_json,
-         data.get('initial_balance', 0), data.get('initial_balance', 0), data.get('notes', ''))
-    )
-    
-    account_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    
-    # Notify all clients
-    socketio.emit('account_created', {'account_id': account_id, 'account_number': account_number})
-    
-    return jsonify({
-        'success': True,
-        'account': {
-            'id': account_id,
-            'account_number': account_number,
-            'account_name': data['account_name'],
-            'current_balance': data.get('initial_balance', 0)
-        }
-    }), 201
+
+    try:
+        # Generate unique account number
+        cursor = conn.execute("SELECT MAX(CAST(SUBSTR(account_number, 2) AS INTEGER)) as max_num FROM accounts WHERE account_number LIKE 'A%'")
+        row = cursor.fetchone()
+        next_num = (row['max_num'] or 0) + 1
+        account_number = f"A{next_num:03d}"
+
+        family_members_json = json.dumps(data.get('family_members', []))
+        initial_balance = data.get('initial_balance', 0)
+
+        # Create account with 0 balance initially
+        cursor = conn.execute(
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, initial_balance, current_balance, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (account_number, data['account_name'], data['account_type'], family_members_json,
+             initial_balance, 0, data.get('notes', ''))
+        )
+
+        account_id = cursor.lastrowid
+
+        # If there's an initial balance, create a payment transaction
+        if initial_balance > 0:
+            cursor.execute(
+                """INSERT INTO transactions (account_id, transaction_type, total_amount, balance_after, notes)
+                   VALUES (?, 'payment', ?, ?, ?)""",
+                (account_id, initial_balance, initial_balance, 'Initial balance payment')
+            )
+
+            # Update account balance
+            conn.execute(
+                "UPDATE accounts SET current_balance = ? WHERE id = ?",
+                (initial_balance, account_id)
+            )
+
+        conn.commit()
+
+        # Notify all clients
+        socketio.emit('account_created', {'account_id': account_id, 'account_number': account_number})
+
+        return jsonify({
+            'success': True,
+            'account': {
+                'id': account_id,
+                'account_number': account_number,
+                'account_name': data['account_name'],
+                'current_balance': initial_balance
+            }
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 @app.route('/api/accounts/<int:account_id>', methods=['PUT'])
 @admin_required
