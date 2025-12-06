@@ -117,6 +117,7 @@ async function loadProducts() {
 }
 
 function displayProductsTable() {
+    const searchTerm = document.getElementById('productSearchInput')?.value.toLowerCase() || '';
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
 
@@ -126,6 +127,17 @@ function displayProductsTable() {
                 // Filter based on showInactiveProducts state
                 if (!showInactiveProducts && !product.active) {
                     return; // Skip inactive products when filter is off
+                }
+
+                // Filter based on search term
+                if (searchTerm) {
+                    const matchesSearch =
+                        product.name.toLowerCase().includes(searchTerm) ||
+                        category.name.toLowerCase().includes(searchTerm);
+
+                    if (!matchesSearch) {
+                        return; // Skip products that don't match search
+                    }
                 }
 
                 const row = document.createElement('tr');
@@ -144,6 +156,10 @@ function displayProductsTable() {
             });
         });
     }
+}
+
+function filterProductsTable() {
+    displayProductsTable();
 }
 
 function toggleInactiveProducts() {
