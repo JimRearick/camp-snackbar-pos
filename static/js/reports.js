@@ -1,0 +1,505 @@
+/**
+ * Reports page JavaScript
+ */
+
+import { API_URL } from './utils/constants.js';
+import { getAuthToken, login as authLogin, logout as authLogout } from './utils/auth.js';
+import { apiGet } from './utils/api.js';
+
+// Global state
+let authToken = getAuthToken();
+
+// ============================================================================
+// Tab Management
+// ============================================================================
+
+window.showTab = function(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    document.getElementById(tabName + 'Tab').classList.add('active');
+
+    // Add active class to clicked button
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+
+    // Load data for the tab if needed
+    switch(tabName) {
+        case 'summary':
+            loadSummary();
+            break;
+        case 'sales':
+            loadSalesReport();
+            break;
+        case 'category':
+            loadCategoryReport();
+            break;
+        case 'balances':
+            loadAccountBalances();
+            break;
+    }
+};
+
+// ============================================================================
+// Authentication
+// ============================================================================
+
+window.login = async function(event) {
+    event.preventDefault();
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        await authLogin(password);
+        authToken = getAuthToken();
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('reportsContainer').classList.remove('hidden');
+        loadSummary();
+    } catch (error) {
+        showLoginError(error.message || 'Login failed');
+    }
+};
+
+function showLoginError(message) {
+    const errorDiv = document.getElementById('loginError');
+    errorDiv.textContent = message;
+    errorDiv.classList.remove('hidden');
+}
+
+window.logout = authLogout;
+
+// ============================================================================
+// Load Summary
+// ============================================================================
+
+async function loadSummary() {
+    try {
+        const summaryResponse = await fetch(`${API_URL}/api/reports/summary`);
+        const summaryData = await summaryResponse.json();
+
+        const accountsResponse = await fetch(`${API_URL}/api/accounts`);
+        const accountsData = await accountsResponse.json();
+
+        const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+        const transactionsData = await transactionsResponse.json();
+
+        // Total Accounts
+        document.getElementById('totalAccounts').textContent = summaryData.total_accounts;
+
+        // Active Accounts (accounts that have transactions)
+        const accountsWithTransactions = new Set(
+            transactionsData.transactions.map(t => t.account_id)
+        );
+        const activeAccounts = accountsWithTransactions.size;
+        document.getElementById('activeAccounts').textContent = activeAccounts;
+
+        // Total Sales (total spent)
+        document.getElementById('totalSales').textContent = `$${summaryData.total_spent.toFixed(2)}`;
+
+        // Total Balance Due (negative balances - money owed to camp)
+        const balanceDue = accountsData.accounts
+            .filter(acc => acc.current_balance < 0)
+            .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
+        document.getElementById('totalBalanceDue').textContent = `$${balanceDue.toFixed(2)}`;
+    } catch (error) {
+        console.error('Error loading summary:', error);
+    }
+}
+
+// ============================================================================
+// Load Sales Report
+// ============================================================================
+
+async function loadSalesReport() {
+    try {
+        const response = await fetch(`${API_URL}/api/reports/sales`);
+        const data = await response.json();
+
+        const container = document.getElementById('salesTableContainer');
+
+        if (data.sales.length === 0) {
+            container.innerHTML = '<div class="no-data">No sales data available</div>';
+            return;
+        }
+
+        let html = `
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Quantity Sold</th>
+                        <th>Transactions</th>
+                        <th style="text-align: right;">Total Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.sales.forEach(item => {
+            html += `
+                <tr>
+                    <td>${item.product_name}</td>
+                    <td>${item.total_quantity}</td>
+                    <td>${item.transaction_count}</td>
+                    <td class="currency positive">$${item.total_revenue.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading sales report:', error);
+        document.getElementById('salesTableContainer').innerHTML =
+            '<div class="no-data">Error loading sales data</div>';
+    }
+}
+
+// ============================================================================
+// Load Account Balances
+// ============================================================================
+
+window.loadAccountBalances = async function() {
+    try {
+        const typeFilter = document.getElementById('accountTypeFilter').value;
+        const url = typeFilter ?
+            `${API_URL}/api/accounts?type=${typeFilter}` :
+            `${API_URL}/api/accounts`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        const container = document.getElementById('accountsTableContainer');
+
+        if (data.accounts.length === 0) {
+            container.innerHTML = '<div class="no-data">No accounts found</div>';
+            return;
+        }
+
+        // Get transaction counts and totals for each account
+        const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+        const transactionsData = await transactionsResponse.json();
+
+        const purchaseCounts = {};
+        const purchaseTotals = {};
+        transactionsData.transactions.forEach(transaction => {
+            if (transaction.transaction_type === 'purchase') {
+                purchaseCounts[transaction.account_id] = (purchaseCounts[transaction.account_id] || 0) + 1;
+                purchaseTotals[transaction.account_id] = (purchaseTotals[transaction.account_id] || 0) + Math.abs(transaction.total_amount);
+            }
+        });
+
+        let html = `
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Purchase Count</th>
+                        <th style="text-align: right;">Total Spent</th>
+                        <th style="text-align: right;">Current Balance</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.accounts.forEach(account => {
+            const spent = purchaseTotals[account.id] || 0;
+            const balanceClass = account.current_balance < 0 ? 'negative' : 'positive';
+            const purchaseCount = purchaseCounts[account.id] || 0;
+
+            html += `
+                <tr>
+                    <td>${account.account_name}</td>
+                    <td>${account.account_type}</td>
+                    <td>${purchaseCount}</td>
+                    <td class="currency">$${spent.toFixed(2)}</td>
+                    <td class="currency ${balanceClass}">$${account.current_balance.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading account balances:', error);
+        document.getElementById('accountsTableContainer').innerHTML =
+            '<div class="no-data">Error loading account data</div>';
+    }
+};
+
+// ============================================================================
+// Load Sales by Category Report
+// ============================================================================
+
+async function loadCategoryReport() {
+    try {
+        const salesResponse = await fetch(`${API_URL}/api/reports/sales`);
+        const salesData = await salesResponse.json();
+
+        const productsResponse = await fetch(`${API_URL}/api/products`);
+        const productsData = await productsResponse.json();
+
+        const container = document.getElementById('categoryTableContainer');
+
+        if (productsData.categories.length === 0) {
+            container.innerHTML = '<div class="no-data">No category data available</div>';
+            return;
+        }
+
+        // Create a map of product names to categories
+        const productToCategory = {};
+        productsData.categories.forEach(cat => {
+            cat.products.forEach(prod => {
+                productToCategory[prod.name] = cat.name;
+            });
+        });
+
+        // Aggregate sales by category
+        const categoryTotals = {};
+        salesData.sales.forEach(sale => {
+            const category = productToCategory[sale.product_name] || 'Unknown';
+            if (!categoryTotals[category]) {
+                categoryTotals[category] = {
+                    revenue: 0,
+                    quantity: 0,
+                    transactions: 0
+                };
+            }
+            categoryTotals[category].revenue += sale.total_revenue;
+            categoryTotals[category].quantity += sale.total_quantity;
+            categoryTotals[category].transactions += sale.transaction_count;
+        });
+
+        // Sort by revenue
+        const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1].revenue - a[1].revenue);
+
+        let html = `
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Items Sold</th>
+                        <th>Transactions</th>
+                        <th style="text-align: right;">Total Revenue</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        sortedCategories.forEach(([category, data]) => {
+            html += `
+                <tr>
+                    <td><strong>${category}</strong></td>
+                    <td>${data.quantity}</td>
+                    <td>${data.transactions}</td>
+                    <td class="currency positive">$${data.revenue.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+
+        // Add total row
+        const totalRevenue = sortedCategories.reduce((sum, [, data]) => sum + data.revenue, 0);
+        const totalQuantity = sortedCategories.reduce((sum, [, data]) => sum + data.quantity, 0);
+        const totalTransactions = sortedCategories.reduce((sum, [, data]) => sum + data.transactions, 0);
+
+        html += `
+                <tr style="background: #f0f0f0; font-weight: bold;">
+                    <td>TOTAL</td>
+                    <td>${totalQuantity}</td>
+                    <td>${totalTransactions}</td>
+                    <td class="currency">$${totalRevenue.toFixed(2)}</td>
+                </tr>
+        `;
+
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading category report:', error);
+        document.getElementById('categoryTableContainer').innerHTML =
+            '<div class="no-data">Error loading category data</div>';
+    }
+}
+
+// ============================================================================
+// CSV Export Functions
+// ============================================================================
+
+function exportToCSV(filename, headers, rows) {
+    let csv = headers.join(',') + '\n';
+    rows.forEach(row => {
+        csv += row.map(cell => {
+            const escaped = String(cell).replace(/"/g, '""');
+            return escaped.includes(',') ? `"${escaped}"` : escaped;
+        }).join(',') + '\n';
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+window.exportSummaryToCSV = async function() {
+    const summaryResponse = await fetch(`${API_URL}/api/reports/summary`);
+    const summaryData = await summaryResponse.json();
+
+    const accountsResponse = await fetch(`${API_URL}/api/accounts`);
+    const accountsData = await accountsResponse.json();
+
+    const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+    const transactionsData = await transactionsResponse.json();
+
+    // Calculate metrics
+    const accountsWithTransactions = new Set(
+        transactionsData.transactions.map(t => t.account_id)
+    );
+    const activeAccounts = accountsWithTransactions.size;
+
+    const balanceDue = accountsData.accounts
+        .filter(acc => acc.current_balance < 0)
+        .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
+
+    const headers = ['Metric', 'Value'];
+    const rows = [
+        ['Total Accounts', summaryData.total_accounts],
+        ['Active Accounts', activeAccounts],
+        ['Total Sales', `$${summaryData.total_spent.toFixed(2)}`],
+        ['Total Balance Due', `$${balanceDue.toFixed(2)}`],
+        ['Total Prepaid', `$${summaryData.total_prepaid.toFixed(2)}`],
+        ['Total Remaining', `$${summaryData.total_remaining.toFixed(2)}`],
+        ['Total Transactions', summaryData.transaction_count]
+    ];
+
+    exportToCSV('camp-summary-report.csv', headers, rows);
+};
+
+window.exportSalesToCSV = async function() {
+    const response = await fetch(`${API_URL}/api/reports/sales`);
+    const data = await response.json();
+
+    const headers = ['Product Name', 'Quantity Sold', 'Transactions', 'Total Revenue'];
+    const rows = data.sales.map(item => [
+        item.product_name,
+        item.total_quantity,
+        item.transaction_count,
+        item.total_revenue.toFixed(2)
+    ]);
+
+    exportToCSV('sales-by-product-report.csv', headers, rows);
+};
+
+window.exportAccountBalancesToCSV = async function() {
+    const typeFilter = document.getElementById('accountTypeFilter').value;
+    const url = typeFilter ?
+        `${API_URL}/api/accounts?type=${typeFilter}` :
+        `${API_URL}/api/accounts`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    // Get transaction counts and totals for each account
+    const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+    const transactionsData = await transactionsResponse.json();
+
+    const purchaseCounts = {};
+    const purchaseTotals = {};
+    transactionsData.transactions.forEach(transaction => {
+        if (transaction.transaction_type === 'purchase') {
+            purchaseCounts[transaction.account_id] = (purchaseCounts[transaction.account_id] || 0) + 1;
+            purchaseTotals[transaction.account_id] = (purchaseTotals[transaction.account_id] || 0) + Math.abs(transaction.total_amount);
+        }
+    });
+
+    const headers = ['Name', 'Type', 'Purchase Count', 'Total Spent', 'Current Balance'];
+    const rows = data.accounts.map(account => {
+        const spent = purchaseTotals[account.id] || 0;
+        const purchaseCount = purchaseCounts[account.id] || 0;
+        return [
+            account.account_name,
+            account.account_type,
+            purchaseCount,
+            spent.toFixed(2),
+            account.current_balance.toFixed(2)
+        ];
+    });
+
+    exportToCSV('account-balances-report.csv', headers, rows);
+};
+
+window.exportCategoryToCSV = async function() {
+    const salesResponse = await fetch(`${API_URL}/api/reports/sales`);
+    const salesData = await salesResponse.json();
+
+    const productsResponse = await fetch(`${API_URL}/api/products`);
+    const productsData = await productsResponse.json();
+
+    // Create a map of product names to categories
+    const productToCategory = {};
+    productsData.categories.forEach(cat => {
+        cat.products.forEach(prod => {
+            productToCategory[prod.name] = cat.name;
+        });
+    });
+
+    // Aggregate sales by category
+    const categoryTotals = {};
+    salesData.sales.forEach(sale => {
+        const category = productToCategory[sale.product_name] || 'Unknown';
+        if (!categoryTotals[category]) {
+            categoryTotals[category] = {
+                revenue: 0,
+                quantity: 0,
+                transactions: 0
+            };
+        }
+        categoryTotals[category].revenue += sale.total_revenue;
+        categoryTotals[category].quantity += sale.total_quantity;
+        categoryTotals[category].transactions += sale.transaction_count;
+    });
+
+    const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1].revenue - a[1].revenue);
+
+    const headers = ['Category', 'Items Sold', 'Transactions', 'Total Revenue'];
+    const rows = sortedCategories.map(([category, data]) => [
+        category,
+        data.quantity,
+        data.transactions,
+        data.revenue.toFixed(2)
+    ]);
+
+    // Add total row
+    const totalRevenue = sortedCategories.reduce((sum, [, data]) => sum + data.revenue, 0);
+    const totalQuantity = sortedCategories.reduce((sum, [, data]) => sum + data.quantity, 0);
+    const totalTransactions = sortedCategories.reduce((sum, [, data]) => sum + data.transactions, 0);
+
+    rows.push([
+        'TOTAL',
+        totalQuantity,
+        totalTransactions,
+        totalRevenue.toFixed(2)
+    ]);
+
+    exportToCSV('sales-by-category-report.csv', headers, rows);
+};
+
+// ============================================================================
+// Initialize
+// ============================================================================
+
+if (authToken) {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('reportsContainer').classList.remove('hidden');
+    loadSummary();
+}
