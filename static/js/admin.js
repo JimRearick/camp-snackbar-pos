@@ -484,18 +484,7 @@ async function loadAccounts() {
         const data = await response.json();
 
         allAccounts = data.accounts || [];
-
-        // Filter by active status
-        const statusFilter = document.getElementById('accountStatusFilter')?.value || 'active';
-        let filtered = allAccounts;
-
-        if (statusFilter === 'active') {
-            filtered = allAccounts.filter(acc => acc.active !== false);
-        } else if (statusFilter === 'inactive') {
-            filtered = allAccounts.filter(acc => acc.active === false);
-        }
-
-        displayAccountsTable(filtered);
+        filterAccountsTable();
     } catch (error) {
         showError('Failed to load accounts');
         console.error('Error loading accounts:', error);
@@ -534,10 +523,26 @@ function displayAccountsTable(accountsList) {
 
 function filterAccountsTable() {
     const searchTerm = document.getElementById('accountSearchInput').value.toLowerCase();
-    const filtered = allAccounts.filter(account =>
-        account.account_name.toLowerCase().includes(searchTerm) ||
-        account.account_number.toLowerCase().includes(searchTerm)
-    );
+    const statusFilter = document.getElementById('accountStatusFilter')?.value || 'active';
+
+    let filtered = allAccounts;
+
+    // Apply status filter first
+    if (statusFilter === 'active') {
+        filtered = filtered.filter(acc => acc.active !== false);
+    } else if (statusFilter === 'inactive') {
+        filtered = filtered.filter(acc => acc.active === false);
+    }
+    // If statusFilter is empty string, show all accounts
+
+    // Then apply search filter
+    if (searchTerm) {
+        filtered = filtered.filter(account =>
+            account.account_name.toLowerCase().includes(searchTerm) ||
+            account.account_number.toLowerCase().includes(searchTerm)
+        );
+    }
+
     displayAccountsTable(filtered);
 }
 
