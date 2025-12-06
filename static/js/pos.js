@@ -232,7 +232,7 @@ function updateCartDisplay() {
         
         cartItem.innerHTML = `
             <div class="cart-item-info">
-                <div class="cart-item-name">${item.name}</div>
+                <div class="cart-item-name">${trimProductName(item.name)}</div>
                 <div class="cart-item-price">$${item.price.toFixed(2)} each</div>
             </div>
             <div class="cart-item-controls">
@@ -247,6 +247,16 @@ function updateCartDisplay() {
     });
     
     totalElement.textContent = `$${total.toFixed(2)}`;
+}
+
+// Trim long words in product name
+function trimProductName(name) {
+    return name.split(' ').map(word => {
+        if (word.length > 8) {
+            return word.substring(0, 5) + '...';
+        }
+        return word;
+    }).join(' ');
 }
 
 // Clear cart - show confirmation modal
@@ -396,7 +406,6 @@ function hideNewAccountForm() {
 async function createNewAccount() {
     const accountName = document.getElementById('accountName').value.trim();
     const accountType = document.getElementById('accountType').value;
-    const initialBalance = parseFloat(document.getElementById('initialBalance').value) || 0;
     const notes = document.getElementById('notes').value.trim();
     const familyMembersText = document.getElementById('familyMembers').value.trim();
 
@@ -416,13 +425,12 @@ async function createNewAccount() {
     const accountData = {
         account_name: accountName,
         account_type: accountType,
-        initial_balance: initialBalance,
         notes: notes,
         family_members: familyMembers
     };
 
     try {
-        const response = await fetch(`${API_URL}/accounts`, {
+        const response = await fetch(`${API_URL}/pos/accounts`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

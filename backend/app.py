@@ -274,6 +274,51 @@ def create_account():
     finally:
         conn.close()
 
+@app.route('/api/pos/accounts', methods=['POST'])
+def create_account_pos():
+    """Create new account from POS (no auth required)"""
+    data = request.get_json()
+
+    conn = get_db()
+
+    try:
+        # Generate unique account number
+        cursor = conn.execute("SELECT MAX(CAST(SUBSTR(account_number, 2) AS INTEGER)) as max_num FROM accounts WHERE account_number LIKE 'A%'")
+        row = cursor.fetchone()
+        next_num = (row['max_num'] or 0) + 1
+        account_number = f"A{next_num:03d}"
+
+        family_members_json = json.dumps(data.get('family_members', []))
+
+        # Create account with 0 balance (POS doesn't set initial balance)
+        cursor = conn.execute(
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, initial_balance, current_balance, notes)
+               VALUES (?, ?, ?, ?, 0, 0, ?)""",
+            (account_number, data['account_name'], data['account_type'], family_members_json, data.get('notes', ''))
+        )
+
+        account_id = cursor.lastrowid
+        conn.commit()
+
+        # Notify all clients
+        socketio.emit('account_created', {'account_id': account_id, 'account_number': account_number})
+
+        return jsonify({
+            'success': True,
+            'account': {
+                'id': account_id,
+                'account_number': account_number,
+                'account_name': data['account_name'],
+                'current_balance': 0
+            }
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
 @app.route('/api/accounts/<int:account_id>', methods=['PUT'])
 @admin_required
 def update_account(account_id):
@@ -574,6 +619,7 @@ def get_transaction(transaction_id):
         'operator_name': row['operator_name'],
         'notes': row['notes'],
         'created_at': row['created_at'],
+        'has_been_adjusted': bool(row['has_been_adjusted']) if 'has_been_adjusted' in row.keys() else False,
         'items': items
     }
 
@@ -615,17 +661,36 @@ def create_transaction():
         
         elif transaction_type == 'adjustment':
             total_amount = data['total_amount']
-        
+
+            # If this is a refund adjustment, mark the original transaction as adjusted
+            if 'original_transaction_id' in data:
+                original_id = data['original_transaction_id']
+                # Check if original transaction has already been adjusted
+                cursor = conn.execute(
+                    "SELECT has_been_adjusted FROM transactions WHERE id = ?",
+                    (original_id,)
+                )
+                orig_row = cursor.fetchone()
+                if orig_row and orig_row['has_been_adjusted']:
+                    raise Exception('This transaction has already been adjusted and cannot be refunded again')
+
         new_balance = current_balance + total_amount
-        
+
         # Create transaction
         cursor = conn.execute(
             """INSERT INTO transactions (account_id, transaction_type, total_amount, balance_after, operator_name, notes)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (account_id, transaction_type, total_amount, new_balance, data.get('operator_name', ''), data.get('notes', ''))
         )
-        
+
         transaction_id = cursor.lastrowid
+
+        # If this is a refund adjustment, mark the original transaction as adjusted
+        if transaction_type == 'adjustment' and 'original_transaction_id' in data:
+            conn.execute(
+                "UPDATE transactions SET has_been_adjusted = 1 WHERE id = ?",
+                (data['original_transaction_id'],)
+            )
         
         # Add line items for purchases
         if transaction_type == 'purchase':

@@ -1,5 +1,5 @@
 // Global state
-let authToken = null;
+let authToken = localStorage.getItem('adminToken');
 let allAccounts = [];
 let allTransactions = [];
 let showInactiveProducts = false; // Filter state for inventory display
@@ -30,6 +30,7 @@ async function login(event) {
 
         if (data.success) {
             authToken = data.token;
+            localStorage.setItem('adminToken', authToken);
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('adminDashboard').classList.remove('hidden');
 
@@ -49,9 +50,17 @@ async function login(event) {
 
 function logout() {
     authToken = null;
+    localStorage.removeItem('adminToken');
     document.getElementById('adminDashboard').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('loginPassword').value = '';
+}
+
+function handleUnauthorized() {
+    showError('Session expired. Please log in again.');
+    setTimeout(() => {
+        logout();
+    }, 2000);
 }
 
 function showLoginError(message) {
@@ -127,7 +136,7 @@ function displayProductsTable() {
                     <td><span class="status-badge ${product.active ? 'status-active' : 'status-inactive'}">
                         ${product.active ? 'Active' : 'Inactive'}
                     </span></td>
-                    <td>
+                    <td style="text-align: right;">
                         <button class="btn-edit" onclick="editProduct(${product.id})">Edit</button>
                     </td>
                 `;
@@ -314,6 +323,9 @@ async function saveProduct() {
             showSuccess(productId ? 'Product updated' : 'Product added');
             hideProductModal();
             loadProducts();
+        } else if (response.status === 401) {
+            handleUnauthorized();
+            return;
         } else {
             const errorData = await response.json().catch(() => ({}));
             const errorMsg = errorData.error || `Failed to save product (HTTP ${response.status})`;
@@ -350,7 +362,7 @@ async function loadCategories() {
                 row.innerHTML = `
                     <td>${category.name}</td>
                     <td>${productCount}</td>
-                    <td>
+                    <td style="text-align: right;">
                         <button class="btn-edit" onclick="editCategory(${category.id})">Edit</button>
                         <button class="btn-danger" onclick="deleteCategory(${category.id}, '${category.name}', ${productCount})">Delete</button>
                     </td>
@@ -495,7 +507,7 @@ function displayAccountsTable(accountsList) {
                 $${account.current_balance.toFixed(2)}
             </td>
             <td>${createdDate}</td>
-            <td>
+            <td style="text-align: right;">
                 <button class="btn-edit" onclick="editAccount(${account.id})">Edit</button>
                 <button class="btn-view" onclick="viewAccountDetailsModal(${account.id})">View Details</button>
             </td>
@@ -873,14 +885,14 @@ function displayTransactionsTable(transactionsList) {
         const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 
         row.innerHTML = `
+            <td>#${transaction.id}</td>
             <td>${dateStr}</td>
             <td>${transaction.account_name || 'N/A'}</td>
             <td><span class="type-badge">${transaction.transaction_type}</span></td>
             <td style="color: ${transaction.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                 $${Math.abs(transaction.total_amount).toFixed(2)}
             </td>
-            <td>$${transaction.balance_after.toFixed(2)}</td>
-            <td>
+            <td style="text-align: right;">
                 <button class="btn-view" onclick="viewTransactionDetails(${transaction.id})">Details</button>
             </td>
         `;
@@ -897,46 +909,68 @@ async function viewTransactionDetails(transactionId) {
         });
         const data = await response.json();
 
-        // Store transaction data globally for refund operations
+        // Store transaction data globally for adjust operations
         window.currentTransaction = data;
+        window.adjustModeEnabled = false;
 
         const detailsDiv = document.getElementById('transactionDetails');
         const date = new Date(data.created_at);
+
+        // Check if transaction has already been adjusted
+        const hasBeenAdjusted = data.has_been_adjusted || false;
 
         let itemsHTML = '';
         if (data.items && data.items.length > 0) {
             itemsHTML = `
                 <div class="items-list">
                     <h3>Items:</h3>
-                    ${data.items.map((item, index) => `
-                        <div class="item-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; margin-bottom: 0.5rem; border-radius: 6px;">
-                            <div>
-                                <span style="font-weight: 600;">${item.product_name}</span>
-                                <span style="color: #666;"> x ${item.quantity}</span>
+                    <div id="itemsList">
+                        ${data.items.map((item, index) => `
+                            <div class="item-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; margin-bottom: 0.5rem; border-radius: 6px;">
+                                <div style="flex: 1;">
+                                    <span style="font-weight: 600;">${item.product_name}</span>
+                                    <span style="color: #666;"> x ${item.quantity}</span>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <span style="font-weight: 600;">$${item.line_total.toFixed(2)}</span>
+                                    <span class="adjust-controls" style="display: none; align-items: center; gap: 0.5rem;">
+                                        <button class="btn-quantity" onclick="decrementAdjustQty(${index})" style="width: 40px; height: 40px; font-size: 1.5rem; padding: 0; border: 2px solid #ddd; border-radius: 6px; background: white; cursor: pointer;">−</button>
+                                        <span id="adjustQty_${index}" data-max="${item.quantity}" style="min-width: 30px; text-align: center; font-size: 1.2rem; font-weight: 600;">0</span>
+                                        <button class="btn-quantity" onclick="incrementAdjustQty(${index}, ${item.quantity})" style="width: 40px; height: 40px; font-size: 1.5rem; padding: 0; border: 2px solid #ddd; border-radius: 6px; background: white; cursor: pointer;">+</button>
+                                    </span>
+                                </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <span style="font-weight: 600;">$${item.line_total.toFixed(2)}</span>
-                                ${data.transaction_type === 'purchase' ? `
-                                    <button class="btn-edit" style="min-height: 40px; padding: 0.5rem 1rem; font-size: 0.9rem;"
-                                            onclick="refundItem(${index})">Refund</button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `).join('')}
+                        `).join('')}
+                    </div>
                 </div>
             `;
         }
 
-        // Add refund button for full transaction (only for purchases)
-        let refundButtonHTML = '';
+        // Add toggle button and adjust button for full transaction (only for purchases that haven't been adjusted)
+        let adjustButtonHTML = '';
         if (data.transaction_type === 'purchase') {
-            refundButtonHTML = `
-                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
-                    <button class="btn-danger" onclick="refundFullTransaction()" style="width: 100%;">
-                        Refund Full Transaction ($${Math.abs(data.total_amount).toFixed(2)})
-                    </button>
-                </div>
-            `;
+            if (hasBeenAdjusted) {
+                adjustButtonHTML = `
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
+                        <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 1rem; border-radius: 8px; text-align: center;">
+                            <strong>⚠️ This transaction has already been adjusted and cannot be adjusted again.</strong>
+                        </div>
+                    </div>
+                `;
+            } else {
+                adjustButtonHTML = `
+                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
+                        <button class="btn-secondary" onclick="toggleAdjustMode()" style="width: 100%; margin-bottom: 1rem;">
+                            Enable Adjust Mode
+                        </button>
+                        <div id="adjustSection" style="display: none;">
+                            <button class="btn-danger" onclick="processAdjustment()" style="width: 100%;">
+                                Process Adjustment
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
         detailsDiv.innerHTML = `
@@ -973,7 +1007,7 @@ async function viewTransactionDetails(transactionId) {
                 </div>
             ` : ''}
             ${itemsHTML}
-            ${refundButtonHTML}
+            ${adjustButtonHTML}
         `;
 
         document.getElementById('transactionModal').classList.remove('hidden');
@@ -983,20 +1017,96 @@ async function viewTransactionDetails(transactionId) {
     }
 }
 
+function toggleAdjustMode() {
+    window.adjustModeEnabled = !window.adjustModeEnabled;
+
+    const adjustControls = document.querySelectorAll('.adjust-controls');
+    const adjustSection = document.getElementById('adjustSection');
+    const toggleBtn = event.target;
+
+    if (window.adjustModeEnabled) {
+        adjustControls.forEach(control => control.style.display = 'flex');
+        if (adjustSection) adjustSection.style.display = 'block';
+        toggleBtn.textContent = 'Disable Adjust Mode';
+        toggleBtn.classList.remove('btn-secondary');
+        toggleBtn.classList.add('btn-warning');
+    } else {
+        adjustControls.forEach(control => control.style.display = 'none');
+        if (adjustSection) adjustSection.style.display = 'none';
+        toggleBtn.textContent = 'Enable Adjust Mode';
+        toggleBtn.classList.remove('btn-warning');
+        toggleBtn.classList.add('btn-secondary');
+
+        // Reset all quantities to 0
+        document.querySelectorAll('[id^="adjustQty_"]').forEach(qtySpan => {
+            qtySpan.textContent = '0';
+        });
+    }
+}
+
+function decrementAdjustQty(itemIndex) {
+    const qtySpan = document.getElementById(`adjustQty_${itemIndex}`);
+    let currentQty = parseInt(qtySpan.textContent);
+    if (currentQty > 0) {
+        qtySpan.textContent = currentQty - 1;
+    }
+}
+
+function incrementAdjustQty(itemIndex, maxQty) {
+    const qtySpan = document.getElementById(`adjustQty_${itemIndex}`);
+    let currentQty = parseInt(qtySpan.textContent);
+    if (currentQty < maxQty) {
+        qtySpan.textContent = currentQty + 1;
+    }
+}
+
 function hideTransactionModal() {
     document.getElementById('transactionModal').classList.add('hidden');
 }
 
-// Refund full transaction
-async function refundFullTransaction() {
+// Process adjustment for selected items
+async function processAdjustment() {
     const transaction = window.currentTransaction;
     if (!transaction) {
         showError('Transaction data not available');
         return;
     }
 
-    const refundAmount = Math.abs(transaction.total_amount);
-    const confirmMsg = `Refund full transaction of $${refundAmount.toFixed(2)} to ${transaction.account_name}?`;
+    // Collect all items with quantities > 0
+    const adjustedItems = [];
+    let totalAdjustAmount = 0;
+
+    transaction.items.forEach((item, index) => {
+        const qtySpan = document.getElementById(`adjustQty_${index}`);
+        const adjustQty = qtySpan ? parseInt(qtySpan.textContent) : 0;
+
+        if (adjustQty > 0) {
+            const unitPrice = item.line_total / item.quantity;
+            const itemAdjustAmount = unitPrice * adjustQty;
+            totalAdjustAmount += itemAdjustAmount;
+
+            adjustedItems.push({
+                name: item.product_name,
+                quantity: adjustQty,
+                originalQuantity: item.quantity,
+                amount: itemAdjustAmount
+            });
+        }
+    });
+
+    // Validate that at least one item is being adjusted
+    if (adjustedItems.length === 0) {
+        showError('Please select at least one item to adjust (quantity must be greater than 0)');
+        return;
+    }
+
+    // Build detailed note
+    let detailedNote = `Adjustment for transaction #${transaction.id}:\n`;
+    adjustedItems.forEach(item => {
+        detailedNote += `- ${item.name} (x${item.quantity}): $${item.amount.toFixed(2)}\n`;
+    });
+
+    const confirmMsg = `Process adjustment of $${totalAdjustAmount.toFixed(2)} for ${adjustedItems.length} item(s) to ${transaction.account_name}?\n\nNote: This transaction will be marked as adjusted and cannot be adjusted again.`;
 
     if (!confirm(confirmMsg)) {
         return;
@@ -1006,8 +1116,9 @@ async function refundFullTransaction() {
         const adjustmentData = {
             account_id: transaction.account_id,
             transaction_type: 'adjustment',
-            total_amount: refundAmount, // Positive to add back to account
-            notes: `Refund for transaction #${transaction.id} - Full refund`
+            total_amount: totalAdjustAmount, // Positive to add back to account
+            notes: detailedNote,
+            original_transaction_id: transaction.id
         };
 
         const response = await fetch(`${API_URL}/transactions`, {
@@ -1020,68 +1131,16 @@ async function refundFullTransaction() {
         });
 
         if (response.ok) {
-            showSuccess('Full refund processed successfully');
+            showSuccess('Adjustment processed successfully');
             hideTransactionModal();
             loadTransactions();
             loadAccounts();
         } else {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to process refund');
+            throw new Error(errorData.error || 'Failed to process adjustment');
         }
     } catch (error) {
-        showError('Failed to process refund: ' + error.message);
-        console.error('Error:', error);
-    }
-}
-
-// Refund single item
-async function refundItem(itemIndex) {
-    const transaction = window.currentTransaction;
-    if (!transaction || !transaction.items || !transaction.items[itemIndex]) {
-        showError('Item data not available');
-        return;
-    }
-
-    const item = transaction.items[itemIndex];
-    const refundAmount = item.line_total;
-    const confirmMsg = `Refund ${item.product_name} (x${item.quantity}) for $${refundAmount.toFixed(2)}?`;
-
-    if (!confirm(confirmMsg)) {
-        return;
-    }
-
-    try {
-        const adjustmentData = {
-            account_id: transaction.account_id,
-            transaction_type: 'adjustment',
-            total_amount: refundAmount, // Positive to add back to account
-            notes: `Refund for transaction #${transaction.id} - ${item.product_name} (x${item.quantity})`
-        };
-
-        const response = await fetch(`${API_URL}/transactions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(adjustmentData)
-        });
-
-        if (response.ok) {
-            showSuccess('Item refund processed successfully');
-
-            // Reload transaction details to show updated info
-            await viewTransactionDetails(transaction.id);
-
-            // Reload transactions and accounts tables
-            loadTransactions();
-            loadAccounts();
-        } else {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to process refund');
-        }
-    } catch (error) {
-        showError('Failed to process refund: ' + error.message);
+        showError('Failed to process adjustment: ' + error.message);
         console.error('Error:', error);
     }
 }
@@ -1108,4 +1167,20 @@ function showError(message) {
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+// ============================================================================
+// Auto-login on page load
+// ============================================================================
+
+// Check if user is already logged in
+if (authToken) {
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminDashboard').classList.remove('hidden');
+
+    // Load initial data
+    loadProducts();
+    loadCategories();
+    loadAccounts();
+    loadTransactions();
 }

@@ -28,7 +28,10 @@
                 <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
                 <h1>Camp Snackbar Admin</h1>
             </div>
-            <button class="btn-logout" onclick="logout()">Logout</button>
+            <div>
+                <button class="btn-secondary" onclick="window.location.href='/reports.html'" style="margin-right: 1rem;">Reports</button>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
         </header>
 
         <div class="admin-content">
@@ -58,7 +61,7 @@
                                 <th>Product Name</th>
                                 <th>Price</th>
                                 <th>Status</th>
-                                <th>Actions</th>
+                                <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
@@ -81,7 +84,7 @@
                             <tr>
                                 <th>Category Name</th>
                                 <th>Product Count</th>
-                                <th>Actions</th>
+                                <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="categoriesTableBody">
@@ -113,7 +116,7 @@
                                 <th>Type</th>
                                 <th>Balance</th>
                                 <th>Created</th>
-                                <th>Actions</th>
+                                <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="accountsTableBody">
@@ -141,12 +144,12 @@
                     <table class="data-table">
                         <thead>
                             <tr>
+                                <th>Transaction #</th>
                                 <th>Date/Time</th>
                                 <th>Account</th>
                                 <th>Type</th>
                                 <th>Amount</th>
-                                <th>Balance After</th>
-                                <th>Actions</th>
+                                <th style="text-align: right;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="transactionsTableBody">

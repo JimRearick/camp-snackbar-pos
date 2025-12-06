@@ -44,6 +44,7 @@ CREATE TABLE transactions (
     balance_after REAL NOT NULL,
     operator_name TEXT,
     notes TEXT,
+    has_been_adjusted INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (account_id) REFERENCES accounts(id)
 );
@@ -64,6 +65,12 @@ CREATE TABLE settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE admin_sessions (
+    token TEXT PRIMARY KEY,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE backup_log (

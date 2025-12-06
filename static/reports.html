@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - Camp Snackbar</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            overflow: hidden !important;
+            height: 100vh !important;
+        }
+
+        #reportsContainer {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .admin-content {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tab-content {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+            padding: 1rem;
+            background: #f5f5f5;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .report-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+            gap: 1rem;
+            flex-shrink: 0;
+        }
+
+        .report-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .report-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .date-input {
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            min-width: 150px;
+        }
+
+        .btn-export {
+            background: #28a745;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .btn-export:hover {
+            background: #218838;
+        }
+
+        .btn-refresh {
+            background: #007bff;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-refresh:hover {
+            background: #0056b3;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-box.green {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .stat-box.orange {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-box.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        #salesTableContainer,
+        #accountsTableContainer,
+        #categoryTableContainer {
+            flex: 1;
+            overflow: auto;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            min-width: 600px;
+        }
+
+        .report-table th {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .report-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .report-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .report-table .currency {
+            text-align: right;
+            font-family: monospace;
+            font-weight: 600;
+        }
+
+        .negative {
+            color: #dc3545;
+        }
+
+        .positive {
+            color: #28a745;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #999;
+        }
+
+        @media (max-width: 768px) {
+            .admin-content {
+                padding: 1rem;
+            }
+
+            .report-card {
+                padding: 1rem;
+            }
+
+            .report-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .report-controls {
+                flex-direction: column;
+            }
+
+            .date-input, .btn-export, .btn-refresh {
+                width: 100%;
+            }
+
+            .report-table {
+                font-size: 0.9rem;
+            }
+
+            .report-table th,
+            .report-table td {
+                padding: 0.5rem;
+            }
+
+            .stat-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-box">
+            <img src="/static/images/IF_logo.png" alt="Camp Logo" class="login-logo">
+            <h1>Admin Login</h1>
+            <form id="loginForm" onsubmit="login(event)">
+                <input type="password" id="loginPassword" class="login-input"
+                       placeholder="Enter admin password" required>
+                <button type="submit" class="login-button">Login</button>
+            </form>
+            <div id="loginError" class="login-error hidden"></div>
+        </div>
+    </div>
+
+    <div id="reportsContainer" class="hidden">
+        <header class="admin-header">
+            <div class="header-left">
+                <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
+                <h1>Reports Dashboard</h1>
+            </div>
+            <div>
+                <button class="btn-secondary" onclick="window.location.href='/admin.html'" style="margin-right: 1rem;">Back to Admin</button>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </header>
+
+        <nav class="admin-tabs">
+            <button class="tab-button active" onclick="showTab('summary')">Summary</button>
+            <button class="tab-button" onclick="showTab('sales')">Sales by Product</button>
+            <button class="tab-button" onclick="showTab('category')">Sales by Category</button>
+            <button class="tab-button" onclick="showTab('balances')">Account Balances</button>
+        </nav>
+
+        <div class="admin-content">
+            <!-- Summary Report Tab -->
+            <div id="summaryTab" class="tab-content active">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h2>📊 Camp Summary</h2>
+                        <button class="btn-export" onclick="exportSummaryToCSV()">
+                            <span>📥</span> Export to CSV
+                        </button>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Total Accounts</div>
+                            <div class="stat-value" id="totalAccounts">-</div>
+                        </div>
+                        <div class="stat-box green">
+                            <div class="stat-label">Active Accounts</div>
+                            <div class="stat-value" id="activeAccounts">-</div>
+                        </div>
+                        <div class="stat-box orange">
+                            <div class="stat-label">Total Sales</div>
+                            <div class="stat-value" id="totalSales">-</div>
+                        </div>
+                        <div class="stat-box blue">
+                            <div class="stat-label">Total Balance Due</div>
+                            <div class="stat-value" id="totalBalanceDue">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales by Product Tab -->
+            <div id="salesTab" class="tab-content">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h2>🛒 Sales by Product</h2>
+                        <button class="btn-export" onclick="exportSalesToCSV()">
+                            <span>📥</span> Export to CSV
+                        </button>
+                    </div>
+                    <div id="salesTableContainer">
+                        <div class="loading">Loading sales data...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Balances Tab -->
+            <div id="balancesTab" class="tab-content">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h2>💰 Account Balances</h2>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <select id="accountTypeFilter" class="date-input" onchange="loadAccountBalances()">
+                                <option value="">All Types</option>
+                                <option value="family">Family</option>
+                                <option value="individual">Individual</option>
+                            </select>
+                            <button class="btn-export" onclick="exportAccountBalancesToCSV()">
+                                <span>📥</span> Export to CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="accountsTableContainer">
+                        <div class="loading">Loading account data...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales by Category Tab -->
+            <div id="categoryTab" class="tab-content">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h2>📊 Sales by Category</h2>
+                        <button class="btn-export" onclick="exportCategoryToCSV()">
+                            <span>📥</span> Export to CSV
+                        </button>
+                    </div>
+                    <div id="categoryTableContainer">
+                        <div class="loading">Loading category data...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let authToken = localStorage.getItem('adminToken');
+
+        // Tab Management
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + 'Tab').classList.add('active');
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+
+            // Load data for the tab if needed
+            switch(tabName) {
+                case 'summary':
+                    loadSummary();
+                    break;
+                case 'sales':
+                    loadSalesReport();
+                    break;
+                case 'category':
+                    loadCategoryReport();
+                    break;
+                case 'balances':
+                    loadAccountBalances();
+                    break;
+            }
+        }
+
+        // Authentication
+        async function login(event) {
+            event.preventDefault();
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('reportsContainer').classList.remove('hidden');
+                    loadSummary();
+                } else {
+                    showLoginError(data.error || 'Invalid password');
+                }
+            } catch (error) {
+                showLoginError('Connection error');
+            }
+        }
+
+        function showLoginError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            window.location.reload();
+        }
+
+        // Load Summary
+        async function loadSummary() {
+            try {
+                const summaryResponse = await fetch(`${API_URL}/api/reports/summary`);
+                const summaryData = await summaryResponse.json();
+
+                const accountsResponse = await fetch(`${API_URL}/api/accounts`);
+                const accountsData = await accountsResponse.json();
+
+                const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+                const transactionsData = await transactionsResponse.json();
+
+                // Total Accounts
+                document.getElementById('totalAccounts').textContent = summaryData.total_accounts;
+
+                // Active Accounts (accounts that have transactions)
+                const accountsWithTransactions = new Set(
+                    transactionsData.transactions.map(t => t.account_id)
+                );
+                const activeAccounts = accountsWithTransactions.size;
+                document.getElementById('activeAccounts').textContent = activeAccounts;
+
+                // Total Sales (total spent)
+                document.getElementById('totalSales').textContent = `$${summaryData.total_spent.toFixed(2)}`;
+
+                // Total Balance Due (negative balances - money owed to camp)
+                const balanceDue = accountsData.accounts
+                    .filter(acc => acc.current_balance < 0)
+                    .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
+                document.getElementById('totalBalanceDue').textContent = `$${balanceDue.toFixed(2)}`;
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        // Load Sales Report
+        async function loadSalesReport() {
+            try {
+                const response = await fetch(`${API_URL}/api/reports/sales`);
+                const data = await response.json();
+
+                const container = document.getElementById('salesTableContainer');
+
+                if (data.sales.length === 0) {
+                    container.innerHTML = '<div class="no-data">No sales data available</div>';
+                    return;
+                }
+
+                let html = `
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Quantity Sold</th>
+                                <th>Transactions</th>
+                                <th style="text-align: right;">Total Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.sales.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.product_name}</td>
+                            <td>${item.total_quantity}</td>
+                            <td>${item.transaction_count}</td>
+                            <td class="currency positive">$${item.total_revenue.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading sales report:', error);
+                document.getElementById('salesTableContainer').innerHTML =
+                    '<div class="no-data">Error loading sales data</div>';
+            }
+        }
+
+        // Load Account Balances
+        async function loadAccountBalances() {
+            try {
+                const typeFilter = document.getElementById('accountTypeFilter').value;
+                const url = typeFilter ?
+                    `${API_URL}/api/accounts?type=${typeFilter}` :
+                    `${API_URL}/api/accounts`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                const container = document.getElementById('accountsTableContainer');
+
+                if (data.accounts.length === 0) {
+                    container.innerHTML = '<div class="no-data">No accounts found</div>';
+                    return;
+                }
+
+                // Get transaction counts and totals for each account
+                const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+                const transactionsData = await transactionsResponse.json();
+
+                const purchaseCounts = {};
+                const purchaseTotals = {};
+                transactionsData.transactions.forEach(transaction => {
+                    if (transaction.transaction_type === 'purchase') {
+                        purchaseCounts[transaction.account_id] = (purchaseCounts[transaction.account_id] || 0) + 1;
+                        purchaseTotals[transaction.account_id] = (purchaseTotals[transaction.account_id] || 0) + Math.abs(transaction.total_amount);
+                    }
+                });
+
+                let html = `
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Purchase Count</th>
+                                <th style="text-align: right;">Total Spent</th>
+                                <th style="text-align: right;">Current Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.accounts.forEach(account => {
+                    const spent = purchaseTotals[account.id] || 0;
+                    const balanceClass = account.current_balance < 0 ? 'negative' : 'positive';
+                    const purchaseCount = purchaseCounts[account.id] || 0;
+
+                    html += `
+                        <tr>
+                            <td>${account.account_name}</td>
+                            <td>${account.account_type}</td>
+                            <td>${purchaseCount}</td>
+                            <td class="currency">$${spent.toFixed(2)}</td>
+                            <td class="currency ${balanceClass}">$${account.current_balance.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading account balances:', error);
+                document.getElementById('accountsTableContainer').innerHTML =
+                    '<div class="no-data">Error loading account data</div>';
+            }
+        }
+
+        // Load Sales by Category Report
+        async function loadCategoryReport() {
+            try {
+                const salesResponse = await fetch(`${API_URL}/api/reports/sales`);
+                const salesData = await salesResponse.json();
+
+                const productsResponse = await fetch(`${API_URL}/api/products`);
+                const productsData = await productsResponse.json();
+
+                const container = document.getElementById('categoryTableContainer');
+
+                if (productsData.categories.length === 0) {
+                    container.innerHTML = '<div class="no-data">No category data available</div>';
+                    return;
+                }
+
+                // Create a map of product names to categories
+                const productToCategory = {};
+                productsData.categories.forEach(cat => {
+                    cat.products.forEach(prod => {
+                        productToCategory[prod.name] = cat.name;
+                    });
+                });
+
+                // Aggregate sales by category
+                const categoryTotals = {};
+                salesData.sales.forEach(sale => {
+                    const category = productToCategory[sale.product_name] || 'Unknown';
+                    if (!categoryTotals[category]) {
+                        categoryTotals[category] = {
+                            revenue: 0,
+                            quantity: 0,
+                            transactions: 0
+                        };
+                    }
+                    categoryTotals[category].revenue += sale.total_revenue;
+                    categoryTotals[category].quantity += sale.total_quantity;
+                    categoryTotals[category].transactions += sale.transaction_count;
+                });
+
+                // Sort by revenue
+                const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1].revenue - a[1].revenue);
+
+                let html = `
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Items Sold</th>
+                                <th>Transactions</th>
+                                <th style="text-align: right;">Total Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                sortedCategories.forEach(([category, data]) => {
+                    html += `
+                        <tr>
+                            <td><strong>${category}</strong></td>
+                            <td>${data.quantity}</td>
+                            <td>${data.transactions}</td>
+                            <td class="currency positive">$${data.revenue.toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+
+                // Add total row
+                const totalRevenue = sortedCategories.reduce((sum, [, data]) => sum + data.revenue, 0);
+                const totalQuantity = sortedCategories.reduce((sum, [, data]) => sum + data.quantity, 0);
+                const totalTransactions = sortedCategories.reduce((sum, [, data]) => sum + data.transactions, 0);
+
+                html += `
+                        <tr style="background: #f0f0f0; font-weight: bold;">
+                            <td>TOTAL</td>
+                            <td>${totalQuantity}</td>
+                            <td>${totalTransactions}</td>
+                            <td class="currency">$${totalRevenue.toFixed(2)}</td>
+                        </tr>
+                `;
+
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading category report:', error);
+                document.getElementById('categoryTableContainer').innerHTML =
+                    '<div class="no-data">Error loading category data</div>';
+            }
+        }
+
+        // CSV Export Functions
+        function exportToCSV(filename, headers, rows) {
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(cell => {
+                    const escaped = String(cell).replace(/"/g, '""');
+                    return escaped.includes(',') ? `"${escaped}"` : escaped;
+                }).join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        async function exportSummaryToCSV() {
+            const summaryResponse = await fetch(`${API_URL}/api/reports/summary`);
+            const summaryData = await summaryResponse.json();
+
+            const accountsResponse = await fetch(`${API_URL}/api/accounts`);
+            const accountsData = await accountsResponse.json();
+
+            const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+            const transactionsData = await transactionsResponse.json();
+
+            // Calculate metrics
+            const accountsWithTransactions = new Set(
+                transactionsData.transactions.map(t => t.account_id)
+            );
+            const activeAccounts = accountsWithTransactions.size;
+
+            const balanceDue = accountsData.accounts
+                .filter(acc => acc.current_balance < 0)
+                .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
+
+            const headers = ['Metric', 'Value'];
+            const rows = [
+                ['Total Accounts', summaryData.total_accounts],
+                ['Active Accounts', activeAccounts],
+                ['Total Sales', `$${summaryData.total_spent.toFixed(2)}`],
+                ['Total Balance Due', `$${balanceDue.toFixed(2)}`],
+                ['Total Prepaid', `$${summaryData.total_prepaid.toFixed(2)}`],
+                ['Total Remaining', `$${summaryData.total_remaining.toFixed(2)}`],
+                ['Total Transactions', summaryData.transaction_count]
+            ];
+
+            exportToCSV('camp-summary-report.csv', headers, rows);
+        }
+
+        async function exportSalesToCSV() {
+            const response = await fetch(`${API_URL}/api/reports/sales`);
+            const data = await response.json();
+
+            const headers = ['Product Name', 'Quantity Sold', 'Transactions', 'Total Revenue'];
+            const rows = data.sales.map(item => [
+                item.product_name,
+                item.total_quantity,
+                item.transaction_count,
+                item.total_revenue.toFixed(2)
+            ]);
+
+            exportToCSV('sales-by-product-report.csv', headers, rows);
+        }
+
+        async function exportAccountBalancesToCSV() {
+            const typeFilter = document.getElementById('accountTypeFilter').value;
+            const url = typeFilter ?
+                `${API_URL}/api/accounts?type=${typeFilter}` :
+                `${API_URL}/api/accounts`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            // Get transaction counts and totals for each account
+            const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+            const transactionsData = await transactionsResponse.json();
+
+            const purchaseCounts = {};
+            const purchaseTotals = {};
+            transactionsData.transactions.forEach(transaction => {
+                if (transaction.transaction_type === 'purchase') {
+                    purchaseCounts[transaction.account_id] = (purchaseCounts[transaction.account_id] || 0) + 1;
+                    purchaseTotals[transaction.account_id] = (purchaseTotals[transaction.account_id] || 0) + Math.abs(transaction.total_amount);
+                }
+            });
+
+            const headers = ['Name', 'Type', 'Purchase Count', 'Total Spent', 'Current Balance'];
+            const rows = data.accounts.map(account => {
+                const spent = purchaseTotals[account.id] || 0;
+                const purchaseCount = purchaseCounts[account.id] || 0;
+                return [
+                    account.account_name,
+                    account.account_type,
+                    purchaseCount,
+                    spent.toFixed(2),
+                    account.current_balance.toFixed(2)
+                ];
+            });
+
+            exportToCSV('account-balances-report.csv', headers, rows);
+        }
+
+        async function exportCategoryToCSV() {
+            const salesResponse = await fetch(`${API_URL}/api/reports/sales`);
+            const salesData = await salesResponse.json();
+
+            const productsResponse = await fetch(`${API_URL}/api/products`);
+            const productsData = await productsResponse.json();
+
+            // Create a map of product names to categories
+            const productToCategory = {};
+            productsData.categories.forEach(cat => {
+                cat.products.forEach(prod => {
+                    productToCategory[prod.name] = cat.name;
+                });
+            });
+
+            // Aggregate sales by category
+            const categoryTotals = {};
+            salesData.sales.forEach(sale => {
+                const category = productToCategory[sale.product_name] || 'Unknown';
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = {
+                        revenue: 0,
+                        quantity: 0,
+                        transactions: 0
+                    };
+                }
+                categoryTotals[category].revenue += sale.total_revenue;
+                categoryTotals[category].quantity += sale.total_quantity;
+                categoryTotals[category].transactions += sale.transaction_count;
+            });
+
+            const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1].revenue - a[1].revenue);
+
+            const headers = ['Category', 'Items Sold', 'Transactions', 'Total Revenue'];
+            const rows = sortedCategories.map(([category, data]) => [
+                category,
+                data.quantity,
+                data.transactions,
+                data.revenue.toFixed(2)
+            ]);
+
+            // Add total row
+            const totalRevenue = sortedCategories.reduce((sum, [, data]) => sum + data.revenue, 0);
+            const totalQuantity = sortedCategories.reduce((sum, [, data]) => sum + data.quantity, 0);
+            const totalTransactions = sortedCategories.reduce((sum, [, data]) => sum + data.transactions, 0);
+
+            rows.push([
+                'TOTAL',
+                totalQuantity,
+                totalTransactions,
+                totalRevenue.toFixed(2)
+            ]);
+
+            exportToCSV('sales-by-category-report.csv', headers, rows);
+        }
+
+        // Initialize
+        if (authToken) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('reportsContainer').classList.remove('hidden');
+            loadSummary();
+        }
+    </script>
+</body>
+</html>
