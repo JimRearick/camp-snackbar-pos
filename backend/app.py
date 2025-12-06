@@ -71,11 +71,22 @@ def init_db():
     """Initialize database with schema"""
     with open('schema.sql', 'r') as f:
         schema = f.read()
-    
+
     conn = get_db()
     conn.executescript(schema)
     conn.commit()
     conn.close()
+
+def calculate_account_balance(conn, account_id):
+    """Calculate account balance from transaction history"""
+    cursor = conn.execute("""
+        SELECT SUM(total_amount) as balance
+        FROM transactions
+        WHERE account_id = ?
+    """, (account_id,))
+
+    result = cursor.fetchone()
+    return result['balance'] if result['balance'] is not None else 0.0
 
 # ============================================================================
 # Authentication Decorator
@@ -142,37 +153,40 @@ def get_accounts():
     """Get all accounts with optional search/filter"""
     search = request.args.get('search', '')
     account_type = request.args.get('type', '')
-    
+
     conn = get_db()
     query = "SELECT * FROM accounts WHERE 1=1"
     params = []
-    
+
     if search:
         query += " AND (account_name LIKE ? OR account_number LIKE ?)"
         params.extend([f'%{search}%', f'%{search}%'])
-    
+
     if account_type:
         query += " AND account_type = ?"
         params.append(account_type)
-    
+
     query += " ORDER BY account_name"
-    
+
     cursor = conn.execute(query, params)
     accounts = []
-    
+
     for row in cursor.fetchall():
+        # Calculate current balance from transactions
+        current_balance = calculate_account_balance(conn, row['id'])
+
         accounts.append({
             'id': row['id'],
             'account_number': row['account_number'],
             'account_name': row['account_name'],
             'account_type': row['account_type'],
             'family_members': json.loads(row['family_members']) if row['family_members'] else [],
-            'current_balance': row['current_balance'],
+            'current_balance': current_balance,
             'active': bool(row['active']),
             'created_at': row['created_at'],
             'notes': row['notes']
         })
-    
+
     conn.close()
     return jsonify({'accounts': accounts})
 
@@ -182,32 +196,35 @@ def get_account(account_id):
     conn = get_db()
     cursor = conn.execute("SELECT * FROM accounts WHERE id = ?", (account_id,))
     row = cursor.fetchone()
-    
+
     if not row:
         conn.close()
         return jsonify({'error': 'Account not found'}), 404
-    
+
+    # Calculate current balance from transactions
+    current_balance = calculate_account_balance(conn, account_id)
+
     # Calculate total spent
     cursor = conn.execute(
         "SELECT COUNT(*) as count, SUM(total_amount) as total FROM transactions WHERE account_id = ? AND transaction_type = 'purchase'",
         (account_id,)
     )
     stats = cursor.fetchone()
-    
+
     account = {
         'id': row['id'],
         'account_number': row['account_number'],
         'account_name': row['account_name'],
         'account_type': row['account_type'],
         'family_members': json.loads(row['family_members']) if row['family_members'] else [],
-        'current_balance': row['current_balance'],
+        'current_balance': current_balance,
         'active': bool(row['active']),
         'total_spent': abs(stats['total']) if stats['total'] else 0,
         'transaction_count': stats['count'],
         'created_at': row['created_at'],
         'notes': row['notes']
     }
-    
+
     conn.close()
     return jsonify(account)
 
@@ -228,12 +245,12 @@ def create_account():
 
         family_members_json = json.dumps(data.get('family_members', []))
 
-        # Create account with 0 balance and active status
+        # Create account with active status
         cursor = conn.execute(
-            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, active, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, active, notes)
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (account_number, data['account_name'], data['account_type'], family_members_json,
-             0, 1, data.get('notes', ''))
+             1, data.get('notes', ''))
         )
 
         account_id = cursor.lastrowid
@@ -275,10 +292,10 @@ def create_account_pos():
 
         family_members_json = json.dumps(data.get('family_members', []))
 
-        # Create account with 0 balance and active status
+        # Create account with active status
         cursor = conn.execute(
-            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, active, notes)
-               VALUES (?, ?, ?, ?, 0, 1, ?)""",
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, active, notes)
+               VALUES (?, ?, ?, ?, 1, ?)""",
             (account_number, data['account_name'], data['account_type'], family_members_json, data.get('notes', ''))
         )
 
@@ -550,7 +567,6 @@ def get_transactions():
             'account_name': row['account_name'],
             'transaction_type': row['transaction_type'],
             'total_amount': row['total_amount'],
-            'balance_after': row['balance_after'],
             'operator_name': row['operator_name'],
             'notes': row['notes'],
             'created_at': row['created_at'],
@@ -600,7 +616,6 @@ def get_transaction(transaction_id):
         'account_name': row['account_name'],
         'transaction_type': row['transaction_type'],
         'total_amount': row['total_amount'],
-        'balance_after': row['balance_after'],
         'operator_name': row['operator_name'],
         'notes': row['notes'],
         'created_at': row['created_at'],
@@ -615,35 +630,30 @@ def get_transaction(transaction_id):
 def create_transaction():
     """Create new transaction"""
     data = request.get_json()
-    
+
     conn = get_db()
     conn.execute("BEGIN")
-    
+
     try:
         account_id = data['account_id']
         transaction_type = data['transaction_type']
-        
-        # Get current balance
-        cursor = conn.execute("SELECT current_balance FROM accounts WHERE id = ?", (account_id,))
-        row = cursor.fetchone()
-        current_balance = row['current_balance']
-        
+
         total_amount = 0
-        
+
         if transaction_type == 'purchase':
             # Calculate total from items
             for item in data['items']:
                 cursor = conn.execute("SELECT name, price FROM products WHERE id = ?", (item['product_id'],))
                 product = cursor.fetchone()
-                
+
                 line_total = product['price'] * item['quantity']
                 total_amount += line_total
-            
+
             total_amount = -total_amount  # Negative for purchases
-        
+
         elif transaction_type == 'payment':
             total_amount = abs(data['total_amount'])  # Positive for payments
-        
+
         elif transaction_type == 'adjustment':
             total_amount = data['total_amount']
 
@@ -659,13 +669,11 @@ def create_transaction():
                 if orig_row and orig_row['has_been_adjusted']:
                     raise Exception('This transaction has already been adjusted and cannot be refunded again')
 
-        new_balance = current_balance + total_amount
-
-        # Create transaction
+        # Create transaction (no balance_after column anymore)
         cursor = conn.execute(
-            """INSERT INTO transactions (account_id, transaction_type, total_amount, balance_after, operator_name, notes)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (account_id, transaction_type, total_amount, new_balance, data.get('operator_name', ''), data.get('notes', ''))
+            """INSERT INTO transactions (account_id, transaction_type, total_amount, operator_name, notes)
+               VALUES (?, ?, ?, ?, ?)""",
+            (account_id, transaction_type, total_amount, data.get('operator_name', ''), data.get('notes', ''))
         )
 
         transaction_id = cursor.lastrowid
@@ -676,37 +684,34 @@ def create_transaction():
                 "UPDATE transactions SET has_been_adjusted = 1 WHERE id = ?",
                 (data['original_transaction_id'],)
             )
-        
+
         # Add line items for purchases
         if transaction_type == 'purchase':
             for item in data['items']:
                 cursor = conn.execute("SELECT name, price FROM products WHERE id = ?", (item['product_id'],))
                 product = cursor.fetchone()
-                
+
                 line_total = product['price'] * item['quantity']
-                
+
                 conn.execute(
                     """INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit_price, line_total)
                        VALUES (?, ?, ?, ?, ?, ?)""",
                     (transaction_id, item['product_id'], product['name'], item['quantity'], product['price'], line_total)
                 )
-                
+
                 # Update inventory if tracked
                 conn.execute(
-                    """UPDATE products 
+                    """UPDATE products
                        SET inventory_quantity = inventory_quantity - ?
                        WHERE id = ? AND track_inventory = 1""",
                     (item['quantity'], item['product_id'])
                 )
-        
-        # Update account balance
-        conn.execute(
-            "UPDATE accounts SET current_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (new_balance, account_id)
-        )
-        
+
         conn.commit()
-        
+
+        # Calculate new balance after transaction for notification
+        new_balance = calculate_account_balance(conn, account_id)
+
         # Notify all clients
         socketio.emit('transaction_created', {
             'transaction_id': transaction_id,
@@ -714,7 +719,7 @@ def create_transaction():
             'total_amount': total_amount,
             'balance_after': new_balance
         })
-        
+
         return jsonify({
             'success': True,
             'transaction': {
@@ -724,11 +729,11 @@ def create_transaction():
                 'created_at': datetime.now().isoformat()
             }
         }), 201
-    
+
     except Exception as e:
         conn.rollback()
         return jsonify({'error': str(e)}), 500
-    
+
     finally:
         conn.close()
 
@@ -740,18 +745,11 @@ def create_transaction():
 def get_summary_report():
     """Get camp-wide summary"""
     conn = get_db()
-    
-    # Account stats
-    cursor = conn.execute("""
-        SELECT
-            COUNT(*) as total_accounts,
-            SUM(current_balance) as total_remaining,
-            COUNT(CASE WHEN current_balance < 0 THEN 1 END) as negative_count,
-            SUM(CASE WHEN current_balance < 0 THEN current_balance ELSE 0 END) as negative_total
-        FROM accounts
-    """)
 
+    # Get total accounts
+    cursor = conn.execute("SELECT COUNT(*) as total_accounts FROM accounts")
     stats = cursor.fetchone()
+    total_accounts = stats['total_accounts']
 
     # Get total payments (funds added)
     cursor = conn.execute("""
@@ -763,6 +761,37 @@ def get_summary_report():
     payment_stats = cursor.fetchone()
     total_prepaid = payment_stats['total_payments'] or 0
 
+    # Get total spent (purchases)
+    cursor = conn.execute("""
+        SELECT SUM(ABS(total_amount)) as total_purchases
+        FROM transactions
+        WHERE transaction_type = 'purchase'
+    """)
+
+    purchase_stats = cursor.fetchone()
+    total_spent = purchase_stats['total_purchases'] or 0
+
+    # Calculate total remaining by summing all transactions
+    cursor = conn.execute("""
+        SELECT SUM(total_amount) as total_remaining
+        FROM transactions
+    """)
+    remaining_stats = cursor.fetchone()
+    total_remaining = remaining_stats['total_remaining'] or 0
+
+    # Calculate accounts with negative balances
+    cursor = conn.execute("SELECT id FROM accounts")
+    all_accounts = cursor.fetchall()
+
+    negative_count = 0
+    total_negative_amount = 0.0
+
+    for account in all_accounts:
+        balance = calculate_account_balance(conn, account['id'])
+        if balance < 0:
+            negative_count += 1
+            total_negative_amount += balance
+
     # Transaction stats
     cursor = conn.execute("""
         SELECT COUNT(*) as count, MIN(created_at) as first, MAX(created_at) as last
@@ -771,22 +800,20 @@ def get_summary_report():
 
     trans_stats = cursor.fetchone()
 
-    total_spent = total_prepaid - (stats['total_remaining'] or 0)
-    
     summary = {
-        'total_accounts': stats['total_accounts'],
+        'total_accounts': total_accounts,
         'total_prepaid': total_prepaid,
         'total_spent': total_spent,
-        'total_remaining': stats['total_remaining'] or 0,
-        'accounts_with_negative_balance': stats['negative_count'],
-        'total_negative_amount': stats['negative_total'] or 0,
+        'total_remaining': total_remaining,
+        'accounts_with_negative_balance': negative_count,
+        'total_negative_amount': total_negative_amount,
         'transaction_count': trans_stats['count'],
         'date_range': {
             'start': trans_stats['first'],
             'end': trans_stats['last']
         }
     }
-    
+
     conn.close()
     return jsonify(summary)
 
