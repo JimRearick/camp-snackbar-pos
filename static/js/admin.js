@@ -540,11 +540,7 @@ function showAddAccountForm() {
     document.getElementById('accountModalTitle').textContent = 'Add Account';
     document.getElementById('accountForm').reset();
     document.getElementById('accountId').value = '';
-    document.getElementById('initialBalance').value = '0';
     document.getElementById('accountModal').classList.remove('hidden');
-
-    // Show initial balance field for new accounts
-    document.getElementById('initialBalanceGroup').style.display = 'flex';
 
     // Set initial visibility of family members field
     toggleFamilyMembersField();
@@ -567,9 +563,6 @@ async function editAccount(accountId) {
 
         document.getElementById('accountModal').classList.remove('hidden');
 
-        // Hide initial balance field when editing
-        document.getElementById('initialBalanceGroup').style.display = 'none';
-
         // Toggle family members field based on account type
         toggleFamilyMembersField();
     } catch (error) {
@@ -582,7 +575,6 @@ async function saveAccount() {
     const accountId = document.getElementById('accountId').value;
     const accountName = document.getElementById('accountName').value.trim();
     const accountType = document.getElementById('accountType').value;
-    const initialBalance = parseFloat(document.getElementById('initialBalance').value) || 0;
     const notes = document.getElementById('accountNotes').value.trim();
     const familyMembersText = document.getElementById('familyMembers').value.trim();
 
@@ -604,10 +596,6 @@ async function saveAccount() {
         notes: notes
     };
 
-    // Only include initial_balance for new accounts
-    if (!accountId) {
-        accountData.initial_balance = initialBalance;
-    }
 
     try {
         const url = accountId ? `${API_URL}/accounts/${accountId}` : `${API_URL}/accounts`;
@@ -740,10 +728,6 @@ async function viewAccountDetailsModal(accountId) {
                 <span class="detail-value" style="color: ${account.current_balance < 0 ? '#dc3545' : '#28a745'}; font-weight: 600; font-size: 1.2rem;">
                     $${account.current_balance.toFixed(2)}
                 </span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Initial Balance:</span>
-                <span class="detail-value">$${account.initial_balance.toFixed(2)}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Total Spent:</span>

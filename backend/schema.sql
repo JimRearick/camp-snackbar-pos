@@ -7,7 +7,6 @@ CREATE TABLE accounts (
     account_name TEXT NOT NULL,
     account_type TEXT NOT NULL CHECK(account_type IN ('family', 'individual')),
     family_members TEXT,
-    initial_balance REAL DEFAULT 0.0,
     current_balance REAL DEFAULT 0.0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -168,7 +168,6 @@ def get_accounts():
             'account_type': row['account_type'],
             'family_members': json.loads(row['family_members']) if row['family_members'] else [],
             'current_balance': row['current_balance'],
-            'initial_balance': row['initial_balance'],
             'created_at': row['created_at'],
             'notes': row['notes']
         })
@@ -201,7 +200,6 @@ def get_account(account_id):
         'account_type': row['account_type'],
         'family_members': json.loads(row['family_members']) if row['family_members'] else [],
         'current_balance': row['current_balance'],
-        'initial_balance': row['initial_balance'],
         'total_spent': abs(stats['total']) if stats['total'] else 0,
         'transaction_count': stats['count'],
         'created_at': row['created_at'],
@@ -227,31 +225,16 @@ def create_account():
         account_number = f"A{next_num:03d}"
 
         family_members_json = json.dumps(data.get('family_members', []))
-        initial_balance = data.get('initial_balance', 0)
 
-        # Create account with 0 balance initially
+        # Create account with 0 balance
         cursor = conn.execute(
-            """INSERT INTO accounts (account_number, account_name, account_type, family_members, initial_balance, current_balance, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, notes)
+               VALUES (?, ?, ?, ?, ?, ?)""",
             (account_number, data['account_name'], data['account_type'], family_members_json,
-             initial_balance, 0, data.get('notes', ''))
+             0, data.get('notes', ''))
         )
 
         account_id = cursor.lastrowid
-
-        # If there's an initial balance, create a payment transaction
-        if initial_balance > 0:
-            cursor.execute(
-                """INSERT INTO transactions (account_id, transaction_type, total_amount, balance_after, notes)
-                   VALUES (?, 'payment', ?, ?, ?)""",
-                (account_id, initial_balance, initial_balance, 'Initial balance payment')
-            )
-
-            # Update account balance
-            conn.execute(
-                "UPDATE accounts SET current_balance = ? WHERE id = ?",
-                (initial_balance, account_id)
-            )
 
         conn.commit()
 
@@ -264,7 +247,7 @@ def create_account():
                 'id': account_id,
                 'account_number': account_number,
                 'account_name': data['account_name'],
-                'current_balance': initial_balance
+                'current_balance': 0
             }
         }), 201
 
@@ -290,10 +273,10 @@ def create_account_pos():
 
         family_members_json = json.dumps(data.get('family_members', []))
 
-        # Create account with 0 balance (POS doesn't set initial balance)
+        # Create account with 0 balance
         cursor = conn.execute(
-            """INSERT INTO accounts (account_number, account_name, account_type, family_members, initial_balance, current_balance, notes)
-               VALUES (?, ?, ?, ?, 0, 0, ?)""",
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, notes)
+               VALUES (?, ?, ?, ?, 0, ?)""",
             (account_number, data['account_name'], data['account_type'], family_members_json, data.get('notes', ''))
         )
 
@@ -758,30 +741,39 @@ def get_summary_report():
     
     # Account stats
     cursor = conn.execute("""
-        SELECT 
+        SELECT
             COUNT(*) as total_accounts,
-            SUM(initial_balance) as total_prepaid,
             SUM(current_balance) as total_remaining,
             COUNT(CASE WHEN current_balance < 0 THEN 1 END) as negative_count,
             SUM(CASE WHEN current_balance < 0 THEN current_balance ELSE 0 END) as negative_total
         FROM accounts
     """)
-    
+
     stats = cursor.fetchone()
-    
+
+    # Get total payments (funds added)
+    cursor = conn.execute("""
+        SELECT SUM(total_amount) as total_payments
+        FROM transactions
+        WHERE transaction_type = 'payment'
+    """)
+
+    payment_stats = cursor.fetchone()
+    total_prepaid = payment_stats['total_payments'] or 0
+
     # Transaction stats
     cursor = conn.execute("""
         SELECT COUNT(*) as count, MIN(created_at) as first, MAX(created_at) as last
         FROM transactions
     """)
-    
+
     trans_stats = cursor.fetchone()
-    
-    total_spent = (stats['total_prepaid'] or 0) - (stats['total_remaining'] or 0)
+
+    total_spent = total_prepaid - (stats['total_remaining'] or 0)
     
     summary = {
         'total_accounts': stats['total_accounts'],
-        'total_prepaid': stats['total_prepaid'] or 0,
+        'total_prepaid': total_prepaid,
         'total_spent': total_spent,
         'total_remaining': stats['total_remaining'] or 0,
         'accounts_with_negative_balance': stats['negative_count'],
