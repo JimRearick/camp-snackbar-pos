@@ -961,7 +961,7 @@ async function viewTransactionDetails(transactionId) {
                 adjustButtonHTML = `
                     <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
                         <button class="btn-secondary" onclick="toggleAdjustMode()" style="width: 100%; margin-bottom: 1rem;">
-                            Enable Adjust Mode
+                            Adjust Transaction
                         </button>
                         <div id="adjustSection" style="display: none;">
                             <button class="btn-danger" onclick="processAdjustment()" style="width: 100%;">
@@ -1027,13 +1027,13 @@ function toggleAdjustMode() {
     if (window.adjustModeEnabled) {
         adjustControls.forEach(control => control.style.display = 'flex');
         if (adjustSection) adjustSection.style.display = 'block';
-        toggleBtn.textContent = 'Disable Adjust Mode';
+        toggleBtn.textContent = 'Cancel Adjust';
         toggleBtn.classList.remove('btn-secondary');
         toggleBtn.classList.add('btn-warning');
     } else {
         adjustControls.forEach(control => control.style.display = 'none');
         if (adjustSection) adjustSection.style.display = 'none';
-        toggleBtn.textContent = 'Enable Adjust Mode';
+        toggleBtn.textContent = 'Adjust Transaction';
         toggleBtn.classList.remove('btn-warning');
         toggleBtn.classList.add('btn-secondary');
 
