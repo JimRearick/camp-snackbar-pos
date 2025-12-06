@@ -1024,8 +1024,8 @@ async function viewTransactionDetails(transactionId) {
         const modalActions = document.querySelector('#transactionModal .modal-actions');
         if (modalActions) {
             modalActions.innerHTML = `
+                <button class="btn-secondary" onclick="hideTransactionModal()" id="closeBtn">Close</button>
                 ${adjustButtonsForActions}
-                <button class="btn-secondary" onclick="hideTransactionModal()">Close</button>
             `;
         }
 
@@ -1041,20 +1041,25 @@ function toggleAdjustMode() {
 
     const adjustControls = document.querySelectorAll('.adjust-controls');
     const adjustProcessBtn = document.getElementById('adjustProcessBtn');
-    const toggleBtn = event.target;
+    const adjustToggleBtn = document.getElementById('adjustToggleBtn');
+    const closeBtn = document.getElementById('closeBtn');
 
     if (window.adjustModeEnabled) {
         adjustControls.forEach(control => control.style.display = 'flex');
         if (adjustProcessBtn) adjustProcessBtn.style.display = 'inline-block';
-        toggleBtn.textContent = 'Cancel Adjust';
-        toggleBtn.classList.remove('btn-secondary');
-        toggleBtn.classList.add('btn-warning');
+        if (adjustToggleBtn) adjustToggleBtn.style.display = 'none';
+        if (closeBtn) {
+            closeBtn.textContent = 'Cancel';
+            closeBtn.onclick = toggleAdjustMode;
+        }
     } else {
         adjustControls.forEach(control => control.style.display = 'none');
         if (adjustProcessBtn) adjustProcessBtn.style.display = 'none';
-        toggleBtn.textContent = 'Adjust Transaction';
-        toggleBtn.classList.remove('btn-warning');
-        toggleBtn.classList.add('btn-secondary');
+        if (adjustToggleBtn) adjustToggleBtn.style.display = 'inline-block';
+        if (closeBtn) {
+            closeBtn.textContent = 'Close';
+            closeBtn.onclick = hideTransactionModal;
+        }
 
         // Reset all quantities to 0
         document.querySelectorAll('[id^="adjustQty_"]').forEach(qtySpan => {
