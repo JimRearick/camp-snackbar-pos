@@ -100,6 +100,11 @@
                 <div class="tab-header">
                     <h2>Account Management</h2>
                     <div style="display: flex; gap: 1rem; align-items: center;">
+                        <select id="accountStatusFilter" class="filter-select" onchange="loadAccounts()">
+                            <option value="">All Accounts</option>
+                            <option value="active" selected>Active Only</option>
+                            <option value="inactive">Inactive Only</option>
+                        </select>
                         <div class="search-box">
                             <input type="text" id="accountSearchInput" class="search-input"
                                    placeholder="Search accounts..." oninput="filterAccountsTable()">
@@ -115,6 +120,7 @@
                                 <th>Account #</th>
                                 <th>Name</th>
                                 <th>Type</th>
+                                <th>Status</th>
                                 <th>Balance</th>
                                 <th>Created</th>
                                 <th style="text-align: right;">Actions</th>
@@ -263,6 +269,12 @@
                             <option value="individual">Individual</option>
                             <option value="family">Family</option>
                         </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="accountActive" checked>
+                            Active
+                        </label>
                     </div>
                     <div class="form-group">
                         <label for="accountNotes">Notes</label>

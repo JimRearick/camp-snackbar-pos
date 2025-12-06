@@ -168,6 +168,7 @@ def get_accounts():
             'account_type': row['account_type'],
             'family_members': json.loads(row['family_members']) if row['family_members'] else [],
             'current_balance': row['current_balance'],
+            'active': bool(row['active']),
             'created_at': row['created_at'],
             'notes': row['notes']
         })
@@ -200,6 +201,7 @@ def get_account(account_id):
         'account_type': row['account_type'],
         'family_members': json.loads(row['family_members']) if row['family_members'] else [],
         'current_balance': row['current_balance'],
+        'active': bool(row['active']),
         'total_spent': abs(stats['total']) if stats['total'] else 0,
         'transaction_count': stats['count'],
         'created_at': row['created_at'],
@@ -226,12 +228,12 @@ def create_account():
 
         family_members_json = json.dumps(data.get('family_members', []))
 
-        # Create account with 0 balance
+        # Create account with 0 balance and active status
         cursor = conn.execute(
-            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, notes)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, active, notes)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
             (account_number, data['account_name'], data['account_type'], family_members_json,
-             0, data.get('notes', ''))
+             0, 1, data.get('notes', ''))
         )
 
         account_id = cursor.lastrowid
@@ -273,10 +275,10 @@ def create_account_pos():
 
         family_members_json = json.dumps(data.get('family_members', []))
 
-        # Create account with 0 balance
+        # Create account with 0 balance and active status
         cursor = conn.execute(
-            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, notes)
-               VALUES (?, ?, ?, ?, 0, ?)""",
+            """INSERT INTO accounts (account_number, account_name, account_type, family_members, current_balance, active, notes)
+               VALUES (?, ?, ?, ?, 0, 1, ?)""",
             (account_number, data['account_name'], data['account_type'], family_members_json, data.get('notes', ''))
         )
 
@@ -313,10 +315,10 @@ def update_account(account_id):
     family_members_json = json.dumps(data.get('family_members', []))
     
     conn.execute(
-        """UPDATE accounts 
-           SET account_name = ?, account_type = ?, family_members = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+        """UPDATE accounts
+           SET account_name = ?, account_type = ?, family_members = ?, active = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?""",
-        (data['account_name'], data['account_type'], family_members_json, data.get('notes', ''), account_id)
+        (data['account_name'], data['account_type'], family_members_json, data.get('active', True), data.get('notes', ''), account_id)
     )
     
     conn.commit()

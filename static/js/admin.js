@@ -484,7 +484,18 @@ async function loadAccounts() {
         const data = await response.json();
 
         allAccounts = data.accounts || [];
-        displayAccountsTable(allAccounts);
+
+        // Filter by active status
+        const statusFilter = document.getElementById('accountStatusFilter')?.value || 'active';
+        let filtered = allAccounts;
+
+        if (statusFilter === 'active') {
+            filtered = allAccounts.filter(acc => acc.active !== false);
+        } else if (statusFilter === 'inactive') {
+            filtered = allAccounts.filter(acc => acc.active === false);
+        }
+
+        displayAccountsTable(filtered);
     } catch (error) {
         showError('Failed to load accounts');
         console.error('Error loading accounts:', error);
@@ -498,11 +509,16 @@ function displayAccountsTable(accountsList) {
     accountsList.forEach(account => {
         const row = document.createElement('tr');
         const createdDate = new Date(account.created_at).toLocaleDateString();
+        const isActive = account.active !== false;
+        const statusBadge = isActive
+            ? '<span class="badge badge-success">Active</span>'
+            : '<span class="badge badge-inactive">Inactive</span>';
 
         row.innerHTML = `
             <td>${account.account_number}</td>
             <td>${account.account_name}</td>
             <td><span class="type-badge">${account.account_type}</span></td>
+            <td>${statusBadge}</td>
             <td style="color: ${account.current_balance < 0 ? '#dc3545' : '#28a745'}; font-weight: 600;">
                 $${account.current_balance.toFixed(2)}
             </td>
@@ -555,6 +571,7 @@ async function editAccount(accountId) {
         document.getElementById('accountId').value = account.id;
         document.getElementById('accountName').value = account.account_name;
         document.getElementById('accountType').value = account.account_type;
+        document.getElementById('accountActive').checked = account.active !== false;
         document.getElementById('accountNotes').value = account.notes || '';
 
         // Load family members (one per line)
@@ -575,6 +592,7 @@ async function saveAccount() {
     const accountId = document.getElementById('accountId').value;
     const accountName = document.getElementById('accountName').value.trim();
     const accountType = document.getElementById('accountType').value;
+    const active = document.getElementById('accountActive').checked;
     const notes = document.getElementById('accountNotes').value.trim();
     const familyMembersText = document.getElementById('familyMembers').value.trim();
 
@@ -592,6 +610,7 @@ async function saveAccount() {
     const accountData = {
         account_name: accountName,
         account_type: accountType,
+        active: active,
         family_members: familyMembers,
         notes: notes
     };

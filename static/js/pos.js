@@ -68,9 +68,10 @@ async function loadAccounts() {
     try {
         const response = await fetch(`${API_URL}/accounts`);
         const data = await response.json();
-        
+
         if (data.accounts && Array.isArray(data.accounts)) {
-            accounts = data.accounts;
+            // Filter to only show active accounts in POS
+            accounts = data.accounts.filter(acc => acc.active !== false);
         }
     } catch (error) {
         console.error('Error loading accounts:', error);

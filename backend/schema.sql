@@ -8,6 +8,7 @@ CREATE TABLE accounts (
     account_type TEXT NOT NULL CHECK(account_type IN ('family', 'individual')),
     family_members TEXT,
     current_balance REAL DEFAULT 0.0,
+    active BOOLEAN DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     notes TEXT
