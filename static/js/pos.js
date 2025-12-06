@@ -108,7 +108,7 @@ function displayAccounts(accountsList) {
         card.onclick = () => selectAccount(account);
 
         let membersPreview = '';
-        if (account.account_type === 'family' && account.family_members) {
+        if (account.account_type === 'family' && account.family_members && typeof account.family_members === 'string') {
             const members = account.family_members.split('\n').filter(m => m.trim());
             if (members.length > 0) {
                 membersPreview = `<span class="account-members-preview">${members.join(' • ')}</span>`;
@@ -150,7 +150,7 @@ function updateAccountDisplay() {
 
     if (selectedAccount) {
         let membersDisplay = '';
-        if (selectedAccount.account_type === 'family' && selectedAccount.family_members) {
+        if (selectedAccount.account_type === 'family' && selectedAccount.family_members && typeof selectedAccount.family_members === 'string') {
             const members = selectedAccount.family_members.split('\n').filter(m => m.trim());
             if (members.length > 0) {
                 membersDisplay = `<div class="account-members">${members.join(' • ')}</div>`;
