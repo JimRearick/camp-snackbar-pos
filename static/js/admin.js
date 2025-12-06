@@ -961,11 +961,13 @@ async function viewTransactionDetails(transactionId) {
             `;
         }
 
-        // Add toggle button and adjust button for full transaction (only for purchases that haven't been adjusted)
-        let adjustButtonHTML = '';
+        // Add adjust buttons for purchases that haven't been adjusted
+        let adjustButtonsForActions = '';
+        let warningHTML = '';
+
         if (data.transaction_type === 'purchase') {
             if (hasBeenAdjusted) {
-                adjustButtonHTML = `
+                warningHTML = `
                     <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
                         <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 1rem; border-radius: 8px; text-align: center;">
                             <strong>⚠️ This transaction has already been adjusted and cannot be adjusted again.</strong>
@@ -973,17 +975,14 @@ async function viewTransactionDetails(transactionId) {
                     </div>
                 `;
             } else {
-                adjustButtonHTML = `
-                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 2px solid #eee;">
-                        <button class="btn-secondary" onclick="toggleAdjustMode()" style="width: 100%; margin-bottom: 1rem;">
-                            Adjust Transaction
-                        </button>
-                        <div id="adjustSection" style="display: none;">
-                            <button class="btn-danger" onclick="processAdjustment()" style="width: 100%;">
-                                Process Adjustment
-                            </button>
-                        </div>
-                    </div>
+                // Both buttons go to modal-actions area
+                adjustButtonsForActions = `
+                    <button class="btn-secondary" onclick="toggleAdjustMode()" id="adjustToggleBtn">
+                        Adjust Transaction
+                    </button>
+                    <button class="btn-danger" onclick="processAdjustment()" id="adjustProcessBtn" style="display: none;">
+                        Process Adjustment
+                    </button>
                 `;
             }
         }
@@ -1018,8 +1017,17 @@ async function viewTransactionDetails(transactionId) {
                 </div>
             ` : ''}
             ${itemsHTML}
-            ${adjustButtonHTML}
+            ${warningHTML}
         `;
+
+        // Update modal actions to include adjust buttons
+        const modalActions = document.querySelector('#transactionModal .modal-actions');
+        if (modalActions) {
+            modalActions.innerHTML = `
+                ${adjustButtonsForActions}
+                <button class="btn-secondary" onclick="hideTransactionModal()">Close</button>
+            `;
+        }
 
         document.getElementById('transactionModal').classList.remove('hidden');
     } catch (error) {
@@ -1032,18 +1040,18 @@ function toggleAdjustMode() {
     window.adjustModeEnabled = !window.adjustModeEnabled;
 
     const adjustControls = document.querySelectorAll('.adjust-controls');
-    const adjustSection = document.getElementById('adjustSection');
+    const adjustProcessBtn = document.getElementById('adjustProcessBtn');
     const toggleBtn = event.target;
 
     if (window.adjustModeEnabled) {
         adjustControls.forEach(control => control.style.display = 'flex');
-        if (adjustSection) adjustSection.style.display = 'block';
+        if (adjustProcessBtn) adjustProcessBtn.style.display = 'inline-block';
         toggleBtn.textContent = 'Cancel Adjust';
         toggleBtn.classList.remove('btn-secondary');
         toggleBtn.classList.add('btn-warning');
     } else {
         adjustControls.forEach(control => control.style.display = 'none');
-        if (adjustSection) adjustSection.style.display = 'none';
+        if (adjustProcessBtn) adjustProcessBtn.style.display = 'none';
         toggleBtn.textContent = 'Adjust Transaction';
         toggleBtn.classList.remove('btn-warning');
         toggleBtn.classList.add('btn-secondary');
