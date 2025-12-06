@@ -106,15 +106,23 @@ function displayAccounts(accountsList) {
         const card = document.createElement('div');
         card.className = 'account-card';
         card.onclick = () => selectAccount(account);
-        
+
+        let membersPreview = '';
+        if (account.account_type === 'family' && account.family_members) {
+            const members = account.family_members.split('\n').filter(m => m.trim());
+            if (members.length > 0) {
+                membersPreview = `<span class="account-members-preview">${members.join(' • ')}</span>`;
+            }
+        }
+
         card.innerHTML = `
             <div class="account-card-name">${account.account_name}</div>
             <div class="account-card-details">
                 <span class="account-type">${account.account_type}</span>
-                <span class="account-card-balance">Balance: $${account.current_balance.toFixed(2)}</span>
+                ${membersPreview}
             </div>
         `;
-        
+
         container.appendChild(card);
     });
 }
@@ -141,11 +149,19 @@ function updateAccountDisplay() {
     const display = document.getElementById('selectedAccount');
 
     if (selectedAccount) {
+        let membersDisplay = '';
+        if (selectedAccount.account_type === 'family' && selectedAccount.family_members) {
+            const members = selectedAccount.family_members.split('\n').filter(m => m.trim());
+            if (members.length > 0) {
+                membersDisplay = `<div class="account-members">${members.join(' • ')}</div>`;
+            }
+        }
+
         display.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <div class="account-info">
                     <div class="account-name">${selectedAccount.account_name}</div>
-                    <div class="account-balance">Balance: $${selectedAccount.current_balance.toFixed(2)}</div>
+                    ${membersDisplay}
                 </div>
                 <button class="btn-change-account" onclick="showAccountSelector()">
                     Change Account

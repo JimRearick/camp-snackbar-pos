@@ -101,9 +101,10 @@ body {
     font-size: 1.2rem;
 }
 
-.account-balance {
-    font-size: 0.95rem;
+.account-members {
+    font-size: 0.9rem;
     opacity: 0.9;
+    font-style: italic;
 }
 
 /* Main Content */
@@ -467,8 +468,10 @@ body {
     opacity: 0.8;
 }
 
-.account-card-balance {
-    font-weight: 600;
+.account-members-preview {
+    font-size: 0.9rem;
+    opacity: 0.8;
+    font-style: italic;
 }
 
 /* Toast Messages */
