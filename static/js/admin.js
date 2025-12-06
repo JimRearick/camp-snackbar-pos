@@ -372,7 +372,6 @@ async function loadCategories() {
                     <td>${productCount}</td>
                     <td style="text-align: right;">
                         <button class="btn-edit" onclick="editCategory(${category.id})">Edit</button>
-                        <button class="btn-danger" onclick="deleteCategory(${category.id}, '${category.name}', ${productCount})">Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -388,6 +387,7 @@ function showAddCategoryForm() {
     document.getElementById('categoryModalTitle').textContent = 'Add Category';
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
+    document.getElementById('deleteCategoryBtn').style.display = 'none';
     document.getElementById('categoryModal').classList.remove('hidden');
 }
 
@@ -399,9 +399,18 @@ async function editCategory(categoryId) {
         const category = data.categories.find(c => c.id === categoryId);
 
         if (category) {
+            const productCount = category.products ? category.products.length : 0;
+
             document.getElementById('categoryModalTitle').textContent = 'Edit Category';
             document.getElementById('categoryId').value = category.id;
             document.getElementById('categoryName').value = category.name;
+
+            // Show delete button for existing categories
+            const deleteBtn = document.getElementById('deleteCategoryBtn');
+            deleteBtn.style.display = 'inline-block';
+            deleteBtn.setAttribute('data-product-count', productCount);
+            deleteBtn.setAttribute('data-category-name', category.name);
+
             document.getElementById('categoryModal').classList.remove('hidden');
         }
     } catch (error) {
@@ -448,7 +457,12 @@ async function saveCategory() {
     }
 }
 
-async function deleteCategory(categoryId, categoryName, productCount) {
+async function deleteCategoryFromModal() {
+    const categoryId = document.getElementById('categoryId').value;
+    const deleteBtn = document.getElementById('deleteCategoryBtn');
+    const categoryName = deleteBtn.getAttribute('data-category-name');
+    const productCount = parseInt(deleteBtn.getAttribute('data-product-count'));
+
     if (productCount > 0) {
         showError(`Cannot delete category "${categoryName}" - it contains ${productCount} product(s)`);
         return;
@@ -468,7 +482,9 @@ async function deleteCategory(categoryId, categoryName, productCount) {
 
         if (response.ok) {
             showSuccess('Category deleted');
+            hideCategoryModal();
             loadCategories();
+            loadProducts(); // Reload products to update category dropdown
         } else {
             throw new Error('Failed to delete category');
         }
