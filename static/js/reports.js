@@ -82,13 +82,13 @@ window.logout = authLogout;
 
 async function loadSummary() {
     try {
-        const summaryResponse = await fetch(`${API_URL}/api/reports/summary`);
+        const summaryResponse = await fetch(`${API_URL}/reports/summary`);
         const summaryData = await summaryResponse.json();
 
-        const accountsResponse = await fetch(`${API_URL}/api/accounts`);
+        const accountsResponse = await fetch(`${API_URL}/accounts`);
         const accountsData = await accountsResponse.json();
 
-        const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+        const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
         const transactionsData = await transactionsResponse.json();
 
         // Total Accounts
@@ -120,7 +120,7 @@ async function loadSummary() {
 
 async function loadSalesReport() {
     try {
-        const response = await fetch(`${API_URL}/api/reports/sales`);
+        const response = await fetch(`${API_URL}/reports/sales`);
         const data = await response.json();
 
         const container = document.getElementById('salesTableContainer');
@@ -171,8 +171,8 @@ window.loadAccountBalances = async function() {
     try {
         const typeFilter = document.getElementById('accountTypeFilter').value;
         const url = typeFilter ?
-            `${API_URL}/api/accounts?type=${typeFilter}` :
-            `${API_URL}/api/accounts`;
+            `${API_URL}/accounts?type=${typeFilter}` :
+            `${API_URL}/accounts`;
 
         const response = await fetch(url);
         const data = await response.json();
@@ -185,7 +185,7 @@ window.loadAccountBalances = async function() {
         }
 
         // Get transaction counts and totals for each account
-        const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+        const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
         const transactionsData = await transactionsResponse.json();
 
         const purchaseCounts = {};
@@ -242,10 +242,10 @@ window.loadAccountBalances = async function() {
 
 async function loadCategoryReport() {
     try {
-        const salesResponse = await fetch(`${API_URL}/api/reports/sales`);
+        const salesResponse = await fetch(`${API_URL}/reports/sales`);
         const salesData = await salesResponse.json();
 
-        const productsResponse = await fetch(`${API_URL}/api/products`);
+        const productsResponse = await fetch(`${API_URL}/products`);
         const productsData = await productsResponse.json();
 
         const container = document.getElementById('categoryTableContainer');
@@ -352,13 +352,13 @@ function exportToCSV(filename, headers, rows) {
 }
 
 window.exportSummaryToCSV = async function() {
-    const summaryResponse = await fetch(`${API_URL}/api/reports/summary`);
+    const summaryResponse = await fetch(`${API_URL}/reports/summary`);
     const summaryData = await summaryResponse.json();
 
-    const accountsResponse = await fetch(`${API_URL}/api/accounts`);
+    const accountsResponse = await fetch(`${API_URL}/accounts`);
     const accountsData = await accountsResponse.json();
 
-    const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+    const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
     const transactionsData = await transactionsResponse.json();
 
     // Calculate metrics
@@ -386,7 +386,7 @@ window.exportSummaryToCSV = async function() {
 };
 
 window.exportSalesToCSV = async function() {
-    const response = await fetch(`${API_URL}/api/reports/sales`);
+    const response = await fetch(`${API_URL}/reports/sales`);
     const data = await response.json();
 
     const headers = ['Product Name', 'Quantity Sold', 'Transactions', 'Total Revenue'];
@@ -403,14 +403,14 @@ window.exportSalesToCSV = async function() {
 window.exportAccountBalancesToCSV = async function() {
     const typeFilter = document.getElementById('accountTypeFilter').value;
     const url = typeFilter ?
-        `${API_URL}/api/accounts?type=${typeFilter}` :
-        `${API_URL}/api/accounts`;
+        `${API_URL}/accounts?type=${typeFilter}` :
+        `${API_URL}/accounts`;
 
     const response = await fetch(url);
     const data = await response.json();
 
     // Get transaction counts and totals for each account
-    const transactionsResponse = await fetch(`${API_URL}/api/transactions?limit=10000`);
+    const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
     const transactionsData = await transactionsResponse.json();
 
     const purchaseCounts = {};
@@ -439,10 +439,10 @@ window.exportAccountBalancesToCSV = async function() {
 };
 
 window.exportCategoryToCSV = async function() {
-    const salesResponse = await fetch(`${API_URL}/api/reports/sales`);
+    const salesResponse = await fetch(`${API_URL}/reports/sales`);
     const salesData = await salesResponse.json();
 
-    const productsResponse = await fetch(`${API_URL}/api/products`);
+    const productsResponse = await fetch(`${API_URL}/products`);
     const productsData = await productsResponse.json();
 
     // Create a map of product names to categories
