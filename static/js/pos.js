@@ -108,8 +108,13 @@ function displayAccounts(accountsList) {
         card.onclick = () => selectAccount(account);
 
         let membersPreview = '';
-        if (account.account_type === 'family' && account.family_members && typeof account.family_members === 'string') {
-            const members = account.family_members.split('\n').filter(m => m.trim());
+        if (account.account_type === 'family' && account.family_members) {
+            let members = [];
+            if (Array.isArray(account.family_members)) {
+                members = account.family_members.filter(m => m && m.trim());
+            } else if (typeof account.family_members === 'string') {
+                members = account.family_members.split('\n').filter(m => m.trim());
+            }
             if (members.length > 0) {
                 membersPreview = `<span class="account-members-preview">${members.join(' • ')}</span>`;
             }
@@ -150,8 +155,13 @@ function updateAccountDisplay() {
 
     if (selectedAccount) {
         let membersDisplay = '';
-        if (selectedAccount.account_type === 'family' && selectedAccount.family_members && typeof selectedAccount.family_members === 'string') {
-            const members = selectedAccount.family_members.split('\n').filter(m => m.trim());
+        if (selectedAccount.account_type === 'family' && selectedAccount.family_members) {
+            let members = [];
+            if (Array.isArray(selectedAccount.family_members)) {
+                members = selectedAccount.family_members.filter(m => m && m.trim());
+            } else if (typeof selectedAccount.family_members === 'string') {
+                members = selectedAccount.family_members.split('\n').filter(m => m.trim());
+            }
             if (members.length > 0) {
                 membersDisplay = `<div class="account-members">${members.join(' • ')}</div>`;
             }
