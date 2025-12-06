@@ -689,9 +689,16 @@ async function viewAccountDetailsModal(accountId) {
             `;
         }
 
-        // Build transactions table
+        // Build transactions table with calculated running balance
         let transactionsHTML = '';
         if (transactions.length > 0) {
+            // Calculate running balance for each transaction
+            let runningBalance = 0;
+            const transactionsWithBalance = transactions.map(t => {
+                runningBalance += t.total_amount;
+                return { ...t, balance_after: runningBalance };
+            });
+
             transactionsHTML = `
                 <div style="margin-top: 2rem;">
                     <h3 style="color: #2c3e50; margin-bottom: 1rem;">Transaction History</h3>
@@ -707,7 +714,7 @@ async function viewAccountDetailsModal(accountId) {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${transactions.map(t => {
+                                ${transactionsWithBalance.map(t => {
                                     const date = new Date(t.created_at);
                                     const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
                                     return `
@@ -1003,10 +1010,6 @@ async function viewTransactionDetails(transactionId) {
                 <span class="detail-value" style="color: ${data.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                     $${Math.abs(data.total_amount).toFixed(2)}
                 </span>
-            </div>
-            <div class="detail-row">
-                <span class="detail-label">Balance After:</span>
-                <span class="detail-value">$${data.balance_after.toFixed(2)}</span>
             </div>
             ${data.notes ? `
                 <div class="detail-row">
