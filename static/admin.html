@@ -49,11 +49,15 @@
                 <div class="tab-header">
                     <h2>Inventory Management</h2>
                     <div style="display: flex; gap: 1rem; align-items: center;">
+                        <select id="productStatusFilter" class="filter-select" onchange="filterProductsTable()">
+                            <option value="active">Active Only</option>
+                            <option value="">All Products</option>
+                            <option value="inactive">Inactive Only</option>
+                        </select>
                         <div class="search-box">
                             <input type="text" id="productSearchInput" class="search-input"
                                    placeholder="Search products..." oninput="filterProductsTable()">
                         </div>
-                        <button id="toggleInactiveBtn" class="btn-secondary" onclick="toggleInactiveProducts()">Show Inactive</button>
                         <button class="btn-primary" onclick="showAddProductForm()">+ Add Product</button>
                     </div>
                 </div>

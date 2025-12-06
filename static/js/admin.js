@@ -2,7 +2,6 @@
 let authToken = localStorage.getItem('adminToken');
 let allAccounts = [];
 let allTransactions = [];
-let showInactiveProducts = false; // Filter state for inventory display
 let allProductsData = null; // Cache all products data for filtering
 
 // API Base URL
@@ -118,16 +117,20 @@ async function loadProducts() {
 
 function displayProductsTable() {
     const searchTerm = document.getElementById('productSearchInput')?.value.toLowerCase() || '';
+    const statusFilter = document.getElementById('productStatusFilter')?.value || 'active';
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
 
     if (allProductsData && allProductsData.categories && Array.isArray(allProductsData.categories)) {
         allProductsData.categories.forEach(category => {
             category.products.forEach(product => {
-                // Filter based on showInactiveProducts state
-                if (!showInactiveProducts && !product.active) {
-                    return; // Skip inactive products when filter is off
+                // Filter based on status
+                if (statusFilter === 'active' && !product.active) {
+                    return; // Skip inactive products
+                } else if (statusFilter === 'inactive' && product.active) {
+                    return; // Skip active products
                 }
+                // If statusFilter is empty string, show all products
 
                 // Filter based on search term
                 if (searchTerm) {
@@ -159,17 +162,6 @@ function displayProductsTable() {
 }
 
 function filterProductsTable() {
-    displayProductsTable();
-}
-
-function toggleInactiveProducts() {
-    showInactiveProducts = !showInactiveProducts;
-
-    // Update button text
-    const btn = document.getElementById('toggleInactiveBtn');
-    btn.textContent = showInactiveProducts ? 'Hide Inactive' : 'Show Inactive';
-
-    // Refresh display
     displayProductsTable();
 }
 
