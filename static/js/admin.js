@@ -1,3 +1,5 @@
+import { confirmDialog } from './utils/dialog.js';
+
 // Global state
 let authToken = localStorage.getItem('adminToken');
 let allAccounts = [];
@@ -468,7 +470,12 @@ async function deleteCategoryFromModal() {
         return;
     }
 
-    if (!confirm(`Are you sure you want to delete the category "${categoryName}"?`)) {
+    const confirmed = await confirmDialog(
+        `Are you sure you want to delete the category "${categoryName}"?`,
+        'Delete Category'
+    );
+
+    if (!confirmed) {
         return;
     }
 
@@ -1156,7 +1163,9 @@ async function processAdjustment() {
 
     const confirmMsg = `Process adjustment of $${totalAdjustAmount.toFixed(2)} for ${adjustedItems.length} item(s) to ${transaction.account_name}?\n\nNote: This transaction will be marked as adjusted and cannot be adjusted again.`;
 
-    if (!confirm(confirmMsg)) {
+    const confirmed = await confirmDialog(confirmMsg, 'Process Adjustment');
+
+    if (!confirmed) {
         return;
     }
 
@@ -1232,3 +1241,39 @@ if (authToken) {
     loadAccounts();
     loadTransactions();
 }
+
+// ============================================================================
+// Expose functions to window for onclick handlers
+// ============================================================================
+
+window.login = login;
+window.logout = logout;
+window.showTab = showTab;
+window.showAddProductForm = showAddProductForm;
+window.showAddCategoryForm = showAddCategoryForm;
+window.showAddAccountForm = showAddAccountForm;
+window.hideProductModal = hideProductModal;
+window.saveProduct = saveProduct;
+window.hideCategoryModal = hideCategoryModal;
+window.saveCategory = saveCategory;
+window.deleteCategoryFromModal = deleteCategoryFromModal;
+window.hideTransactionModal = hideTransactionModal;
+window.hideAccountModal = hideAccountModal;
+window.saveAccount = saveAccount;
+window.hideAccountDetailsModal = hideAccountDetailsModal;
+window.showAddFundsModal = showAddFundsModal;
+window.hideAddFundsModal = hideAddFundsModal;
+window.addFundsToAccount = addFundsToAccount;
+window.filterProductsTable = filterProductsTable;
+window.filterAccountsTable = filterAccountsTable;
+window.toggleFamilyMembersField = toggleFamilyMembersField;
+window.editProduct = editProduct;
+window.editCategory = editCategory;
+window.editAccount = editAccount;
+window.viewAccountDetailsModal = viewAccountDetailsModal;
+window.viewTransactionDetails = viewTransactionDetails;
+window.decrementAdjustQty = decrementAdjustQty;
+window.incrementAdjustQty = incrementAdjustQty;
+window.toggleAdjustMode = toggleAdjustMode;
+window.processAdjustment = processAdjustment;
+window.loadAccounts = loadAccounts;
