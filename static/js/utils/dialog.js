@@ -16,6 +16,7 @@ export function confirmDialog(message, title = 'Confirm') {
         backdrop.style.display = 'flex';
         backdrop.style.alignItems = 'center';
         backdrop.style.justifyContent = 'center';
+        backdrop.style.zIndex = '1200'; // Higher than other modals
 
         // Create modal content
         const modalContent = document.createElement('div');
@@ -35,6 +36,7 @@ export function confirmDialog(message, title = 'Confirm') {
         modalBody.style.padding = '2rem';
         modalBody.style.fontSize = '1.1rem';
         modalBody.style.lineHeight = '1.6';
+        modalBody.style.whiteSpace = 'pre-wrap'; // Preserve newlines and wrap text
         modalBody.textContent = message;
 
         // Create modal actions
