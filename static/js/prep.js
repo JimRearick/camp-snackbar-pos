@@ -54,6 +54,33 @@ function renderPrepQueue() {
         return;
     }
 
+    // Calculate totals for each product
+    const productTotals = {};
+    prepQueue.forEach(item => {
+        if (!productTotals[item.product_name]) {
+            productTotals[item.product_name] = 0;
+        }
+        productTotals[item.product_name] += item.quantity;
+    });
+
+    // Create summary section
+    const summaryCard = document.createElement('div');
+    summaryCard.className = 'prep-summary';
+    summaryCard.innerHTML = `
+        <h3 style="margin: 0 0 1rem 0; color: #1f2937; font-size: 1.3rem;">📊 Total Items Needed</h3>
+        <div class="summary-grid">
+            ${Object.entries(productTotals)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([product, total]) => `
+                    <div class="summary-item">
+                        <span class="summary-product">${product}</span>
+                        <span class="summary-count">${total}</span>
+                    </div>
+                `).join('')}
+        </div>
+    `;
+    container.appendChild(summaryCard);
+
     // Render each prep item
     prepQueue.forEach(item => {
         const card = createPrepCard(item);
