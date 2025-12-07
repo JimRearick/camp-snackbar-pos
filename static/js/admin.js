@@ -732,16 +732,9 @@ async function viewAccountDetailsModal(accountId) {
             `;
         }
 
-        // Build transactions table with calculated running balance
+        // Build transactions table
         let transactionsHTML = '';
         if (transactions.length > 0) {
-            // Calculate running balance for each transaction
-            let runningBalance = 0;
-            const transactionsWithBalance = transactions.map(t => {
-                runningBalance += t.total_amount;
-                return { ...t, balance_after: runningBalance };
-            });
-
             transactionsHTML = `
                 <div style="margin-top: 2rem;">
                     <h3 style="color: #2c3e50; margin-bottom: 1rem;">Transaction History</h3>
@@ -752,12 +745,11 @@ async function viewAccountDetailsModal(accountId) {
                                     <th>Date/Time</th>
                                     <th>Type</th>
                                     <th>Amount</th>
-                                    <th>Balance After</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${transactionsWithBalance.map(t => {
+                                ${transactions.map(t => {
                                     const date = new Date(t.created_at);
                                     const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
                                     return `
@@ -767,7 +759,6 @@ async function viewAccountDetailsModal(accountId) {
                                             <td style="color: ${t.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                                                 $${Math.abs(t.total_amount).toFixed(2)}
                                             </td>
-                                            <td>$${t.balance_after.toFixed(2)}</td>
                                             <td>
                                                 <button class="btn-view" onclick="viewTransactionDetails(${t.id})">Details</button>
                                             </td>
