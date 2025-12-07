@@ -562,23 +562,8 @@ window.loadAccountTransactionDetails = async function() {
         // Enable export button
         exportBtn.disabled = false;
 
-        // Display summary
-        let familyMembersHTML = '';
-        if (account.family_members && account.family_members.length > 0) {
-            familyMembersHTML = `<strong>Family Members:</strong> ${account.family_members.join(', ')}<br>`;
-        }
-
-        summaryDiv.innerHTML = `
-            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #007bff;">
-                <h3 style="margin: 0 0 0.5rem 0; color: #333;">${account.account_name}</h3>
-                <div style="color: #666;">
-                    <strong>Account #:</strong> ${account.account_number}<br>
-                    <strong>Type:</strong> ${account.account_type}<br>
-                    ${familyMembersHTML}
-                    <strong>Current Balance:</strong> <span style="color: ${account.current_balance < 0 ? '#dc3545' : '#28a745'}; font-weight: 600; font-size: 1.1rem;">$${account.current_balance.toFixed(2)}</span>
-                </div>
-            </div>
-        `;
+        // Clear summary section
+        summaryDiv.innerHTML = '';
 
         if (transactions.length === 0) {
             container.innerHTML = '<div class="no-data">No transactions found for this account</div>';
@@ -619,7 +604,14 @@ window.loadAccountTransactionDetails = async function() {
             `;
         });
 
+        // Add total row with current balance
+        const balanceClass = account.current_balance < 0 ? 'negative' : 'positive';
         html += `
+                <tr style="border-top: 3px solid #333; background: #f8f9fa; font-weight: 600;">
+                    <td colspan="3" style="text-align: right; padding-right: 1rem;">Current Balance:</td>
+                    <td class="currency ${balanceClass}" style="font-size: 1.1rem;">$${account.current_balance.toFixed(2)}</td>
+                    <td colspan="2"></td>
+                </tr>
                 </tbody>
             </table>
         `;
