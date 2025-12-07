@@ -95,8 +95,17 @@ function showTab(tabName) {
     // Show selected tab
     document.getElementById(tabName + 'Tab').classList.add('active');
 
-    // Mark button as active
-    event.target.classList.add('active');
+    // Mark button as active - handle both event clicks and programmatic calls
+    if (window.event && window.event.target) {
+        window.event.target.classList.add('active');
+    } else {
+        // Programmatic call - find the button by matching the onclick attribute
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            if (btn.getAttribute('onclick') === `showTab('${tabName}')`) {
+                btn.classList.add('active');
+            }
+        });
+    }
 }
 
 // ============================================================================
