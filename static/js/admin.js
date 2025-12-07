@@ -1192,6 +1192,11 @@ async function processAdjustment() {
             hideTransactionModal();
             loadTransactions();
             loadAccounts();
+
+            // Reload account details if the account details modal is open
+            if (currentAccountForFunds && currentAccountForFunds.id === transaction.account_id) {
+                await viewAccountDetailsModal(transaction.account_id);
+            }
         } else {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.error || 'Failed to process adjustment');
