@@ -680,9 +680,24 @@ def create_transaction():
 
         # If this is a refund adjustment, mark the original transaction as adjusted
         if transaction_type == 'adjustment' and 'original_transaction_id' in data:
+            original_id = data['original_transaction_id']
+
+            # Get current notes from original transaction
+            cursor = conn.execute(
+                "SELECT notes FROM transactions WHERE id = ?",
+                (original_id,)
+            )
+            orig_row = cursor.fetchone()
+            current_notes = orig_row['notes'] if orig_row and orig_row['notes'] else ''
+
+            # Append adjustment reference
+            adjustment_ref = f"Adjusted by transaction #{transaction_id} on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            updated_notes = f"{current_notes}\n{adjustment_ref}" if current_notes else adjustment_ref
+
+            # Update original transaction with adjusted flag and reference note
             conn.execute(
-                "UPDATE transactions SET has_been_adjusted = 1 WHERE id = ?",
-                (data['original_transaction_id'],)
+                "UPDATE transactions SET has_been_adjusted = 1, notes = ? WHERE id = ?",
+                (updated_notes, original_id)
             )
 
         # Add line items for purchases
