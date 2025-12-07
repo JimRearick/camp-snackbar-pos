@@ -40,6 +40,9 @@ async function login(event) {
             loadCategories();
             loadAccounts();
             loadTransactions();
+
+            // Show transactions tab by default
+            showTab('transactions');
         } else {
             showLoginError('Invalid password');
         }
@@ -1249,6 +1252,9 @@ if (authToken) {
     loadCategories();
     loadAccounts();
     loadTransactions();
+
+    // Show transactions tab by default
+    showTab('transactions');
 }
 
 // ============================================================================
