@@ -1158,12 +1158,14 @@ async function processAdjustment() {
     // Build detailed note
     let detailedNote = `Adjustment for transaction #${transaction.id}:\n`;
     let totalItemCount = 0;
+    let itemsList = '';
     adjustedItems.forEach(item => {
         detailedNote += `- ${item.name} (x${item.quantity}): $${item.amount.toFixed(2)}\n`;
+        itemsList += `  • ${item.name} - Qty: ${item.quantity}\n`;
         totalItemCount += item.quantity;
     });
 
-    const confirmMsg = `Process adjustment of $${totalAdjustAmount.toFixed(2)} for ${totalItemCount} item(s) to ${transaction.account_name}?\n\nNote: This transaction will be marked as adjusted and cannot be adjusted again.`;
+    const confirmMsg = `Process adjustment of $${totalAdjustAmount.toFixed(2)} for ${totalItemCount} item(s) to ${transaction.account_name}?\n\nItems to adjust:\n${itemsList}\nNote: This transaction will be marked as adjusted and cannot be adjusted again.`;
 
     const confirmed = await confirmDialog(confirmMsg, 'Process Adjustment');
 
