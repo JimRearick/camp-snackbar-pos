@@ -1041,13 +1041,13 @@ async function viewTransactionDetails(transactionId) {
                     $${Math.abs(data.total_amount).toFixed(2)}
                 </span>
             </div>
+            ${itemsHTML}
             ${data.notes ? `
-                <div class="detail-row">
+                <div class="detail-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
                     <span class="detail-label">Notes:</span>
-                    <span class="detail-value">${data.notes}</span>
+                    <span class="detail-value" style="white-space: pre-wrap;">${data.notes}</span>
                 </div>
             ` : ''}
-            ${itemsHTML}
             ${warningHTML}
         `;
 
