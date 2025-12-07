@@ -96,6 +96,9 @@ function createPrepCard(item) {
     const now = new Date();
     const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
 
+    // Debug logging
+    console.log('Item:', item.product_name, 'Ordered at:', item.ordered_at, 'Parsed:', orderedAt, 'Minutes waiting:', minutesWaiting);
+
     // Apply urgency styling
     let urgencyClass = '';
     let timeText = `${minutesWaiting} minute${minutesWaiting !== 1 ? 's' : ''} ago`;
