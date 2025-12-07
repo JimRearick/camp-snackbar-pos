@@ -234,15 +234,20 @@
             25%, 75% { opacity: 0.3; }
         }
 
+        /* Summary Section Container (fixed) */
+        .prep-summary-container {
+            flex-shrink: 0;
+            padding: 1.5rem 2rem;
+            background: #f5f5f5;
+        }
+
         /* Summary Section */
         .prep-summary {
-            grid-column: 1 / -1;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 16px;
             padding: 2rem;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            margin-bottom: 1rem;
         }
 
         .summary-grid {
@@ -291,6 +296,16 @@
         <h1>🍔 Prep Station</h1>
         <div class="queue-count" id="queueCount">0</div>
     </header>
+
+    <!-- Summary Section (fixed, doesn't scroll) -->
+    <div id="prepSummary" class="prep-summary-container" style="display: none;">
+        <div class="prep-summary">
+            <h3 style="margin: 0 0 1rem 0; color: white; font-size: 1.3rem;">📊 Total Items Needed</h3>
+            <div class="summary-grid" id="summaryGrid">
+                <!-- Summary items will be populated here -->
+            </div>
+        </div>
+    </div>
 
     <div class="prep-container" id="prepContainer">
         <div class="loading">Loading prep queue...</div>

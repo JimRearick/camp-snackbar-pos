@@ -37,6 +37,8 @@ async function loadPrepQueue() {
 function renderPrepQueue() {
     const container = document.getElementById('prepContainer');
     const countDisplay = document.getElementById('queueCount');
+    const summaryContainer = document.getElementById('prepSummary');
+    const summaryGrid = document.getElementById('summaryGrid');
 
     // Update count
     countDisplay.textContent = prepQueue.length;
@@ -45,6 +47,9 @@ function renderPrepQueue() {
     container.innerHTML = '';
 
     if (prepQueue.length === 0) {
+        // Hide summary when queue is empty
+        summaryContainer.style.display = 'none';
+
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-state-icon">✅</div>
@@ -63,23 +68,16 @@ function renderPrepQueue() {
         productTotals[item.product_name] += item.quantity;
     });
 
-    // Create summary section
-    const summaryCard = document.createElement('div');
-    summaryCard.className = 'prep-summary';
-    summaryCard.innerHTML = `
-        <h3 style="margin: 0 0 1rem 0; color: #1f2937; font-size: 1.3rem;">📊 Total Items Needed</h3>
-        <div class="summary-grid">
-            ${Object.entries(productTotals)
-                .sort((a, b) => a[0].localeCompare(b[0]))
-                .map(([product, total]) => `
-                    <div class="summary-item">
-                        <span class="summary-product">${product}</span>
-                        <span class="summary-count">${total}</span>
-                    </div>
-                `).join('')}
-        </div>
-    `;
-    container.appendChild(summaryCard);
+    // Update summary section
+    summaryContainer.style.display = 'block';
+    summaryGrid.innerHTML = Object.entries(productTotals)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([product, total]) => `
+            <div class="summary-item">
+                <span class="summary-product">${product}</span>
+                <span class="summary-count">${total}</span>
+            </div>
+        `).join('');
 
     // Render each prep item
     prepQueue.forEach(item => {
