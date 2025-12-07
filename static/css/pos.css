@@ -647,3 +647,103 @@ body {
 .btn-confirm:active {
     transform: scale(0.97);
 }
+
+/* Prep Queue Button */
+.btn-prep-queue {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.btn-prep-queue:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.btn-prep-queue:active {
+    transform: scale(0.95);
+}
+
+#prepQueueCount {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+/* Prep Queue List Styles */
+.prep-item {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border-left: 4px solid #667eea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.prep-item.urgent {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+}
+
+.prep-item.warning {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+}
+
+.prep-item-info {
+    flex: 1;
+}
+
+.prep-item-product {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.prep-item-details {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.prep-item-quantity {
+    background: #667eea;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-left: 1rem;
+}
+
+.prep-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #9ca3af;
+}
+
+.prep-empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}

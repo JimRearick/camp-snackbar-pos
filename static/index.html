@@ -12,10 +12,15 @@
         <!-- Header -->
         <header class="header">
             <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
-            <div id="selectedAccount" class="account-display">
-                <button class="btn-select-account" onclick="showAccountSelector()">
-                    Select Account
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button class="btn-prep-queue" onclick="showPrepQueueModal()" title="View Prep Queue">
+                    🍔 <span id="prepQueueCount" style="display: none;"></span>
                 </button>
+                <div id="selectedAccount" class="account-display">
+                    <button class="btn-select-account" onclick="showAccountSelector()">
+                        Select Account
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -126,6 +131,21 @@
             <div class="modal-actions">
                 <button class="btn-cancel" onclick="hideConfirmClear()">Cancel</button>
                 <button class="btn-confirm" onclick="confirmClear()">Clear All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prep Queue Modal -->
+    <div id="prepQueueModal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>🍔 Prep Queue</h2>
+                <button class="btn-close" onclick="hidePrepQueueModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="prepQueueList" style="max-height: 60vh; overflow-y: auto;">
+                    <div style="text-align: center; padding: 2rem; color: #999;">Loading...</div>
+                </div>
             </div>
         </div>
     </div>

@@ -11,6 +11,10 @@ const API_URL = window.location.origin + '/api';
 document.addEventListener('DOMContentLoaded', function() {
     loadProducts();
     loadAccounts();
+    loadPrepQueueCount();
+
+    // Refresh prep queue count every 30 seconds
+    setInterval(loadPrepQueueCount, 30000);
 });
 
 // Load products from API
@@ -39,6 +43,9 @@ function displayProducts(categories) {
 
         // Only show category if it has active products
         if (activeProducts.length > 0) {
+            // Sort products alphabetically by name
+            activeProducts.sort((a, b) => a.name.localeCompare(b.name));
+
             // Add category header
             const categoryHeader = document.createElement('div');
             categoryHeader.className = 'category-header';
@@ -487,5 +494,102 @@ async function createNewAccount() {
     } catch (error) {
         showError('Failed to create account: ' + error.message);
         console.error('Create account error:', error);
+    }
+}
+
+// ============================================================================
+// Prep Queue Functions
+// ============================================================================
+
+async function showPrepQueueModal() {
+    document.getElementById('prepQueueModal').classList.remove('hidden');
+    await loadPrepQueueList();
+}
+
+function hidePrepQueueModal() {
+    document.getElementById('prepQueueModal').classList.add('hidden');
+}
+
+async function loadPrepQueueList() {
+    const container = document.getElementById('prepQueueList');
+
+    try {
+        const response = await fetch(`${API_URL}/prep-queue`);
+        const data = await response.json();
+
+        if (data.items.length === 0) {
+            container.innerHTML = `
+                <div class="prep-empty">
+                    <div class="prep-empty-icon">✅</div>
+                    <div style="font-size: 1.2rem; font-weight: 600;">All caught up!</div>
+                    <div>No items in prep queue</div>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = '';
+
+        data.items.forEach(item => {
+            const orderedAt = new Date(item.ordered_at);
+            const now = new Date();
+            const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+
+            let urgencyClass = '';
+            let timeText = `${minutesWaiting} min ago`;
+
+            if (minutesWaiting >= 5) {
+                urgencyClass = 'urgent';
+                timeText = `⚠️ ${timeText}`;
+            } else if (minutesWaiting >= 2) {
+                urgencyClass = 'warning';
+            }
+
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `prep-item ${urgencyClass}`;
+            itemDiv.innerHTML = `
+                <div class="prep-item-info">
+                    <div class="prep-item-product">${item.product_name}</div>
+                    <div class="prep-item-details">
+                        For: ${item.account_name} • ${timeText}
+                    </div>
+                </div>
+                <div class="prep-item-quantity">${item.quantity}</div>
+            `;
+            container.appendChild(itemDiv);
+        });
+
+        // Update header count badge
+        updatePrepQueueCount(data.items.length);
+
+    } catch (error) {
+        console.error('Error loading prep queue:', error);
+        container.innerHTML = `
+            <div class="prep-empty">
+                <div class="prep-empty-icon">❌</div>
+                <div>Error loading prep queue</div>
+            </div>
+        `;
+    }
+}
+
+function updatePrepQueueCount(count) {
+    const badge = document.getElementById('prepQueueCount');
+    if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+// Load prep queue count on page load
+async function loadPrepQueueCount() {
+    try {
+        const response = await fetch(`${API_URL}/prep-queue`);
+        const data = await response.json();
+        updatePrepQueueCount(data.items.length);
+    } catch (error) {
+        console.error('Error loading prep queue count:', error);
     }
 }
