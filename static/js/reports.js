@@ -337,12 +337,20 @@ async function loadCategoryReport() {
 // ============================================================================
 
 function exportToCSV(filename, headers, rows) {
-    let csv = headers.join(',') + '\n';
+    // Properly escape CSV fields
+    const escapeCSVField = (field) => {
+        const str = String(field);
+        // If field contains comma, newline, carriage return, or double quote, wrap in quotes
+        if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {
+            // Escape double quotes by doubling them
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+
+    let csv = headers.map(h => escapeCSVField(h)).join(',') + '\n';
     rows.forEach(row => {
-        csv += row.map(cell => {
-            const escaped = String(cell).replace(/"/g, '""');
-            return escaped.includes(',') ? `"${escaped}"` : escaped;
-        }).join(',') + '\n';
+        csv += row.map(cell => escapeCSVField(cell)).join(',') + '\n';
     });
 
     const blob = new Blob([csv], { type: 'text/csv' });
