@@ -231,10 +231,14 @@
                         <input type="text" id="categoryName" class="form-input" required>
                     </div>
                 </form>
+                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
+                    <button class="btn-secondary" id="deleteCategoryBtn" onclick="deleteCategoryFromModal()" style="display: none; font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        Delete Category
+                    </button>
+                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="hideCategoryModal()">Cancel</button>
-                <button class="btn-danger" id="deleteCategoryBtn" onclick="deleteCategoryFromModal()" style="display: none;">Delete Category</button>
                 <button class="btn-primary" onclick="saveCategory()">Save</button>
             </div>
         </div>
