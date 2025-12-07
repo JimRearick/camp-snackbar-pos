@@ -723,8 +723,8 @@ def create_transaction():
                 # Add to prep queue if product requires preparation
                 if product['requires_prep']:
                     conn.execute(
-                        """INSERT INTO prep_queue (transaction_id, transaction_item_id, product_name, quantity, account_name, status)
-                           VALUES (?, ?, ?, ?, ?, 'pending')""",
+                        """INSERT INTO prep_queue (transaction_id, transaction_item_id, product_name, quantity, account_name, status, ordered_at)
+                           VALUES (?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'))""",
                         (transaction_id, transaction_item_id, product['name'], item['quantity'], account_name)
                     )
 

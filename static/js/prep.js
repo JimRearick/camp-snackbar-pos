@@ -9,6 +9,7 @@ import { socket } from './utils/socket.js';
 // State
 let prepQueue = [];
 let previousQueueLength = 0;
+let currentFilter = null; // null means show all, otherwise filter by product name
 
 // ============================================================================
 // Queue Management
@@ -40,7 +41,7 @@ function renderPrepQueue() {
     const summaryContainer = document.getElementById('prepSummary');
     const summaryGrid = document.getElementById('summaryGrid');
 
-    // Update count
+    // Update count - always show total count
     countDisplay.textContent = prepQueue.length;
 
     // Clear container
@@ -49,6 +50,7 @@ function renderPrepQueue() {
     if (prepQueue.length === 0) {
         // Hide summary when queue is empty
         summaryContainer.style.display = 'none';
+        currentFilter = null;
 
         container.innerHTML = `
             <div class="empty-state">
@@ -72,15 +74,23 @@ function renderPrepQueue() {
     summaryContainer.style.display = 'block';
     summaryGrid.innerHTML = Object.entries(productTotals)
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([product, total]) => `
-            <div class="summary-item">
-                <span class="summary-product">${product}</span>
-                <span class="summary-count">${total}</span>
-            </div>
-        `).join('');
+        .map(([product, total]) => {
+            const isActive = currentFilter === product;
+            return `
+                <div class="summary-item ${isActive ? 'active' : ''}" onclick="window.filterByProduct('${product}')" style="cursor: pointer;">
+                    <span class="summary-product">${product}</span>
+                    <span class="summary-count">${total}</span>
+                </div>
+            `;
+        }).join('');
+
+    // Filter items if needed
+    const itemsToDisplay = currentFilter
+        ? prepQueue.filter(item => item.product_name === currentFilter)
+        : prepQueue;
 
     // Render each prep item
-    prepQueue.forEach(item => {
+    itemsToDisplay.forEach(item => {
         const card = createPrepCard(item);
         container.appendChild(card);
     });
@@ -95,9 +105,6 @@ function createPrepCard(item) {
     const orderedAt = new Date(item.ordered_at);
     const now = new Date();
     const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
-
-    // Debug logging
-    console.log('Item:', item.product_name, 'Now:', now, 'Ordered at:', item.ordered_at, 'Parsed:', orderedAt, 'Minutes waiting:', minutesWaiting);
 
     // Apply urgency styling
     let urgencyClass = '';
@@ -224,7 +231,28 @@ setInterval(() => {
 }, 30000);
 
 // ============================================================================
+// Filtering
+// ============================================================================
+
+function filterByProduct(productName) {
+    if (currentFilter === productName) {
+        // Toggle off if clicking the same filter
+        currentFilter = null;
+    } else {
+        currentFilter = productName;
+    }
+    renderPrepQueue();
+}
+
+function clearFilter() {
+    currentFilter = null;
+    renderPrepQueue();
+}
+
+// ============================================================================
 // Expose functions to window
 // ============================================================================
 
 window.completeItem = completeItem;
+window.filterByProduct = filterByProduct;
+window.clearFilter = clearFilter;
