@@ -401,13 +401,13 @@ def get_products():
 def create_product():
     """Create new product"""
     data = request.get_json()
-    
+
     conn = get_db()
     cursor = conn.execute(
-        """INSERT INTO products (category_id, name, price, inventory_quantity, track_inventory, display_order)
-           VALUES (?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO products (category_id, name, price, inventory_quantity, track_inventory, display_order, requires_prep)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (data['category_id'], data['name'], data['price'], data.get('inventory_quantity', 0),
-         data.get('track_inventory', False), data.get('display_order', 0))
+         data.get('track_inventory', False), data.get('display_order', 0), data.get('requires_prep', 0))
     )
     
     product_id = cursor.lastrowid
@@ -427,9 +427,9 @@ def update_product(product_id):
     conn = get_db()
     conn.execute(
         """UPDATE products
-           SET name = ?, price = ?, category_id = ?, active = ?, inventory_quantity = ?, track_inventory = ?, updated_at = CURRENT_TIMESTAMP
+           SET name = ?, price = ?, category_id = ?, active = ?, inventory_quantity = ?, track_inventory = ?, requires_prep = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?""",
-        (data['name'], data['price'], data.get('category_id'), data.get('active', 1), data.get('inventory_quantity', 0), data.get('track_inventory', False), product_id)
+        (data['name'], data['price'], data.get('category_id'), data.get('active', 1), data.get('inventory_quantity', 0), data.get('track_inventory', False), data.get('requires_prep', 0), product_id)
     )
 
     conn.commit()
@@ -702,17 +702,31 @@ def create_transaction():
 
         # Add line items for purchases
         if transaction_type == 'purchase':
+            # Get account name for prep queue
+            account_cursor = conn.execute("SELECT account_name FROM accounts WHERE id = ?", (account_id,))
+            account_row = account_cursor.fetchone()
+            account_name = account_row['account_name'] if account_row else 'Unknown'
+
             for item in data['items']:
-                cursor = conn.execute("SELECT name, price FROM products WHERE id = ?", (item['product_id'],))
+                cursor = conn.execute("SELECT name, price, requires_prep FROM products WHERE id = ?", (item['product_id'],))
                 product = cursor.fetchone()
 
                 line_total = product['price'] * item['quantity']
 
-                conn.execute(
+                item_cursor = conn.execute(
                     """INSERT INTO transaction_items (transaction_id, product_id, product_name, quantity, unit_price, line_total)
                        VALUES (?, ?, ?, ?, ?, ?)""",
                     (transaction_id, item['product_id'], product['name'], item['quantity'], product['price'], line_total)
                 )
+                transaction_item_id = item_cursor.lastrowid
+
+                # Add to prep queue if product requires preparation
+                if product['requires_prep']:
+                    conn.execute(
+                        """INSERT INTO prep_queue (transaction_id, transaction_item_id, product_name, quantity, account_name, status)
+                           VALUES (?, ?, ?, ?, ?, 'pending')""",
+                        (transaction_id, transaction_item_id, product['name'], item['quantity'], account_name)
+                    )
 
                 # Update inventory if tracked
                 conn.execute(
@@ -751,6 +765,98 @@ def create_transaction():
 
     finally:
         conn.close()
+
+# ============================================================================
+# Prep Queue Routes
+# ============================================================================
+
+@app.route('/api/prep-queue', methods=['GET'])
+def get_prep_queue():
+    """Get all pending prep queue items (FIFO order)"""
+    conn = get_db()
+
+    cursor = conn.execute("""
+        SELECT id, transaction_id, transaction_item_id, product_name, quantity,
+               account_name, status, ordered_at, completed_at, completed_by
+        FROM prep_queue
+        WHERE status = 'pending'
+        ORDER BY ordered_at ASC
+    """)
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row['id'],
+            'transaction_id': row['transaction_id'],
+            'transaction_item_id': row['transaction_item_id'],
+            'product_name': row['product_name'],
+            'quantity': row['quantity'],
+            'account_name': row['account_name'],
+            'status': row['status'],
+            'ordered_at': row['ordered_at'],
+            'completed_at': row['completed_at'],
+            'completed_by': row['completed_by']
+        })
+
+    conn.close()
+    return jsonify({'items': items})
+
+@app.route('/api/prep-queue/<int:item_id>/complete', methods=['POST'])
+def complete_prep_item(item_id):
+    """Mark a prep queue item as completed"""
+    data = request.get_json() or {}
+    completed_by = data.get('completed_by', 'Staff')
+
+    conn = get_db()
+    conn.execute("""
+        UPDATE prep_queue
+        SET status = 'completed',
+            completed_at = CURRENT_TIMESTAMP,
+            completed_by = ?
+        WHERE id = ?
+    """, (completed_by, item_id))
+
+    conn.commit()
+
+    # Notify all clients about queue update
+    socketio.emit('prep_queue_updated', {'item_id': item_id, 'status': 'completed'})
+
+    conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/prep-queue/history', methods=['GET'])
+def get_prep_queue_history():
+    """Get completed prep queue items for history/reports"""
+    limit = request.args.get('limit', 100, type=int)
+
+    conn = get_db()
+
+    cursor = conn.execute("""
+        SELECT id, transaction_id, transaction_item_id, product_name, quantity,
+               account_name, status, ordered_at, completed_at, completed_by
+        FROM prep_queue
+        WHERE status = 'completed'
+        ORDER BY completed_at DESC
+        LIMIT ?
+    """, (limit,))
+
+    items = []
+    for row in cursor.fetchall():
+        items.append({
+            'id': row['id'],
+            'transaction_id': row['transaction_id'],
+            'transaction_item_id': row['transaction_item_id'],
+            'product_name': row['product_name'],
+            'quantity': row['quantity'],
+            'account_name': row['account_name'],
+            'status': row['status'],
+            'ordered_at': row['ordered_at'],
+            'completed_at': row['completed_at'],
+            'completed_by': row['completed_by']
+        })
+
+    conn.close()
+    return jsonify({'items': items})
 
 # ============================================================================
 # Report Routes

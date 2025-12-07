@@ -255,6 +255,7 @@ async function editProduct(productId) {
             document.getElementById('productName').value = product.name;
             document.getElementById('productPrice').value = product.price;
             document.getElementById('productActive').checked = product.active;
+            document.getElementById('productRequiresPrep').checked = product.requires_prep || false;
 
             // Show modal FIRST so DOM elements are accessible
             document.getElementById('productModal').classList.remove('hidden');
@@ -321,11 +322,14 @@ async function saveProduct() {
         }
     }
 
+    const requiresPrep = document.getElementById('productRequiresPrep').checked;
+
     const productData = {
         category_id: parsedCategoryId,
         name,
         price,
-        active: active ? 1 : 0
+        active: active ? 1 : 0,
+        requires_prep: requiresPrep ? 1 : 0
     };
 
     try {
