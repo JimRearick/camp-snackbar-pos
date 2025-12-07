@@ -46,6 +46,9 @@ window.showTab = function(tabName) {
         case 'balances':
             loadAccountBalances();
             break;
+        case 'accountDetails':
+            loadAccountDetailsTab();
+            break;
     }
 };
 
@@ -492,6 +495,177 @@ window.exportCategoryToCSV = async function() {
     ]);
 
     exportToCSV('sales-by-category-report.csv', headers, rows);
+};
+
+// ============================================================================
+// Account Transaction Details Report
+// ============================================================================
+
+let selectedAccountData = null;
+
+window.loadAccountDetailsTab = async function() {
+    // Populate account dropdown
+    try {
+        const response = await fetch(`${API_URL}/accounts`);
+        const data = await response.json();
+
+        const select = document.getElementById('accountDetailsSelect');
+        select.innerHTML = '<option value="">Select an account...</option>';
+
+        // Sort accounts by name
+        data.accounts.sort((a, b) => a.account_name.localeCompare(b.account_name));
+
+        data.accounts.forEach(account => {
+            const option = document.createElement('option');
+            option.value = account.id;
+            option.textContent = `${account.account_name} (#${account.account_number})`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading accounts:', error);
+    }
+};
+
+window.loadAccountTransactionDetails = async function() {
+    const accountId = document.getElementById('accountDetailsSelect').value;
+    const container = document.getElementById('accountDetailsTableContainer');
+    const summaryDiv = document.getElementById('accountDetailsSummary');
+    const exportBtn = document.getElementById('exportAccountDetailsBtn');
+
+    if (!accountId) {
+        container.innerHTML = '<div class="no-data">Select an account to view transaction details</div>';
+        summaryDiv.innerHTML = '';
+        exportBtn.disabled = true;
+        selectedAccountData = null;
+        return;
+    }
+
+    try {
+        container.innerHTML = '<div class="loading">Loading transaction details...</div>';
+        summaryDiv.innerHTML = '';
+
+        // Fetch account details
+        const accountResponse = await fetch(`${API_URL}/accounts/${accountId}`);
+        const account = await accountResponse.json();
+
+        // Fetch transactions for this account
+        const transactionsResponse = await fetch(`${API_URL}/transactions?account_id=${accountId}`);
+        const transactionsData = await transactionsResponse.json();
+        const transactions = transactionsData.transactions || [];
+
+        // Store for export
+        selectedAccountData = {
+            account,
+            transactions
+        };
+
+        // Enable export button
+        exportBtn.disabled = false;
+
+        // Display summary
+        let familyMembersHTML = '';
+        if (account.family_members && account.family_members.length > 0) {
+            familyMembersHTML = `<strong>Family Members:</strong> ${account.family_members.join(', ')}<br>`;
+        }
+
+        summaryDiv.innerHTML = `
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #007bff;">
+                <h3 style="margin: 0 0 0.5rem 0; color: #333;">${account.account_name}</h3>
+                <div style="color: #666;">
+                    <strong>Account #:</strong> ${account.account_number}<br>
+                    <strong>Type:</strong> ${account.account_type}<br>
+                    ${familyMembersHTML}
+                    <strong>Current Balance:</strong> <span style="color: ${account.current_balance < 0 ? '#dc3545' : '#28a745'}; font-weight: 600; font-size: 1.1rem;">$${account.current_balance.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+
+        if (transactions.length === 0) {
+            container.innerHTML = '<div class="no-data">No transactions found for this account</div>';
+            return;
+        }
+
+        // Build transactions table
+        let html = `
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Date/Time</th>
+                        <th>Type</th>
+                        <th style="text-align: right;">Amount</th>
+                        <th>Operator</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        transactions.forEach(t => {
+            const date = new Date(t.created_at);
+            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            const amountClass = t.transaction_type === 'purchase' ? 'negative' : 'positive';
+            const notes = t.notes || '';
+
+            html += `
+                <tr>
+                    <td>#${t.id}</td>
+                    <td>${dateStr}</td>
+                    <td><span class="type-badge">${t.transaction_type}</span></td>
+                    <td class="currency ${amountClass}">$${Math.abs(t.total_amount).toFixed(2)}</td>
+                    <td>${t.operator_name || 'N/A'}</td>
+                    <td style="white-space: pre-wrap; max-width: 300px;">${notes}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                </tbody>
+            </table>
+        `;
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading account transaction details:', error);
+        container.innerHTML = '<div class="no-data">Error loading transaction details</div>';
+        summaryDiv.innerHTML = '';
+        exportBtn.disabled = true;
+        selectedAccountData = null;
+    }
+};
+
+window.exportAccountDetailsToCSV = function() {
+    if (!selectedAccountData) {
+        alert('No data to export');
+        return;
+    }
+
+    const { account, transactions } = selectedAccountData;
+
+    const headers = [
+        'Transaction ID',
+        'Date/Time',
+        'Type',
+        'Amount',
+        'Operator',
+        'Notes'
+    ];
+
+    const rows = transactions.map(t => {
+        const date = new Date(t.created_at);
+        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        return [
+            t.id,
+            dateStr,
+            t.transaction_type,
+            Math.abs(t.total_amount).toFixed(2),
+            t.operator_name || 'N/A',
+            t.notes || ''
+        ];
+    });
+
+    const filename = `account-transactions-${account.account_number}-${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCSV(filename, headers, rows);
 };
 
 // ============================================================================

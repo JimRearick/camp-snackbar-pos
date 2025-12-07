@@ -280,6 +280,7 @@
             <button class="tab-button" onclick="showTab('sales')">Sales by Product</button>
             <button class="tab-button" onclick="showTab('category')">Sales by Category</button>
             <button class="tab-button" onclick="showTab('balances')">Account Balances</button>
+            <button class="tab-button" onclick="showTab('accountDetails')">Account Transactions</button>
         </nav>
 
         <div class="admin-content">
@@ -361,6 +362,27 @@
                     </div>
                     <div id="categoryTableContainer">
                         <div class="loading">Loading category data...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Transaction Details Tab -->
+            <div id="accountDetailsTab" class="tab-content">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h2>📋 Account Transaction Details</h2>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <select id="accountDetailsSelect" class="date-input" onchange="loadAccountTransactionDetails()" style="min-width: 250px;">
+                                <option value="">Select an account...</option>
+                            </select>
+                            <button class="btn-export" onclick="exportAccountDetailsToCSV()" id="exportAccountDetailsBtn" disabled>
+                                <span>📥</span> Export to CSV
+                            </button>
+                        </div>
+                    </div>
+                    <div id="accountDetailsSummary" style="margin-bottom: 1.5rem;"></div>
+                    <div id="accountDetailsTableContainer">
+                        <div class="no-data">Select an account to view transaction details</div>
                     </div>
                 </div>
             </div>
