@@ -785,6 +785,23 @@ def get_prep_queue():
 
     items = []
     for row in cursor.fetchall():
+        # Convert SQLite timestamp to ISO format for proper JS parsing
+        ordered_at = row['ordered_at']
+        if ordered_at:
+            try:
+                ordered_dt = datetime.strptime(ordered_at, '%Y-%m-%d %H:%M:%S')
+                ordered_at = ordered_dt.isoformat()
+            except:
+                pass  # Keep original if parsing fails
+
+        completed_at = row['completed_at']
+        if completed_at:
+            try:
+                completed_dt = datetime.strptime(completed_at, '%Y-%m-%d %H:%M:%S')
+                completed_at = completed_dt.isoformat()
+            except:
+                pass
+
         items.append({
             'id': row['id'],
             'transaction_id': row['transaction_id'],
@@ -793,8 +810,8 @@ def get_prep_queue():
             'quantity': row['quantity'],
             'account_name': row['account_name'],
             'status': row['status'],
-            'ordered_at': row['ordered_at'],
-            'completed_at': row['completed_at'],
+            'ordered_at': ordered_at,
+            'completed_at': completed_at,
             'completed_by': row['completed_by']
         })
 
@@ -842,6 +859,23 @@ def get_prep_queue_history():
 
     items = []
     for row in cursor.fetchall():
+        # Convert SQLite timestamp to ISO format for proper JS parsing
+        ordered_at = row['ordered_at']
+        if ordered_at:
+            try:
+                ordered_dt = datetime.strptime(ordered_at, '%Y-%m-%d %H:%M:%S')
+                ordered_at = ordered_dt.isoformat()
+            except:
+                pass
+
+        completed_at = row['completed_at']
+        if completed_at:
+            try:
+                completed_dt = datetime.strptime(completed_at, '%Y-%m-%d %H:%M:%S')
+                completed_at = completed_dt.isoformat()
+            except:
+                pass
+
         items.append({
             'id': row['id'],
             'transaction_id': row['transaction_id'],
@@ -850,8 +884,8 @@ def get_prep_queue_history():
             'quantity': row['quantity'],
             'account_name': row['account_name'],
             'status': row['status'],
-            'ordered_at': row['ordered_at'],
-            'completed_at': row['completed_at'],
+            'ordered_at': ordered_at,
+            'completed_at': completed_at,
             'completed_by': row['completed_by']
         })
 
