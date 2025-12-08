@@ -10,6 +10,7 @@ import { socket } from './utils/socket.js';
 let prepQueue = [];
 let previousQueueLength = 0;
 let currentFilter = null; // null means show all, otherwise filter by product name
+let viewMode = 'product'; // 'product' or 'order'
 
 // ============================================================================
 // Queue Management
@@ -61,6 +62,14 @@ function renderPrepQueue() {
         return;
     }
 
+    if (viewMode === 'product') {
+        renderByProduct(container, summaryContainer, summaryGrid);
+    } else {
+        renderByOrder(container, summaryContainer, summaryGrid);
+    }
+}
+
+function renderByProduct(container, summaryContainer, summaryGrid) {
     // Calculate totals for each product
     const productTotals = {};
     prepQueue.forEach(item => {
@@ -92,6 +101,61 @@ function renderPrepQueue() {
     // Render each prep item
     itemsToDisplay.forEach(item => {
         const card = createPrepCard(item);
+        container.appendChild(card);
+    });
+}
+
+function renderByOrder(container, summaryContainer, summaryGrid) {
+    // Group items by transaction_id
+    const orderGroups = {};
+    prepQueue.forEach(item => {
+        if (!orderGroups[item.transaction_id]) {
+            orderGroups[item.transaction_id] = {
+                transaction_id: item.transaction_id,
+                account_name: item.account_name,
+                ordered_at: item.ordered_at,
+                items: []
+            };
+        }
+        orderGroups[item.transaction_id].items.push(item);
+    });
+
+    // Calculate totals for each account (for summary)
+    const accountTotals = {};
+    Object.values(orderGroups).forEach(order => {
+        const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+        if (!accountTotals[order.account_name]) {
+            accountTotals[order.account_name] = 0;
+        }
+        accountTotals[order.account_name] += totalItems;
+    });
+
+    // Update summary section
+    summaryContainer.style.display = 'block';
+    summaryGrid.innerHTML = Object.entries(accountTotals)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([account, total]) => {
+            const isActive = currentFilter === account;
+            return `
+                <div class="summary-item ${isActive ? 'active' : ''}" onclick="window.filterByAccount('${account}')" style="cursor: pointer;">
+                    <span class="summary-product">${account}</span>
+                    <span class="summary-count">${total}</span>
+                </div>
+            `;
+        }).join('');
+
+    // Filter orders if needed
+    let ordersToDisplay = Object.values(orderGroups);
+    if (currentFilter) {
+        ordersToDisplay = ordersToDisplay.filter(order => order.account_name === currentFilter);
+    }
+
+    // Sort by oldest first
+    ordersToDisplay.sort((a, b) => new Date(a.ordered_at) - new Date(b.ordered_at));
+
+    // Render each order
+    ordersToDisplay.forEach(order => {
+        const card = createOrderCard(order);
         container.appendChild(card);
     });
 }
@@ -231,6 +295,80 @@ setInterval(() => {
 }, 30000);
 
 // ============================================================================
+// Order Card Creation
+// ============================================================================
+
+function createOrderCard(order) {
+    const card = document.createElement('div');
+    card.className = 'prep-card';
+    card.id = `prep-order-${order.transaction_id}`;
+
+    // Calculate time waiting
+    const orderedAt = new Date(order.ordered_at);
+    const now = new Date();
+    const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+
+    // Apply urgency styling
+    let urgencyClass = '';
+    let timeText = `${minutesWaiting} minute${minutesWaiting !== 1 ? 's' : ''} ago`;
+
+    if (minutesWaiting >= 5) {
+        urgencyClass = 'urgent';
+        timeText = `⚠️ ${timeText}`;
+    } else if (minutesWaiting >= 2) {
+        urgencyClass = 'warning';
+    }
+
+    if (urgencyClass) {
+        card.classList.add(urgencyClass);
+    }
+
+    // Calculate total items
+    const totalItems = order.items.reduce((sum, item) => sum + item.quantity, 0);
+
+    // Create items list HTML
+    const itemsListHTML = order.items.map(item => `
+        <div class="order-item">
+            <span class="order-item-qty">${item.quantity}x</span>
+            <span>${item.product_name}</span>
+        </div>
+    `).join('');
+
+    card.innerHTML = `
+        <div class="prep-card-header">
+            <div class="product-name">${order.account_name}</div>
+            <div class="quantity-badge">${totalItems}</div>
+        </div>
+        <div class="order-items-list">
+            ${itemsListHTML}
+        </div>
+        <div class="time-info ${urgencyClass}">
+            ${timeText}
+        </div>
+        <button class="complete-btn" onclick="window.completeOrder(${order.transaction_id})">
+            ✓ Complete Order
+        </button>
+    `;
+
+    return card;
+}
+
+// ============================================================================
+// View Mode
+// ============================================================================
+
+function setViewMode(mode) {
+    viewMode = mode;
+    currentFilter = null; // Clear filter when switching views
+
+    // Update button states
+    document.getElementById('viewByProduct').classList.toggle('active', mode === 'product');
+    document.getElementById('viewByOrder').classList.toggle('active', mode === 'order');
+
+    renderPrepQueue();
+}
+
+// ============================================================================
 // Filtering
 // ============================================================================
 
@@ -244,9 +382,71 @@ function filterByProduct(productName) {
     renderPrepQueue();
 }
 
+function filterByAccount(accountName) {
+    if (currentFilter === accountName) {
+        // Toggle off if clicking the same filter
+        currentFilter = null;
+    } else {
+        currentFilter = accountName;
+    }
+    renderPrepQueue();
+}
+
 function clearFilter() {
     currentFilter = null;
     renderPrepQueue();
+}
+
+// ============================================================================
+// Complete Order (all items in a transaction)
+// ============================================================================
+
+async function completeOrder(transactionId) {
+    try {
+        // Find all items for this transaction
+        const orderItems = prepQueue.filter(item => item.transaction_id === transactionId);
+
+        if (orderItems.length === 0) {
+            return;
+        }
+
+        // Complete each item in the order
+        const completePromises = orderItems.map(item =>
+            fetch(`${API_URL}/prep-queue/${item.id}/complete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    completed_by: 'Prep Staff'
+                })
+            })
+        );
+
+        const responses = await Promise.all(completePromises);
+        const allSuccessful = responses.every(response => response.ok);
+
+        if (allSuccessful) {
+            // Animate card removal
+            const card = document.getElementById(`prep-order-${transactionId}`);
+            if (card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'scale(0.8)';
+
+                setTimeout(() => {
+                    loadPrepQueue();
+                }, 300);
+            } else {
+                loadPrepQueue();
+            }
+        } else {
+            alert('Failed to complete order. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error completing order:', error);
+        alert('Error completing order. Please try again.');
+    }
 }
 
 // ============================================================================
@@ -254,5 +454,8 @@ function clearFilter() {
 // ============================================================================
 
 window.completeItem = completeItem;
+window.completeOrder = completeOrder;
 window.filterByProduct = filterByProduct;
+window.filterByAccount = filterByAccount;
 window.clearFilter = clearFilter;
+window.setViewMode = setViewMode;
