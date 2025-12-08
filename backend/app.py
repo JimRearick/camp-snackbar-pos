@@ -144,6 +144,12 @@ def login():
     
     return jsonify({'error': 'Invalid password'}), 401
 
+@app.route('/api/auth/validate', methods=['GET'])
+@admin_required
+def validate_session():
+    """Validate the current session token"""
+    return jsonify({'valid': True})
+
 # ============================================================================
 # Account Routes
 # ============================================================================

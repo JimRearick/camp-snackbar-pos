@@ -10,6 +10,21 @@ let allProductsData = null; // Cache all products data for filtering
 const API_URL = window.location.origin + '/api';
 
 // ============================================================================
+// Fetch Wrapper with Auth Handling
+// ============================================================================
+
+async function authenticatedFetch(url, options = {}) {
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+        handleUnauthorized();
+        throw new Error('Unauthorized');
+    }
+
+    return response;
+}
+
+// ============================================================================
 // Authentication
 // ============================================================================
 
@@ -52,9 +67,29 @@ async function login(event) {
     }
 }
 
+function closeAllModals() {
+    // Close all possible modals when logging out or session expires
+    const modals = [
+        'productModal',
+        'categoryModal',
+        'accountModal',
+        'accountDetailsModal',
+        'addFundsModal',
+        'transactionModal'
+    ];
+
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+    });
+}
+
 function logout() {
     authToken = null;
     localStorage.removeItem('adminToken');
+    closeAllModals();
     document.getElementById('adminDashboard').classList.add('hidden');
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('loginPassword').value = '';
@@ -876,7 +911,7 @@ async function addFundsToAccount() {
             notes: notes || 'Funds added to account'
         };
 
-        const response = await fetch(`${API_URL}/transactions`, {
+        const response = await authenticatedFetch(`${API_URL}/transactions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -910,7 +945,12 @@ async function loadTransactions() {
     const typeFilter = document.getElementById('transactionTypeFilter')?.value || '';
 
     try {
-        const response = await fetch(`${API_URL}/transactions`);
+        const response = await authenticatedFetch(`${API_URL}/transactions`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
         const data = await response.json();
 
         allTransactions = data.transactions || [];
@@ -955,11 +995,12 @@ function displayTransactionsTable(transactionsList) {
 
 async function viewTransactionDetails(transactionId) {
     try {
-        const response = await fetch(`${API_URL}/transactions/${transactionId}`, {
+        const response = await authenticatedFetch(`${API_URL}/transactions/${transactionId}`, {
             headers: {
                 'Authorization': `Bearer ${authToken}`
             }
         });
+
         const data = await response.json();
 
         // Store transaction data globally for adjust operations
@@ -1189,7 +1230,7 @@ async function processAdjustment() {
             original_transaction_id: transaction.id
         };
 
-        const response = await fetch(`${API_URL}/transactions`, {
+        const response = await authenticatedFetch(`${API_URL}/transactions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1243,22 +1284,62 @@ function showError(message) {
 }
 
 // ============================================================================
+// Session Validation
+// ============================================================================
+
+async function validateSession() {
+    try {
+        const response = await fetch(`${API_URL}/auth/validate`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        if (response.status === 401) {
+            // Session is invalid - don't call handleUnauthorized here to avoid recursion
+            authToken = null;
+            localStorage.removeItem('adminToken');
+            closeAllModals();
+            return false;
+        }
+
+        return response.ok;
+    } catch (error) {
+        console.error('Session validation error:', error);
+        return false;
+    }
+}
+
+// ============================================================================
 // Auto-login on page load
 // ============================================================================
 
 // Check if user is already logged in
 if (authToken) {
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('adminDashboard').classList.remove('hidden');
+    // Validate session before showing dashboard
+    validateSession().then(isValid => {
+        if (isValid) {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.remove('hidden');
 
-    // Load initial data
-    loadProducts();
-    loadCategories();
-    loadAccounts();
-    loadTransactions();
+            // Load initial data
+            loadProducts();
+            loadCategories();
+            loadAccounts();
+            loadTransactions();
 
-    // Show transactions tab by default
-    showTab('transactions');
+            // Show transactions tab by default
+            showTab('transactions');
+        } else {
+            // Session invalid, show login screen
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+        }
+    });
+} else {
+    // No token, show login screen
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('adminDashboard').classList.add('hidden');
 }
 
 // ============================================================================
