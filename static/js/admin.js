@@ -87,19 +87,16 @@ function closeAllModals() {
 }
 
 function logout() {
-    authToken = null;
-    localStorage.removeItem('adminToken');
-    closeAllModals();
-    document.getElementById('adminDashboard').classList.add('hidden');
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('loginPassword').value = '';
+    // Use the global logout function provided by auth.js
+    if (window.authLogout) {
+        window.authLogout();
+    }
 }
 
 function handleUnauthorized() {
-    showError('Session expired. Please log in again.');
-    setTimeout(() => {
-        logout();
-    }, 2000);
+    // Session expired - redirect to login
+    // The api.js utility already handles this automatically with 401 responses
+    window.location.href = '/login';
 }
 
 function showLoginError(message) {
