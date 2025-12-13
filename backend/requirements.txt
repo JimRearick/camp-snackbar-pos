@@ -1,6 +1,7 @@
 Flask==3.0.0
 flask-cors==4.0.0
 flask-socketio==5.3.5
+flask-login==0.6.3
 python-socketio==5.10.0
 bcrypt==5.0.0
 schedule==1.2.0

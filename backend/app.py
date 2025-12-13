@@ -2,9 +2,10 @@
 Camp Snack Bar POS System - Main Flask Application
 """
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect, url_for
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 import sqlite3
 import json
 import os
@@ -16,10 +17,32 @@ import schedule
 import threading
 import time
 
+# Import User model
+from models.user import User
+
 app = Flask(__name__, static_folder='../static', static_url_path='/static')
-app.config['SECRET_KEY'] = secrets.token_hex(32)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
+
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login_page'
+login_manager.login_message = 'Please log in to access this page.'
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Required by Flask-Login to load user from session"""
+    conn = get_db()
+    user = User.get_by_id(conn, user_id)
+    conn.close()
+    return user
 
 # Configuration - Simple local paths for Debian/Raspberry Pi deployment
 DB_PATH = os.getenv('DB_PATH', 'camp_snackbar.db')
@@ -65,6 +88,8 @@ def get_db():
     """Get database connection with timeout for better concurrency"""
     conn = sqlite3.connect(DB_PATH, timeout=30.0)
     conn.row_factory = sqlite3.Row
+    # Enable foreign key constraints
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 def init_db():
@@ -89,74 +114,103 @@ def calculate_account_balance(conn, account_id):
     return result['balance'] if result['balance'] is not None else 0.0
 
 # ============================================================================
-# Authentication Decorator
+# Role-Based Access Control Decorators
 # ============================================================================
 
+def role_required(*roles):
+    """Decorator to require specific role(s)"""
+    def decorator(f):
+        @wraps(f)
+        @login_required
+        def decorated_function(*args, **kwargs):
+            if not current_user.has_any_role(*roles):
+                return jsonify({'error': 'Insufficient permissions'}), 403
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
 def admin_required(f):
-    """Decorator to require admin authentication"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    """Decorator to require admin role"""
+    return role_required('admin')(f)
 
-        if not token:
-            return jsonify({'error': 'Unauthorized - No token provided'}), 401
+def pos_or_admin_required(f):
+    """Decorator to require POS or admin role"""
+    return role_required('pos', 'admin')(f)
 
-        # Check if session exists and is valid
-        conn = get_db()
-        cursor = conn.execute(
-            "SELECT expires_at FROM admin_sessions WHERE token = ? AND expires_at > datetime('now')",
-            (token,)
-        )
-        row = cursor.fetchone()
-        conn.close()
-
-        if not row:
-            return jsonify({'error': 'Unauthorized - Invalid or expired session'}), 401
-
-        return f(*args, **kwargs)
-    return decorated_function
+def prep_or_admin_required(f):
+    """Decorator to require Prep or admin role"""
+    return role_required('prep', 'admin')(f)
 
 # ============================================================================
 # Authentication Routes
 # ============================================================================
 
+@app.route('/login')
+def login_page():
+    """Serve login page"""
+    return send_from_directory(app.static_folder, 'login.html')
+
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    """Admin login"""
+    """Unified login for all users"""
     data = request.get_json()
+    username = data.get('username')
     password = data.get('password')
-    
-    conn = get_db()
-    cursor = conn.execute("SELECT value FROM settings WHERE key = 'admin_password'")
-    row = cursor.fetchone()
-    conn.close()
-    
-    if row and row['value'] == password:
-        token = secrets.token_urlsafe(32)
-        expires_at = datetime.now() + timedelta(hours=8)
-        save_session(token, expires_at)
 
+    if not username or not password:
+        return jsonify({'error': 'Username and password required'}), 400
+
+    conn = get_db()
+    user = User.authenticate(conn, username, password)
+    conn.close()
+
+    if user:
+        login_user(user, remember=True)
         return jsonify({
             'success': True,
-            'token': token,
-            'expires_at': expires_at.isoformat()
+            'user': user.to_dict(),
+            'redirect': get_redirect_for_role(user.role)
         })
-    
-    return jsonify({'error': 'Invalid password'}), 401
+
+    return jsonify({'error': 'Invalid username or password'}), 401
+
+@app.route('/api/auth/logout', methods=['POST'])
+@login_required
+def logout():
+    """Logout current user"""
+    logout_user()
+    return jsonify({'success': True})
+
+@app.route('/api/auth/me', methods=['GET'])
+@login_required
+def get_current_user_info():
+    """Get current logged-in user info"""
+    return jsonify(current_user.to_dict())
 
 @app.route('/api/auth/validate', methods=['GET'])
-@admin_required
+@login_required
 def validate_session():
-    """Validate the current session token"""
-    return jsonify({'valid': True})
+    """Validate the current session"""
+    return jsonify({'valid': True, 'user': current_user.to_dict()})
+
+def get_redirect_for_role(role):
+    """Determine where to redirect user based on role"""
+    if role == 'admin':
+        return '/admin.html'
+    elif role == 'pos':
+        return '/index.html'  # POS page
+    elif role == 'prep':
+        return '/prep.html'
+    return '/'
 
 # ============================================================================
 # Account Routes
 # ============================================================================
 
 @app.route('/api/accounts', methods=['GET'])
+@login_required
 def get_accounts():
-    """Get all accounts with optional search/filter"""
+    """Get all accounts with optional search/filter (All authenticated users)"""
     search = request.args.get('search', '')
     account_type = request.args.get('type', '')
 
@@ -283,8 +337,9 @@ def create_account():
         conn.close()
 
 @app.route('/api/pos/accounts', methods=['POST'])
+@pos_or_admin_required
 def create_account_pos():
-    """Create new account from POS (no auth required)"""
+    """Create new account from POS (POS and Admin only)"""
     data = request.get_json()
 
     conn = get_db()
@@ -369,8 +424,9 @@ def delete_account(account_id):
 # ============================================================================
 
 @app.route('/api/products', methods=['GET'])
+@login_required
 def get_products():
-    """Get all products grouped by category"""
+    """Get all products grouped by category (All authenticated users)"""
     conn = get_db()
     
     cursor = conn.execute("SELECT * FROM categories WHERE active = 1 ORDER BY display_order")
@@ -633,8 +689,9 @@ def get_transaction(transaction_id):
     return jsonify(transaction)
 
 @app.route('/api/transactions', methods=['POST'])
+@pos_or_admin_required
 def create_transaction():
-    """Create new transaction"""
+    """Create new transaction (POS and Admin only)"""
     data = request.get_json()
 
     conn = get_db()
@@ -643,6 +700,10 @@ def create_transaction():
     try:
         account_id = data['account_id']
         transaction_type = data['transaction_type']
+
+        # Add audit trail
+        created_by = current_user.id
+        created_by_username = current_user.username
 
         total_amount = 0
 
@@ -675,11 +736,11 @@ def create_transaction():
                 if orig_row and orig_row['has_been_adjusted']:
                     raise Exception('This transaction has already been adjusted and cannot be refunded again')
 
-        # Create transaction (no balance_after column anymore)
+        # Create transaction with audit trail
         cursor = conn.execute(
-            """INSERT INTO transactions (account_id, transaction_type, total_amount, operator_name, notes)
-               VALUES (?, ?, ?, ?, ?)""",
-            (account_id, transaction_type, total_amount, data.get('operator_name', ''), data.get('notes', ''))
+            """INSERT INTO transactions (account_id, transaction_type, total_amount, operator_name, notes, created_by, created_by_username)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (account_id, transaction_type, total_amount, data.get('operator_name', ''), data.get('notes', ''), created_by, created_by_username)
         )
 
         transaction_id = cursor.lastrowid
@@ -777,8 +838,9 @@ def create_transaction():
 # ============================================================================
 
 @app.route('/api/prep-queue', methods=['GET'])
+@prep_or_admin_required
 def get_prep_queue():
-    """Get all pending prep queue items (FIFO order)"""
+    """Get all pending prep queue items (Prep and Admin only)"""
     conn = get_db()
 
     cursor = conn.execute("""
@@ -825,8 +887,9 @@ def get_prep_queue():
     return jsonify({'items': items})
 
 @app.route('/api/prep-queue/<int:item_id>/complete', methods=['POST'])
+@prep_or_admin_required
 def complete_prep_item(item_id):
-    """Mark a prep queue item as completed"""
+    """Mark a prep queue item as completed (Prep and Admin only)"""
     data = request.get_json() or {}
     completed_by = data.get('completed_by', 'Staff')
 
