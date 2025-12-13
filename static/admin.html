@@ -373,6 +373,28 @@
     <div id="successToast" class="toast toast-success hidden"></div>
     <div id="errorToast" class="toast toast-error hidden"></div>
 
+    <!-- Authentication Check -->
+    <script type="module">
+        import { initAuth } from './js/utils/auth.js';
+
+        // Require Admin role only
+        initAuth('admin', (user) => {
+            console.log('Admin authenticated:', user.username);
+
+            // Hide the old login screen if it's showing
+            const loginScreen = document.getElementById('loginScreen');
+            if (loginScreen) {
+                loginScreen.classList.add('hidden');
+            }
+
+            // Show the admin dashboard
+            const adminDashboard = document.getElementById('adminDashboard');
+            if (adminDashboard) {
+                adminDashboard.classList.remove('hidden');
+            }
+        });
+    </script>
+
     <script type="module" src="/static/js/admin.js"></script>
 </body>
 </html>

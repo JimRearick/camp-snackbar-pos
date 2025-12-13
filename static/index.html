@@ -160,6 +160,19 @@
         <span id="errorText"></span>
     </div>
 
+    <!-- Authentication Check -->
+    <script type="module">
+        import { initAuth, displayUserInfo } from './js/utils/auth.js';
+
+        // Require POS or Admin role
+        initAuth(['pos', 'admin'], (user) => {
+            console.log('POS authenticated:', user.username, '(', user.role, ')');
+
+            // Optionally display user info in header
+            // You can add a user info container in the header if desired
+        });
+    </script>
+
     <script src="/static/js/pos.js"></script>
 </body>
 </html>

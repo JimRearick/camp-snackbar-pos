@@ -424,6 +424,16 @@
     <!-- Socket.IO client library -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
+    <!-- Authentication Check -->
+    <script type="module">
+        import { initAuth } from './js/utils/auth.js';
+
+        // Require Prep or Admin role
+        initAuth(['prep', 'admin'], (user) => {
+            console.log('Prep station authenticated:', user.username, '(', user.role, ')');
+        });
+    </script>
+
     <script type="module" src="/static/js/prep.js"></script>
 </body>
 </html>
