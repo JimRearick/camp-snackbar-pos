@@ -1,72 +1,186 @@
 /**
- * Authentication utilities
+ * Authentication utility functions for Camp Snackbar POS
+ * Session-based authentication with role checking (RBAC)
  */
 
-import { apiPost } from './api.js';
-import { STORAGE_KEYS, SESSION } from './constants.js';
-import { showError } from './toast.js';
+const API_URL = window.location.origin + '/api';
 
 /**
- * Get authentication token from localStorage
- * @returns {string|null} Auth token or null
+ * Check if user is currently authenticated
+ * @returns {Promise<Object|null>} User object if authenticated, null otherwise
  */
-export function getAuthToken() {
-    return localStorage.getItem(STORAGE_KEYS.ADMIN_TOKEN);
-}
+export async function checkAuth() {
+    try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+            credentials: 'include'  // Include session cookie
+        });
 
-/**
- * Set authentication token in localStorage
- * @param {string} token - Auth token
- */
-export function setAuthToken(token) {
-    localStorage.setItem(STORAGE_KEYS.ADMIN_TOKEN, token);
-}
+        if (response.ok) {
+            return await response.json();
+        }
 
-/**
- * Clear authentication token from localStorage
- */
-export function clearAuthToken() {
-    localStorage.removeItem(STORAGE_KEYS.ADMIN_TOKEN);
-}
-
-/**
- * Login with password
- * @param {string} password - Admin password
- * @returns {Promise<{success: boolean, token: string}>} Login response
- */
-export async function login(password) {
-    const data = await apiPost('/auth/login', { password });
-
-    if (data.success && data.token) {
-        setAuthToken(data.token);
-        return data;
-    } else {
-        throw new Error(data.error || 'Invalid password');
+        return null;
+    } catch (error) {
+        console.error('Auth check failed:', error);
+        return null;
     }
 }
 
 /**
- * Logout user
+ * Require authentication and optionally check role
+ * Redirects to login if not authenticated or insufficient permissions
+ *
+ * @param {Array|string|null} allowedRoles - Role(s) allowed to access (e.g., 'admin', ['admin', 'pos'])
+ * @returns {Promise<Object>} Current user if authorized
  */
-export function logout() {
-    clearAuthToken();
-    window.location.reload();
+export async function requireAuth(allowedRoles = null) {
+    const user = await checkAuth();
+
+    if (!user) {
+        // Not authenticated - redirect to login
+        console.log('Not authenticated, redirecting to login');
+        window.location.href = '/login';
+        // Throw error to stop execution
+        throw new Error('Not authenticated');
+    }
+
+    if (allowedRoles) {
+        const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+
+        if (!roles.includes(user.role)) {
+            // Insufficient permissions
+            console.error(`Access denied. Required: ${roles.join(' or ')}, Got: ${user.role}`);
+            alert(`Access denied. This page requires ${roles.join(' or ')} role.`);
+            window.location.href = getDefaultPageForRole(user.role);
+            throw new Error('Insufficient permissions');
+        }
+    }
+
+    return user;
 }
 
 /**
- * Handle unauthorized error (session expired)
+ * Log out current user
+ * @returns {Promise<void>}
  */
-export function handleUnauthorized() {
-    showError('Session expired. Please log in again.');
-    setTimeout(() => {
-        logout();
-    }, SESSION.LOGOUT_DELAY);
+export async function logout() {
+    try {
+        await fetch(`${API_URL}/auth/logout`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+    }
+
+    // Always redirect to login, even if API call failed
+    window.location.href = '/login';
 }
 
 /**
- * Check if user is authenticated
- * @returns {boolean} True if authenticated
+ * Get default page for a given role
+ * @param {string} role - User role (admin, pos, prep)
+ * @returns {string} Default page URL
  */
+function getDefaultPageForRole(role) {
+    switch (role) {
+        case 'admin':
+            return '/admin.html';
+        case 'pos':
+            return '/index.html';
+        case 'prep':
+            return '/prep.html';
+        default:
+            return '/login';
+    }
+}
+
+/**
+ * Display user info in the UI
+ * @param {Object} user - User object
+ * @param {HTMLElement} container - Container element to display user info
+ */
+export function displayUserInfo(user, container) {
+    if (!container) return;
+
+    const roleColors = {
+        admin: '#f44336',
+        pos: '#2196F3',
+        prep: '#4CAF50'
+    };
+
+    const roleColor = roleColors[user.role] || '#666';
+
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span style="font-weight: 600;">${user.full_name || user.username}</span>
+            <span style="
+                background: ${roleColor};
+                color: white;
+                padding: 0.25rem 0.75rem;
+                border-radius: 12px;
+                font-size: 0.8rem;
+                font-weight: 600;
+                text-transform: uppercase;
+            ">${user.role}</span>
+            <button
+                onclick="window.authLogout()"
+                style="
+                    padding: 0.5rem 1rem;
+                    background: #f5f5f5;
+                    border: 1px solid #ddd;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-size: 0.9rem;
+                "
+            >
+                Logout
+            </button>
+        </div>
+    `;
+}
+
+/**
+ * Initialize auth for a page
+ * This function should be called at the top of each protected page
+ *
+ * @param {string|Array} requiredRoles - Required role(s) to access the page
+ * @param {Function} onAuthSuccess - Callback function to execute after successful auth
+ */
+export async function initAuth(requiredRoles, onAuthSuccess) {
+    try {
+        const user = await requireAuth(requiredRoles);
+
+        // Make logout function globally available
+        window.authLogout = logout;
+
+        // Store current user globally for convenience
+        window.currentUser = user;
+
+        // Execute success callback
+        if (onAuthSuccess) {
+            await onAuthSuccess(user);
+        }
+
+        return user;
+    } catch (error) {
+        // Error already handled by requireAuth (redirect)
+        throw error;
+    }
+}
+
+// Legacy compatibility (deprecated - will be removed in Phase 4)
 export function isAuthenticated() {
-    return !!getAuthToken();
+    console.warn('isAuthenticated() is deprecated. Use checkAuth() instead.');
+    return checkAuth().then(user => !!user);
+}
+
+export function getAuthToken() {
+    console.warn('getAuthToken() is deprecated. Session-based auth uses cookies.');
+    return null;
+}
+
+export function clearAuthToken() {
+    console.warn('clearAuthToken() is deprecated. Use logout() instead.');
+    localStorage.removeItem('adminToken');
 }

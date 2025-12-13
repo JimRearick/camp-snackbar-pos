@@ -33,10 +33,11 @@ export async function apiRequest(endpoint, options = {}) {
             'Content-Type': 'application/json',
             ...options.headers
         },
+        credentials: 'include',  // IMPORTANT: Include cookies for session auth
         ...fetchOptions
     };
 
-    // Add auth token if provided
+    // Add auth token if provided (legacy support)
     if (authToken) {
         config.headers['Authorization'] = `Bearer ${authToken}`;
     }
@@ -49,8 +50,10 @@ export async function apiRequest(endpoint, options = {}) {
     try {
         const response = await fetch(`${API_URL}${endpoint}`, config);
 
-        // Handle 401 Unauthorized
+        // Handle 401 Unauthorized - redirect to login
         if (response.status === 401) {
+            console.log('401 Unauthorized - redirecting to login');
+            window.location.href = '/login';
             throw new UnauthorizedError('Session expired or invalid');
         }
 
