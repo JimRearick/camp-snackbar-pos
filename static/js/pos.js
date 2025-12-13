@@ -11,10 +11,14 @@ const API_URL = window.location.origin + '/api';
 document.addEventListener('DOMContentLoaded', function() {
     loadProducts();
     loadAccounts();
-    loadPrepQueueCount();
 
-    // Refresh prep queue count every 30 seconds
-    setInterval(loadPrepQueueCount, 30000);
+    // Only load prep queue if user has admin role
+    // (POS users don't have access to prep queue)
+    if (window.currentUser && window.currentUser.role === 'admin') {
+        loadPrepQueueCount();
+        // Refresh prep queue count every 30 seconds
+        setInterval(loadPrepQueueCount, 30000);
+    }
 });
 
 // Load products from API
@@ -586,7 +590,19 @@ function updatePrepQueueCount(count) {
 // Load prep queue count on page load
 async function loadPrepQueueCount() {
     try {
-        const response = await fetch(`${API_URL}/prep-queue`);
+        const response = await fetch(`${API_URL}/prep-queue`, {
+            credentials: 'include'
+        });
+
+        // If user doesn't have permission, silently skip
+        if (response.status === 403) {
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
         updatePrepQueueCount(data.items.length);
     } catch (error) {
