@@ -838,9 +838,9 @@ def create_transaction():
 # ============================================================================
 
 @app.route('/api/prep-queue', methods=['GET'])
-@prep_or_admin_required
+@login_required
 def get_prep_queue():
-    """Get all pending prep queue items (Prep and Admin only)"""
+    """Get all pending prep queue items (All authenticated users can view)"""
     conn = get_db()
 
     cursor = conn.execute("""

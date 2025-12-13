@@ -12,19 +12,10 @@ document.addEventListener('DOMContentLoaded', function() {
     loadProducts();
     loadAccounts();
 
-    // Only load prep queue if user has admin role
-    // (POS users don't have access to prep queue)
-    if (window.currentUser && window.currentUser.role === 'admin') {
-        loadPrepQueueCount();
-        // Refresh prep queue count every 30 seconds
-        setInterval(loadPrepQueueCount, 30000);
-    } else {
-        // Hide prep queue button for non-admin users
-        const prepQueueButton = document.querySelector('.btn-prep-queue');
-        if (prepQueueButton) {
-            prepQueueButton.style.display = 'none';
-        }
-    }
+    // Load prep queue count for all authenticated users
+    loadPrepQueueCount();
+    // Refresh prep queue count every 30 seconds
+    setInterval(loadPrepQueueCount, 30000);
 });
 
 // Load products from API
@@ -512,11 +503,6 @@ async function createNewAccount() {
 // ============================================================================
 
 async function showPrepQueueModal() {
-    // Check if user has permission
-    if (window.currentUser && window.currentUser.role !== 'admin') {
-        alert('You do not have permission to view the prep queue.');
-        return;
-    }
     document.getElementById('prepQueueModal').classList.remove('hidden');
     await loadPrepQueueList();
 }
@@ -532,18 +518,6 @@ async function loadPrepQueueList() {
         const response = await fetch(`${API_URL}/prep-queue`, {
             credentials: 'include'
         });
-
-        // Handle permission denied
-        if (response.status === 403) {
-            container.innerHTML = `
-                <div class="prep-empty">
-                    <div class="prep-empty-icon">🔒</div>
-                    <div>Access Denied</div>
-                    <div style="font-size: 0.9rem; color: #666;">You don't have permission to view the prep queue.</div>
-                </div>
-            `;
-            return;
-        }
 
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
