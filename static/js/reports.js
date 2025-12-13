@@ -3,11 +3,7 @@
  */
 
 import { API_URL } from './utils/constants.js';
-import { getAuthToken, login as authLogin, logout as authLogout } from './utils/auth.js';
 import { apiGet } from './utils/api.js';
-
-// Global state
-let authToken = getAuthToken();
 
 // ============================================================================
 // Tab Management
@@ -53,31 +49,15 @@ window.showTab = function(tabName) {
 };
 
 // ============================================================================
-// Authentication
+// Logout
 // ============================================================================
 
-window.login = async function(event) {
-    event.preventDefault();
-    const password = document.getElementById('loginPassword').value;
-
-    try {
-        await authLogin(password);
-        authToken = getAuthToken();
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('reportsContainer').classList.remove('hidden');
-        loadSummary();
-    } catch (error) {
-        showLoginError(error.message || 'Login failed');
+window.logout = function() {
+    // Use the global logout function provided by auth.js
+    if (window.authLogout) {
+        window.authLogout();
     }
 };
-
-function showLoginError(message) {
-    const errorDiv = document.getElementById('loginError');
-    errorDiv.textContent = message;
-    errorDiv.classList.remove('hidden');
-}
-
-window.logout = authLogout;
 
 // ============================================================================
 // Load Summary
@@ -672,8 +652,5 @@ window.exportAccountDetailsToCSV = function() {
 // Initialize
 // ============================================================================
 
-if (authToken) {
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('reportsContainer').classList.remove('hidden');
-    loadSummary();
-}
+// Load summary data on page load (auth check happens in reports.html via initAuth)
+loadSummary();
