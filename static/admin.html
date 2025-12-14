@@ -8,22 +8,8 @@
     <link rel="stylesheet" href="/static/css/admin.css">
 </head>
 <body>
-    <!-- Login Screen -->
-    <div id="loginScreen" class="login-screen">
-        <div class="login-box">
-            <img src="/static/images/IF_logo.png" alt="Camp Logo" class="login-logo">
-            <h1>Admin Login</h1>
-            <form id="loginForm" onsubmit="login(event)">
-                <input type="password" id="loginPassword" class="login-input"
-                       placeholder="Enter admin password" required>
-                <button type="submit" class="login-button">Login</button>
-            </form>
-            <div id="loginError" class="login-error hidden"></div>
-        </div>
-    </div>
-
     <!-- Admin Dashboard -->
-    <div id="adminDashboard" class="admin-dashboard hidden">
+    <div id="adminDashboard" class="admin-dashboard">
         <header class="admin-header">
             <div class="header-left">
                 <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
@@ -387,18 +373,6 @@
         // Require Admin role only
         initAuth('admin', (user) => {
             console.log('Admin authenticated:', user.username);
-
-            // Hide the old login screen if it's showing
-            const loginScreen = document.getElementById('loginScreen');
-            if (loginScreen) {
-                loginScreen.classList.add('hidden');
-            }
-
-            // Show the admin dashboard
-            const adminDashboard = document.getElementById('adminDashboard');
-            if (adminDashboard) {
-                adminDashboard.classList.remove('hidden');
-            }
         });
     </script>
 
