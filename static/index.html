@@ -11,8 +11,8 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
-            <div style="display: flex; gap: 1rem; align-items: center;">
+            <div style="display: flex; gap: 1rem; align-items: center; flex: 1;">
+                <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
                 <button class="btn-prep-queue" onclick="showPrepQueueModal()" title="View Prep Queue">
                     🍔 <span id="prepQueueCount" style="display: none;"></span>
                 </button>
@@ -21,6 +21,8 @@
                         Select Account
                     </button>
                 </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
                 <!-- Admin-only navigation -->
                 <div id="adminNav" style="display: none;">
                     <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
