@@ -140,6 +140,27 @@ body {
     transform: scale(0.98);
 }
 
+/* Icon Navigation Buttons (from POS page) */
+.btn-prep-queue {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.btn-prep-queue:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+.btn-prep-queue:active {
+    transform: scale(0.95);
+}
+
 /* Admin Content */
 .admin-content {
     flex: 1;
