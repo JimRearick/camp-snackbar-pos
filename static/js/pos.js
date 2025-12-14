@@ -575,14 +575,20 @@ async function loadPrepQueueList() {
                     urgencyClass = 'warning';
                 }
 
+                // Create list of accounts with quantities
+                const accountsList = items.map(item =>
+                    `<div style="margin-left: 1rem; color: #666; font-size: 0.9rem;">• ${item.quantity}x for ${item.account_name}</div>`
+                ).join('');
+
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `prep-item ${urgencyClass}`;
                 itemDiv.innerHTML = `
-                    <div class="prep-item-info">
+                    <div class="prep-item-info" style="flex: 1;">
                         <div class="prep-item-product">${productName}</div>
                         <div class="prep-item-details">
                             ${items.length} order${items.length > 1 ? 's' : ''} • ${timeText}
                         </div>
+                        ${accountsList}
                     </div>
                     <div class="prep-item-quantity">${totalQty}</div>
                 `;
