@@ -3,6 +3,7 @@ let cart = [];
 let selectedAccount = null;
 let products = [];
 let accounts = [];
+let prepQueueViewMode = 'product'; // 'product' or 'order'
 
 // API Base URL
 const API_URL = window.location.origin + '/api';
@@ -538,34 +539,102 @@ async function loadPrepQueueList() {
 
         container.innerHTML = '';
 
-        data.items.forEach(item => {
-            const orderedAt = new Date(item.ordered_at);
-            const now = new Date();
-            const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+        if (prepQueueViewMode === 'product') {
+            // Group by product
+            const grouped = {};
+            data.items.forEach(item => {
+                if (!grouped[item.product_name]) {
+                    grouped[item.product_name] = [];
+                }
+                grouped[item.product_name].push(item);
+            });
 
-            let urgencyClass = '';
-            let timeText = `${minutesWaiting} min ago`;
+            // Render grouped by product
+            Object.keys(grouped).sort().forEach(productName => {
+                const items = grouped[productName];
+                const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
 
-            if (minutesWaiting >= 5) {
-                urgencyClass = 'urgent';
-                timeText = `⚠️ ${timeText}`;
-            } else if (minutesWaiting >= 2) {
-                urgencyClass = 'warning';
-            }
+                // Get oldest item for timing
+                const oldestItem = items.reduce((oldest, item) => {
+                    const itemDate = new Date(item.ordered_at);
+                    const oldestDate = new Date(oldest.ordered_at);
+                    return itemDate < oldestDate ? item : oldest;
+                });
 
-            const itemDiv = document.createElement('div');
-            itemDiv.className = `prep-item ${urgencyClass}`;
-            itemDiv.innerHTML = `
-                <div class="prep-item-info">
-                    <div class="prep-item-product">${item.product_name}</div>
-                    <div class="prep-item-details">
-                        For: ${item.account_name} • ${timeText}
+                const orderedAt = new Date(oldestItem.ordered_at);
+                const now = new Date();
+                const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+
+                let urgencyClass = '';
+                let timeText = `${minutesWaiting} min ago`;
+
+                if (minutesWaiting >= 5) {
+                    urgencyClass = 'urgent';
+                    timeText = `⚠️ ${timeText}`;
+                } else if (minutesWaiting >= 2) {
+                    urgencyClass = 'warning';
+                }
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `prep-item ${urgencyClass}`;
+                itemDiv.innerHTML = `
+                    <div class="prep-item-info">
+                        <div class="prep-item-product">${productName}</div>
+                        <div class="prep-item-details">
+                            ${items.length} order${items.length > 1 ? 's' : ''} • ${timeText}
+                        </div>
                     </div>
-                </div>
-                <div class="prep-item-quantity">${item.quantity}</div>
-            `;
-            container.appendChild(itemDiv);
-        });
+                    <div class="prep-item-quantity">${totalQty}</div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        } else {
+            // Group by transaction (order)
+            const grouped = {};
+            data.items.forEach(item => {
+                if (!grouped[item.transaction_id]) {
+                    grouped[item.transaction_id] = {
+                        account_name: item.account_name,
+                        ordered_at: item.ordered_at,
+                        items: []
+                    };
+                }
+                grouped[item.transaction_id].items.push(item);
+            });
+
+            // Render grouped by order
+            Object.values(grouped).forEach(order => {
+                const orderedAt = new Date(order.ordered_at);
+                const now = new Date();
+                const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+
+                let urgencyClass = '';
+                let timeText = `${minutesWaiting} min ago`;
+
+                if (minutesWaiting >= 5) {
+                    urgencyClass = 'urgent';
+                    timeText = `⚠️ ${timeText}`;
+                } else if (minutesWaiting >= 2) {
+                    urgencyClass = 'warning';
+                }
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `prep-item ${urgencyClass}`;
+
+                const itemsList = order.items.map(item =>
+                    `<div style="margin-left: 1rem; color: #666;">• ${item.quantity}x ${item.product_name}</div>`
+                ).join('');
+
+                itemDiv.innerHTML = `
+                    <div class="prep-item-info" style="flex: 1;">
+                        <div class="prep-item-product">${order.account_name}</div>
+                        <div class="prep-item-details">${timeText}</div>
+                        ${itemsList}
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
 
         // Update header count badge
         updatePrepQueueCount(data.items.length);
@@ -613,3 +682,17 @@ async function loadPrepQueueCount() {
         console.error('Error loading prep queue count:', error);
     }
 }
+
+
+function setPrepQueueViewMode(mode) {
+    prepQueueViewMode = mode;
+    
+    // Update button states
+    document.getElementById("viewByProductBtn").classList.toggle("active", mode === "product");
+    document.getElementById("viewByOrderBtn").classList.toggle("active", mode === "order");
+    
+    // Reload the list with new view mode
+    loadPrepQueueList();
+}
+
+window.setPrepQueueViewMode = setPrepQueueViewMode;

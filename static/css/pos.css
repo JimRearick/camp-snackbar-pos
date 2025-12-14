@@ -685,6 +685,34 @@ body {
     font-weight: 700;
 }
 
+/* View Toggle Buttons */
+.view-toggle-btn {
+    background: transparent;
+    color: #667eea;
+    border: 2px solid #ddd;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+    background: #f8f9fa;
+    border-color: #667eea;
+}
+
+.view-toggle-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.view-toggle-btn:active {
+    transform: scale(0.95);
+}
+
 /* Prep Queue List Styles */
 .prep-item {
     background: white;

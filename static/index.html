@@ -151,6 +151,10 @@
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
                 <h2>🍔 Prep Queue</h2>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="view-toggle-btn active" id="viewByProductBtn" onclick="setPrepQueueViewMode('product')">By Product</button>
+                    <button class="view-toggle-btn" id="viewByOrderBtn" onclick="setPrepQueueViewMode('order')">By Order</button>
+                </div>
                 <button class="btn-close" onclick="hidePrepQueueModal()">✕</button>
             </div>
             <div class="modal-body">
