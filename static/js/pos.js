@@ -540,28 +540,16 @@ async function loadPrepQueueList() {
         container.innerHTML = '';
 
         if (prepQueueViewMode === 'product') {
-            // Group by product
-            const grouped = {};
-            data.items.forEach(item => {
-                if (!grouped[item.product_name]) {
-                    grouped[item.product_name] = [];
-                }
-                grouped[item.product_name].push(item);
+            // Show one line per product per account
+            // Sort by product name, then by account name
+            const sortedItems = [...data.items].sort((a, b) => {
+                const productCompare = a.product_name.localeCompare(b.product_name);
+                if (productCompare !== 0) return productCompare;
+                return a.account_name.localeCompare(b.account_name);
             });
 
-            // Render grouped by product
-            Object.keys(grouped).sort().forEach(productName => {
-                const items = grouped[productName];
-                const totalQty = items.reduce((sum, item) => sum + item.quantity, 0);
-
-                // Get oldest item for timing
-                const oldestItem = items.reduce((oldest, item) => {
-                    const itemDate = new Date(item.ordered_at);
-                    const oldestDate = new Date(oldest.ordered_at);
-                    return itemDate < oldestDate ? item : oldest;
-                });
-
-                const orderedAt = new Date(oldestItem.ordered_at);
+            sortedItems.forEach(item => {
+                const orderedAt = new Date(item.ordered_at);
                 const now = new Date();
                 const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
 
@@ -575,22 +563,16 @@ async function loadPrepQueueList() {
                     urgencyClass = 'warning';
                 }
 
-                // Create list of accounts with quantities
-                const accountsList = items.map(item =>
-                    `<div style="margin-left: 1rem; color: #666; font-size: 0.9rem;">• ${item.quantity}x for ${item.account_name}</div>`
-                ).join('');
-
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `prep-item ${urgencyClass}`;
                 itemDiv.innerHTML = `
-                    <div class="prep-item-info" style="flex: 1;">
-                        <div class="prep-item-product">${productName}</div>
+                    <div class="prep-item-info">
+                        <div class="prep-item-product">${item.product_name}</div>
                         <div class="prep-item-details">
-                            ${items.length} order${items.length > 1 ? 's' : ''} • ${timeText}
+                            For: ${item.account_name} • ${timeText}
                         </div>
-                        ${accountsList}
                     </div>
-                    <div class="prep-item-quantity">${totalQty}</div>
+                    <div class="prep-item-quantity">${item.quantity}</div>
                 `;
                 container.appendChild(itemDiv);
             });
