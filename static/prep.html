@@ -105,6 +105,27 @@
             color: #667eea;
         }
 
+        /* Icon Navigation Buttons */
+        .btn-prep-queue {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .btn-prep-queue:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-prep-queue:active {
+            transform: scale(0.95);
+        }
+
         .prep-container {
             flex: 1;
             overflow-y: auto;
@@ -402,6 +423,22 @@
                 <span class="queue-count-label">Total Items</span>
                 <span class="queue-count-badge" id="queueCount">0</span>
             </div>
+            <!-- Navigation buttons -->
+            <button class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal">
+                🛒
+            </button>
+            <!-- Admin-only navigation -->
+            <div id="adminNav" style="display: none;">
+                <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
+                    ⚙️
+                </button>
+                <button class="btn-prep-queue" onclick="window.location.href='/reports.html'" title="Reports">
+                    📊
+                </button>
+            </div>
+            <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
+                🚪
+            </button>
         </div>
     </header>
 
@@ -431,6 +468,11 @@
         // Require Prep or Admin role
         initAuth(['prep', 'admin'], (user) => {
             console.log('Prep station authenticated:', user.username, '(', user.role, ')');
+
+            // Show admin navigation if user is admin
+            if (user.role === 'admin') {
+                document.getElementById('adminNav').style.display = 'flex';
+            }
         });
     </script>
 
