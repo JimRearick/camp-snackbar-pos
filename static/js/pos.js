@@ -324,17 +324,69 @@ function confirmClear() {
 }
 
 // Checkout
-async function checkout() {
+function checkout() {
     if (!selectedAccount) {
         showError('Please select an account first');
         return;
     }
-    
+
     if (cart.length === 0) {
         showError('Cart is empty');
         return;
     }
-    
+
+    // Show confirmation modal with order details
+    showCheckoutConfirm();
+}
+
+function showCheckoutConfirm() {
+    const modal = document.getElementById('checkoutConfirmModal');
+    const detailsContainer = document.getElementById('checkoutOrderDetails');
+
+    // Calculate total
+    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    // Build order details HTML
+    let html = `
+        <div class="checkout-account">
+            <strong>Account:</strong> ${selectedAccount.account_name}
+        </div>
+        <div class="checkout-items-list">
+    `;
+
+    cart.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        html += `
+            <div class="checkout-item">
+                <div class="checkout-item-main">
+                    <span class="checkout-item-qty">${item.quantity}x</span>
+                    <span class="checkout-item-name">${item.name}</span>
+                </div>
+                <div class="checkout-item-total">$${itemTotal.toFixed(2)}</div>
+            </div>
+        `;
+    });
+
+    html += `
+        </div>
+        <div class="checkout-total">
+            <strong>Total:</strong> <span class="checkout-total-amount">$${total.toFixed(2)}</span>
+        </div>
+    `;
+
+    detailsContainer.innerHTML = html;
+    modal.classList.remove('hidden');
+}
+
+function hideCheckoutConfirm() {
+    const modal = document.getElementById('checkoutConfirmModal');
+    modal.classList.add('hidden');
+}
+
+async function confirmCheckout() {
+    // Hide confirmation modal
+    hideCheckoutConfirm();
+
     // Prepare transaction data
     const transactionData = {
         account_id: selectedAccount.id,
@@ -345,7 +397,7 @@ async function checkout() {
             price: item.price
         }))
     };
-    
+
     try {
         const response = await fetch(`${API_URL}/transactions`, {
             method: 'POST',
@@ -354,11 +406,11 @@ async function checkout() {
             },
             body: JSON.stringify(transactionData)
         });
-        
+
         if (!response.ok) {
             throw new Error('Transaction failed');
         }
-        
+
         const result = await response.json();
 
         // Clear cart
@@ -372,7 +424,7 @@ async function checkout() {
 
         // Show success message
         showSuccess();
-        
+
     } catch (error) {
         showError('Failed to complete transaction: ' + error.message);
         console.error('Checkout error:', error);
@@ -541,11 +593,11 @@ async function loadPrepQueueList() {
 
         if (prepQueueViewMode === 'product') {
             // Show one line per product per account
-            // Sort by product name, then by account name
+            // Sort by ordered_at timestamp (FIFO - oldest first)
             const sortedItems = [...data.items].sort((a, b) => {
-                const productCompare = a.product_name.localeCompare(b.product_name);
-                if (productCompare !== 0) return productCompare;
-                return a.account_name.localeCompare(b.account_name);
+                const dateA = new Date(a.ordered_at);
+                const dateB = new Date(b.ordered_at);
+                return dateA - dateB; // Oldest first (FIFO)
             });
 
             sortedItems.forEach(item => {
