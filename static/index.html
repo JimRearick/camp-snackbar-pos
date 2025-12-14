@@ -21,6 +21,11 @@
                         Select Account
                     </button>
                 </div>
+                <!-- Admin-only navigation -->
+                <div id="adminNav" style="display: none;">
+                    <button class="btn-secondary" onclick="window.location.href='/admin.html'">Admin</button>
+                </div>
+                <button class="btn-logout" onclick="window.authLogout()">Logout</button>
             </div>
         </header>
 
@@ -168,8 +173,10 @@
         initAuth(['pos', 'admin'], (user) => {
             console.log('POS authenticated:', user.username, '(', user.role, ')');
 
-            // Optionally display user info in header
-            // You can add a user info container in the header if desired
+            // Show admin navigation if user is admin
+            if (user.role === 'admin') {
+                document.getElementById('adminNav').style.display = 'block';
+            }
         });
     </script>
 
