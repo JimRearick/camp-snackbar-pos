@@ -373,6 +373,11 @@
         // Require Admin role only
         initAuth('admin', (user) => {
             console.log('Admin authenticated:', user.username);
+
+            // Initialize admin dashboard data
+            if (window.initAdminDashboard) {
+                window.initAdminDashboard();
+            }
         });
     </script>
 

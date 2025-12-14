@@ -29,42 +29,9 @@ async function authenticatedFetch(url, options = {}) {
 // ============================================================================
 
 async function login(event) {
-    event.preventDefault();
-
-    const password = document.getElementById('loginPassword').value;
-
-    try {
-        const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ password })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            authToken = data.token;
-            localStorage.setItem('adminToken', authToken);
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('adminDashboard').classList.remove('hidden');
-
-            // Load initial data
-            loadProducts();
-            loadCategories();
-            loadAccounts();
-            loadTransactions();
-
-            // Show transactions tab by default
-            showTab('transactions');
-        } else {
-            showLoginError('Invalid password');
-        }
-    } catch (error) {
-        showLoginError('Login failed: ' + error.message);
-        console.error('Login error:', error);
-    }
+    // Old login function - no longer used
+    // Authentication now handled by unified /login page
+    console.warn('Deprecated: login() called - use unified /login page instead');
 }
 
 function closeAllModals() {
@@ -1308,41 +1275,25 @@ async function validateSession() {
 }
 
 // ============================================================================
-// Auto-login on page load
+// Dashboard Initialization
 // ============================================================================
 
-// Check if user is already logged in
-if (authToken) {
-    // Validate session before showing dashboard
-    validateSession().then(isValid => {
-        if (isValid) {
-            document.getElementById('loginScreen').classList.add('hidden');
-            document.getElementById('adminDashboard').classList.remove('hidden');
+function initAdminDashboard() {
+    // Load initial data
+    loadProducts();
+    loadCategories();
+    loadAccounts();
+    loadTransactions();
 
-            // Load initial data
-            loadProducts();
-            loadCategories();
-            loadAccounts();
-            loadTransactions();
-
-            // Show transactions tab by default
-            showTab('transactions');
-        } else {
-            // Session invalid, show login screen
-            document.getElementById('loginScreen').classList.remove('hidden');
-            document.getElementById('adminDashboard').classList.add('hidden');
-        }
-    });
-} else {
-    // No token, show login screen
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('adminDashboard').classList.add('hidden');
+    // Show transactions tab by default
+    showTab('transactions');
 }
 
 // ============================================================================
 // Expose functions to window for onclick handlers
 // ============================================================================
 
+window.initAdminDashboard = initAdminDashboard;
 window.login = login;
 window.logout = logout;
 window.showTab = showTab;
