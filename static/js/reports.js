@@ -567,7 +567,6 @@ window.loadAccountTransactionDetails = async function() {
                         <th>Date/Time</th>
                         <th>Type</th>
                         <th style="text-align: right;">Amount</th>
-                        <th>Operator</th>
                         <th>Notes</th>
                     </tr>
                 </thead>
@@ -586,7 +585,6 @@ window.loadAccountTransactionDetails = async function() {
                     <td>${dateStr}</td>
                     <td><span class="type-badge">${t.transaction_type}</span></td>
                     <td class="currency ${amountClass}">$${Math.abs(t.total_amount).toFixed(2)}</td>
-                    <td>${t.operator_name || 'N/A'}</td>
                     <td style="white-space: pre-wrap; max-width: 300px;">${notes}</td>
                 </tr>
             `;
@@ -596,9 +594,9 @@ window.loadAccountTransactionDetails = async function() {
         const balanceClass = account.current_balance < 0 ? 'negative' : 'positive';
         html += `
                 <tr style="border-top: 3px solid #333; background: #f8f9fa; font-weight: 600;">
-                    <td colspan="3" style="text-align: right; padding-right: 1rem;">Current Balance:</td>
+                    <td colspan="3" style="text-align: right; padding-right: 1rem;">${account.account_name} - Current Balance:</td>
                     <td class="currency ${balanceClass}" style="font-size: 1.1rem;">$${account.current_balance.toFixed(2)}</td>
-                    <td colspan="2"></td>
+                    <td></td>
                 </tr>
                 </tbody>
             </table>
@@ -627,7 +625,6 @@ window.exportAccountDetailsToCSV = function() {
         'Date/Time',
         'Type',
         'Amount',
-        'Operator',
         'Notes'
     ];
 
@@ -639,10 +636,18 @@ window.exportAccountDetailsToCSV = function() {
             dateStr,
             t.transaction_type,
             Math.abs(t.total_amount).toFixed(2),
-            t.operator_name || 'N/A',
             t.notes || ''
         ];
     });
+
+    // Add total row with account name
+    rows.push([
+        '',
+        '',
+        `${account.account_name} - Current Balance`,
+        account.current_balance.toFixed(2),
+        ''
+    ]);
 
     const filename = `account-transactions-${account.account_number}-${new Date().toISOString().split('T')[0]}.csv`;
     exportToCSV(filename, headers, rows);

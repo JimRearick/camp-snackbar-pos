@@ -424,7 +424,7 @@
                 <span class="queue-count-badge" id="queueCount">0</span>
             </div>
             <!-- Navigation buttons -->
-            <button class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal">
+            <button id="posNavBtn" class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal" style="display: none;">
                 🛒
             </button>
             <!-- Admin-only navigation -->
@@ -472,6 +472,7 @@
             // Show admin navigation if user is admin
             if (user.role === 'admin') {
                 document.getElementById('adminNav').style.display = 'flex';
+                document.getElementById('posNavBtn').style.display = 'block';
             }
         });
     </script>

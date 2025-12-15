@@ -6,6 +6,7 @@ from flask import Flask, request, jsonify, send_from_directory, redirect, url_fo
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 import sqlite3
 import json
 import os
@@ -21,6 +22,13 @@ import bcrypt
 # Import User model
 from models.user import User
 
+# Import validation
+from validation import (
+    validate_json, AccountSchema, ProductSchema, CategorySchema,
+    TransactionSchema, UserSchema, LoginSchema, PaymentSchema,
+    PrepItemUpdateSchema
+)
+
 app = Flask(__name__, static_folder='../static', static_url_path='/static')
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', secrets.token_hex(32))
 app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -30,6 +38,12 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize CSRF Protection
+csrf = CSRFProtect(app)
+
+# Exempt SocketIO from CSRF (uses session authentication)
+csrf.exempt(socketio)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -151,7 +165,14 @@ def login_page():
     """Serve login page"""
     return send_from_directory(app.static_folder, 'login.html')
 
+@app.route('/api/csrf-token')
+def get_csrf_token():
+    """Get CSRF token for client-side requests"""
+    return jsonify({'csrf_token': generate_csrf()})
+
 @app.route('/api/auth/login', methods=['POST'])
+@csrf.exempt  # Login doesn't require CSRF token (not authenticated yet)
+@validate_json(LoginSchema)
 def login():
     """Unified login for all users"""
     data = request.get_json()

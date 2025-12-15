@@ -16,7 +16,7 @@
                 <h1>Camp Snackbar Admin</h1>
             </div>
             <div style="display: flex; gap: 1rem;">
-                <button class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal">
+                <button id="posNavBtn" class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal" style="display: none;">
                     🛒
                 </button>
                 <button class="btn-prep-queue" onclick="window.location.href='/reports.html'" title="Reports">
@@ -373,6 +373,11 @@
         // Require Admin role only
         initAuth('admin', (user) => {
             console.log('Admin authenticated:', user.username);
+
+            // Show POS navigation button for admin users
+            if (user.role === 'admin') {
+                document.getElementById('posNavBtn').style.display = 'block';
+            }
 
             // Initialize admin dashboard data
             if (window.initAdminDashboard) {

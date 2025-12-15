@@ -2,8 +2,10 @@ Flask==3.0.0
 flask-cors==4.0.0
 flask-socketio==5.3.5
 flask-login==0.6.3
+flask-wtf==1.2.1
 python-socketio==5.10.0
 bcrypt==5.0.0
+marshmallow==3.20.1
 schedule==1.2.0
 gunicorn==21.2.0
 eventlet==0.33.3
