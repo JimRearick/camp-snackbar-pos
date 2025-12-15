@@ -24,9 +24,12 @@
             </div>
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <!-- Admin-only navigation -->
-                <div id="adminNav" style="display: none;">
+                <div id="adminNav" style="display: none; gap: 1rem;">
                     <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
                         ⚙️
+                    </button>
+                    <button class="btn-prep-queue" onclick="window.location.href='/reports.html'" title="Reports">
+                        📊
                     </button>
                 </div>
                 <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
@@ -204,7 +207,7 @@
 
             // Show admin navigation if user is admin
             if (user.role === 'admin') {
-                document.getElementById('adminNav').style.display = 'block';
+                document.getElementById('adminNav').style.display = 'flex';
             }
         });
     </script>

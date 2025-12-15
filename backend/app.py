@@ -16,6 +16,7 @@ import shutil
 import schedule
 import threading
 import time
+import bcrypt
 
 # Import User model
 from models.user import User
@@ -960,6 +961,167 @@ def get_prep_queue_history():
 
     conn.close()
     return jsonify({'items': items})
+
+# ============================================================================
+# User Management Routes (Advanced Admin)
+# ============================================================================
+
+@app.route('/api/users', methods=['GET'])
+@login_required
+@admin_required
+def get_users():
+    """Get all users (Admin only)"""
+    conn = get_db()
+    cursor = conn.execute("""
+        SELECT id, username, full_name, role, created_at
+        FROM users
+        ORDER BY username
+    """)
+
+    users = []
+    for row in cursor.fetchall():
+        users.append({
+            'id': row['id'],
+            'username': row['username'],
+            'full_name': row['full_name'],
+            'role': row['role'],
+            'created_at': row['created_at']
+        })
+
+    conn.close()
+    return jsonify(users)
+
+@app.route('/api/users', methods=['POST'])
+@login_required
+@admin_required
+def create_user():
+    """Create a new user (Admin only)"""
+    data = request.json
+
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+    full_name = data.get('full_name', '').strip()
+    role = data.get('role', 'pos').strip()
+
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    if role not in ['admin', 'pos', 'prep']:
+        return jsonify({'error': 'Invalid role'}), 400
+
+    conn = get_db()
+
+    # Check if username already exists
+    cursor = conn.execute("SELECT id FROM users WHERE username = ?", (username,))
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'Username already exists'}), 400
+
+    # Hash password using bcrypt
+    password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    # Create user
+    try:
+        conn.execute("""
+            INSERT INTO users (username, password_hash, full_name, role)
+            VALUES (?, ?, ?, ?)
+        """, (username, password_hash, full_name, role))
+        conn.commit()
+
+        user_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.close()
+
+        return jsonify({'id': user_id, 'username': username, 'full_name': full_name, 'role': role}), 201
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+@login_required
+@admin_required
+def update_user(user_id):
+    """Update a user (Admin only)"""
+    data = request.json
+
+    username = data.get('username', '').strip()
+    full_name = data.get('full_name', '').strip()
+    role = data.get('role', '').strip()
+    password = data.get('password', '').strip()
+
+    if not username:
+        return jsonify({'error': 'Username is required'}), 400
+
+    if role and role not in ['admin', 'pos', 'prep']:
+        return jsonify({'error': 'Invalid role'}), 400
+
+    conn = get_db()
+
+    # Check if user exists
+    cursor = conn.execute("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    # Check if new username conflicts with existing user (if username changed)
+    if username != user['username']:
+        cursor = conn.execute("SELECT id FROM users WHERE username = ? AND id != ?", (username, user_id))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'error': 'Username already exists'}), 400
+
+    # Update user
+    try:
+        if password:
+            password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            conn.execute("""
+                UPDATE users
+                SET username = ?, full_name = ?, role = ?, password_hash = ?
+                WHERE id = ?
+            """, (username, full_name, role, password_hash, user_id))
+        else:
+            conn.execute("""
+                UPDATE users
+                SET username = ?, full_name = ?, role = ?
+                WHERE id = ?
+            """, (username, full_name, role, user_id))
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({'id': user_id, 'username': username, 'full_name': full_name, 'role': role})
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    """Delete a user (Admin only)"""
+    conn = get_db()
+
+    # Prevent deleting admin user
+    cursor = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        return jsonify({'error': 'User not found'}), 404
+
+    if user['username'] == 'admin':
+        conn.close()
+        return jsonify({'error': 'Cannot delete admin user'}), 400
+
+    try:
+        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 500
 
 # ============================================================================
 # Report Routes

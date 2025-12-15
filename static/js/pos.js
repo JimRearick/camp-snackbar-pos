@@ -707,8 +707,8 @@ async function loadPrepQueueCount() {
             credentials: 'include'
         });
 
-        // If user doesn't have permission, silently skip
-        if (response.status === 403) {
+        // If user is not authenticated or doesn't have permission, silently skip
+        if (response.status === 401 || response.status === 403 || response.status === 404) {
             return;
         }
 

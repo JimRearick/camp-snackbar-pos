@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Advanced Admin - Camp Snackbar</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <!-- Advanced Admin Dashboard -->
+    <div id="advAdminDashboard" class="admin-dashboard">
+        <header class="admin-header">
+            <div class="header-left">
+                <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
+                <h1>Advanced Admin</h1>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal">
+                    🛒
+                </button>
+                <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
+                    ⚙️
+                </button>
+                <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
+                    🚪
+                </button>
+            </div>
+        </header>
+
+        <div class="admin-content">
+            <!-- User Roles Tab -->
+            <div id="usersTab" class="tab-content active" style="display: flex;">
+                <div class="tab-header">
+                    <h2>User Role Management</h2>
+                    <button class="btn-primary" onclick="showAddUserModal()">+ Add User</button>
+                </div>
+                <div class="accounts-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem;">Loading users...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="userModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="userModalTitle">Add User</h2>
+                <button class="btn-close" onclick="hideUserModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm" class="admin-form">
+                    <input type="hidden" id="userId">
+
+                    <div class="form-group">
+                        <label for="username">Username *</label>
+                        <input type="text" id="username" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userRole">Role *</label>
+                        <select id="userRole" class="form-input" required>
+                            <option value="admin">Admin</option>
+                            <option value="pos">POS</option>
+                            <option value="prep">Prep</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="passwordGroup">
+                        <label for="password">Password *</label>
+                        <input type="password" id="password" class="form-input">
+                        <small style="color: #666;">Leave blank to keep current password (when editing)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideUserModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveUser()">Save User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Messages -->
+    <div id="successMessage" class="toast hidden"></div>
+    <div id="errorMessage" class="toast toast-error hidden"></div>
+
+    <!-- Authentication Check -->
+    <script type="module">
+        import { initAuth } from './js/utils/auth.js';
+
+        // Require Admin role only
+        initAuth('admin', (user) => {
+            console.log('Advanced Admin authenticated:', user.username);
+
+            // Initialize dashboard data
+            if (window.initAdvAdmin) {
+                window.initAdvAdmin();
+            }
+        });
+    </script>
+
+    <script src="/static/js/advadmin.js"></script>
+</body>
+</html>
