@@ -8,6 +8,7 @@ Usage:
     python3 clear_test_data.py --help
 
 Options:
+    --transactions-only Clear only transactions and prep queue (keep everything else)
     --keep-accounts     Keep all accounts (only clear transactions)
     --keep-products     Keep all products and categories
     --keep-users        Keep all users except admin
@@ -76,7 +77,7 @@ def get_counts(conn):
 
     return counts
 
-def clear_data(db_path, keep_accounts=False, keep_products=False, keep_users=False, dry_run=False):
+def clear_data(db_path, transactions_only=False, keep_accounts=False, keep_products=False, keep_users=False, dry_run=False):
     """Clear test data from the database"""
 
     if not os.path.exists(db_path):
@@ -126,25 +127,32 @@ def clear_data(db_path, keep_accounts=False, keep_products=False, keep_users=Fal
     print_info("Will clear:")
     operations = []
 
-    if not keep_accounts:
+    if transactions_only:
+        # Only clear transactions and prep queue, keep everything else
         operations.append(("Prep Queue Items", "DELETE FROM prep_queue"))
         operations.append(("Transaction Items", "DELETE FROM transaction_items"))
         operations.append(("Transactions", "DELETE FROM transactions"))
-        operations.append(("Accounts", "DELETE FROM accounts"))
     else:
-        operations.append(("Prep Queue Items", "DELETE FROM prep_queue"))
-        operations.append(("Transaction Items", "DELETE FROM transaction_items"))
-        operations.append(("Transactions", "DELETE FROM transactions"))
+        # Full clear or selective clear
+        if not keep_accounts:
+            operations.append(("Prep Queue Items", "DELETE FROM prep_queue"))
+            operations.append(("Transaction Items", "DELETE FROM transaction_items"))
+            operations.append(("Transactions", "DELETE FROM transactions"))
+            operations.append(("Accounts", "DELETE FROM accounts"))
+        else:
+            operations.append(("Prep Queue Items", "DELETE FROM prep_queue"))
+            operations.append(("Transaction Items", "DELETE FROM transaction_items"))
+            operations.append(("Transactions", "DELETE FROM transactions"))
 
-    if not keep_products:
-        operations.append(("Products", "DELETE FROM products"))
-        operations.append(("Categories", "DELETE FROM categories"))
+        if not keep_products:
+            operations.append(("Products", "DELETE FROM products"))
+            operations.append(("Categories", "DELETE FROM categories"))
 
-    if not keep_users:
-        operations.append(("User Sessions (non-admin)", "DELETE FROM user_sessions WHERE user_id IN (SELECT id FROM users WHERE username != 'admin')"))
-        operations.append(("Users (non-admin)", "DELETE FROM users WHERE username != 'admin'"))
+        if not keep_users:
+            operations.append(("User Sessions (non-admin)", "DELETE FROM user_sessions WHERE user_id IN (SELECT id FROM users WHERE username != 'admin')"))
+            operations.append(("Users (non-admin)", "DELETE FROM users WHERE username != 'admin'"))
 
-    operations.append(("Backup Log", "DELETE FROM backup_log"))
+        operations.append(("Backup Log", "DELETE FROM backup_log"))
 
     for name, _ in operations:
         print(f"  • {name}")
@@ -228,6 +236,7 @@ def main():
         epilog="""
 Examples:
   python3 clear_test_data.py                      # Clear all test data
+  python3 clear_test_data.py --transactions-only  # Only clear transactions & prep queue
   python3 clear_test_data.py --keep-accounts      # Keep accounts, clear transactions
   python3 clear_test_data.py --dry-run            # Show what would be deleted
   python3 clear_test_data.py backend/test.db      # Use specific database
@@ -236,6 +245,8 @@ Examples:
 
     parser.add_argument('database', nargs='?', default='backend/camp_snackbar.db',
                         help='Path to database file (default: backend/camp_snackbar.db)')
+    parser.add_argument('--transactions-only', action='store_true',
+                        help='Clear only transactions and prep queue (keeps accounts, products, users)')
     parser.add_argument('--keep-accounts', action='store_true',
                         help='Keep all accounts (only clear transactions)')
     parser.add_argument('--keep-products', action='store_true',
@@ -249,6 +260,7 @@ Examples:
 
     success = clear_data(
         args.database,
+        transactions_only=args.transactions_only,
         keep_accounts=args.keep_accounts,
         keep_products=args.keep_products,
         keep_users=args.keep_users,
