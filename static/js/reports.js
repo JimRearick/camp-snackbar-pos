@@ -4,6 +4,7 @@
 
 import { API_URL } from './utils/constants.js';
 import { apiGet } from './utils/api.js';
+import { escapeHtml } from './utils/escape.js';
 
 // ============================================================================
 // Tab Management
@@ -129,7 +130,7 @@ async function loadSalesReport() {
         data.sales.forEach(item => {
             html += `
                 <tr>
-                    <td>${item.product_name}</td>
+                    <td>${escapeHtml(item.product_name)}</td>
                     <td>${item.total_quantity}</td>
                     <td>${item.transaction_count}</td>
                     <td class="currency positive">$${item.total_revenue.toFixed(2)}</td>
@@ -201,8 +202,8 @@ window.loadAccountBalances = async function() {
 
             html += `
                 <tr>
-                    <td>${account.account_name}</td>
-                    <td>${account.account_type}</td>
+                    <td>${escapeHtml(account.account_name)}</td>
+                    <td>${escapeHtml(account.account_type)}</td>
                     <td>${purchaseCount}</td>
                     <td class="currency">$${spent.toFixed(2)}</td>
                     <td class="currency ${balanceClass}">$${account.current_balance.toFixed(2)}</td>
@@ -281,7 +282,7 @@ async function loadCategoryReport() {
         sortedCategories.forEach(([category, data]) => {
             html += `
                 <tr>
-                    <td><strong>${category}</strong></td>
+                    <td><strong>${escapeHtml(category)}</strong></td>
                     <td>${data.quantity}</td>
                     <td>${data.transactions}</td>
                     <td class="currency positive">$${data.revenue.toFixed(2)}</td>
@@ -582,10 +583,10 @@ window.loadAccountTransactionDetails = async function() {
             html += `
                 <tr>
                     <td>#${t.id}</td>
-                    <td>${dateStr}</td>
-                    <td><span class="type-badge">${t.transaction_type}</span></td>
+                    <td>${escapeHtml(dateStr)}</td>
+                    <td><span class="type-badge">${escapeHtml(t.transaction_type)}</span></td>
                     <td class="currency ${amountClass}">$${Math.abs(t.total_amount).toFixed(2)}</td>
-                    <td style="white-space: pre-wrap; max-width: 300px;">${notes}</td>
+                    <td style="white-space: pre-wrap; max-width: 300px;">${escapeHtml(notes)}</td>
                 </tr>
             `;
         });
@@ -594,7 +595,7 @@ window.loadAccountTransactionDetails = async function() {
         const balanceClass = account.current_balance < 0 ? 'negative' : 'positive';
         html += `
                 <tr style="border-top: 3px solid #333; background: #f8f9fa; font-weight: 600;">
-                    <td colspan="3" style="text-align: right; padding-right: 1rem;">${account.account_name} - Current Balance:</td>
+                    <td colspan="3" style="text-align: right; padding-right: 1rem;">${escapeHtml(account.account_name)} - Current Balance:</td>
                     <td class="currency ${balanceClass}" style="font-size: 1.1rem;">$${account.current_balance.toFixed(2)}</td>
                     <td></td>
                 </tr>

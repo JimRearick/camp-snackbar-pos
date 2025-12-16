@@ -3,6 +3,9 @@
  * Session-based authentication with role checking (RBAC)
  */
 
+import { escapeHtml } from './escape.js';
+import { fetchPost } from './csrf.js';
+
 const API_URL = window.location.origin + '/api';
 
 /**
@@ -65,10 +68,7 @@ export async function requireAuth(allowedRoles = null) {
  */
 export async function logout() {
     try {
-        await fetch(`${API_URL}/auth/logout`, {
-            method: 'POST',
-            credentials: 'include'
-        });
+        await fetchPost(`${API_URL}/auth/logout`, {});
     } catch (error) {
         console.error('Logout error:', error);
     }
@@ -113,7 +113,7 @@ export function displayUserInfo(user, container) {
 
     container.innerHTML = `
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <span style="font-weight: 600;">${user.full_name || user.username}</span>
+            <span style="font-weight: 600;">${escapeHtml(user.full_name || user.username)}</span>
             <span style="
                 background: ${roleColor};
                 color: white;
@@ -122,7 +122,7 @@ export function displayUserInfo(user, container) {
                 font-size: 0.8rem;
                 font-weight: 600;
                 text-transform: uppercase;
-            ">${user.role}</span>
+            ">${escapeHtml(user.role)}</span>
             <button
                 onclick="window.authLogout()"
                 style="

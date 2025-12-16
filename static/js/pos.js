@@ -1,3 +1,7 @@
+// Import security utilities
+import { escapeHtml } from './utils/escape.js';
+import { fetchPost } from './utils/csrf.js';
+
 // Global state
 let cart = [];
 let selectedAccount = null;
@@ -62,7 +66,7 @@ function displayProducts(categories) {
                 card.disabled = !selectedAccount;
 
                 card.innerHTML = `
-                    <div class="product-name">${product.name}</div>
+                    <div class="product-name">${escapeHtml(product.name)}</div>
                     <div class="product-price">$${product.price.toFixed(2)}</div>
                 `;
 
@@ -126,14 +130,15 @@ function displayAccounts(accountsList) {
                 members = account.family_members.split('\n').filter(m => m.trim());
             }
             if (members.length > 0) {
-                membersPreview = `<span class="account-members-preview">${members.join(' • ')}</span>`;
+                const escapedMembers = members.map(m => escapeHtml(m)).join(' • ');
+                membersPreview = `<span class="account-members-preview">${escapedMembers}</span>`;
             }
         }
 
         card.innerHTML = `
-            <div class="account-card-name">${account.account_name}</div>
+            <div class="account-card-name">${escapeHtml(account.account_name)}</div>
             <div class="account-card-details">
-                <span class="account-type">${account.account_type}</span>
+                <span class="account-type">${escapeHtml(account.account_type)}</span>
                 ${membersPreview}
             </div>
         `;
@@ -173,14 +178,15 @@ function updateAccountDisplay() {
                 members = selectedAccount.family_members.split('\n').filter(m => m.trim());
             }
             if (members.length > 0) {
-                membersDisplay = `<div class="account-members">${members.join(' • ')}</div>`;
+                const escapedMembers = members.map(m => escapeHtml(m)).join(' • ');
+                membersDisplay = `<div class="account-members">${escapedMembers}</div>`;
             }
         }
 
         display.innerHTML = `
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <div class="account-info">
-                    <div class="account-name">${selectedAccount.account_name}</div>
+                    <div class="account-name">${escapeHtml(selectedAccount.account_name)}</div>
                     ${membersDisplay}
                 </div>
                 <button class="btn-change-account" onclick="showAccountSelector()">
@@ -268,13 +274,13 @@ function updateCartDisplay() {
         
         cartItem.innerHTML = `
             <div class="cart-item-info">
-                <div class="cart-item-name">${trimProductName(item.name)}</div>
+                <div class="cart-item-name">${escapeHtml(trimProductName(item.name))}</div>
                 <div class="cart-item-price">$${item.price.toFixed(2)} each</div>
             </div>
             <div class="cart-item-controls">
                 <button class="btn-quantity" onclick="removeFromCart(${item.id})">−</button>
                 <span class="quantity-display">${item.quantity}</span>
-                <button class="btn-quantity" onclick="addToCart({id: ${item.id}, name: '${item.name}', price: ${item.price}})">+</button>
+                <button class="btn-quantity" onclick="addToCart({id: ${item.id}, name: '${escapeHtml(item.name).replace(/'/g, "\\'")}', price: ${item.price}})">+</button>
             </div>
             <div class="cart-item-total">$${itemTotal.toFixed(2)}</div>
         `;
@@ -349,7 +355,7 @@ function showCheckoutConfirm() {
     // Build order details HTML
     let html = `
         <div class="checkout-account">
-            <strong>Account:</strong> ${selectedAccount.account_name}
+            <strong>Account:</strong> ${escapeHtml(selectedAccount.account_name)}
         </div>
         <div class="checkout-items-list">
     `;
@@ -360,7 +366,7 @@ function showCheckoutConfirm() {
             <div class="checkout-item">
                 <div class="checkout-item-main">
                     <span class="checkout-item-qty">${item.quantity}x</span>
-                    <span class="checkout-item-name">${item.name}</span>
+                    <span class="checkout-item-name">${escapeHtml(item.name)}</span>
                 </div>
                 <div class="checkout-item-total">$${itemTotal.toFixed(2)}</div>
             </div>
@@ -399,13 +405,7 @@ async function confirmCheckout() {
     };
 
     try {
-        const response = await fetch(`${API_URL}/transactions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(transactionData)
-        });
+        const response = await fetchPost(`${API_URL}/transactions`, transactionData);
 
         if (!response.ok) {
             throw new Error('Transaction failed');
@@ -518,13 +518,7 @@ async function createNewAccount() {
     };
 
     try {
-        const response = await fetch(`${API_URL}/pos/accounts`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(accountData)
-        });
+        const response = await fetchPost(`${API_URL}/pos/accounts`, accountData);
 
         if (!response.ok) {
             throw new Error('Failed to create account');
@@ -619,9 +613,9 @@ async function loadPrepQueueList() {
                 itemDiv.className = `prep-item ${urgencyClass}`;
                 itemDiv.innerHTML = `
                     <div class="prep-item-info">
-                        <div class="prep-item-product">${item.product_name}</div>
+                        <div class="prep-item-product">${escapeHtml(item.product_name)}</div>
                         <div class="prep-item-details">
-                            For: ${item.account_name} • ${timeText}
+                            For: ${escapeHtml(item.account_name)} • ${escapeHtml(timeText)}
                         </div>
                     </div>
                     <div class="prep-item-quantity">${item.quantity}</div>
@@ -662,13 +656,13 @@ async function loadPrepQueueList() {
                 itemDiv.className = `prep-item ${urgencyClass}`;
 
                 const itemsList = order.items.map(item =>
-                    `<div style="margin-left: 1rem; color: #666;">• ${item.quantity}x ${item.product_name}</div>`
+                    `<div style="margin-left: 1rem; color: #666;">• ${item.quantity}x ${escapeHtml(item.product_name)}</div>`
                 ).join('');
 
                 itemDiv.innerHTML = `
                     <div class="prep-item-info" style="flex: 1;">
-                        <div class="prep-item-product">${order.account_name}</div>
-                        <div class="prep-item-details">${timeText}</div>
+                        <div class="prep-item-product">${escapeHtml(order.account_name)}</div>
+                        <div class="prep-item-details">${escapeHtml(timeText)}</div>
                         ${itemsList}
                     </div>
                 `;
@@ -735,4 +729,23 @@ function setPrepQueueViewMode(mode) {
     loadPrepQueueList();
 }
 
+// Expose functions to window for onclick handlers
+window.showAccountSelector = showAccountSelector;
+window.hideAccountSelector = hideAccountSelector;
+window.selectAccount = selectAccount;
+window.filterAccounts = filterAccounts;
+window.showNewAccountForm = showNewAccountForm;
+window.hideNewAccountForm = hideNewAccountForm;
+window.createNewAccount = createNewAccount;
+window.toggleFamilyMembersField = toggleFamilyMembersField;
+window.addToCart = addToCart;
+window.removeFromCart = removeFromCart;
+window.clearCart = clearCart;
+window.hideConfirmClear = hideConfirmClear;
+window.confirmClear = confirmClear;
+window.checkout = checkout;
+window.hideCheckoutConfirm = hideCheckoutConfirm;
+window.confirmCheckout = confirmCheckout;
+window.showPrepQueueModal = showPrepQueueModal;
+window.hidePrepQueueModal = hidePrepQueueModal;
 window.setPrepQueueViewMode = setPrepQueueViewMode;

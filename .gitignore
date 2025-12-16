@@ -1,24 +1,42 @@
-# Dependencies
-node_modules/
-venv/
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+venv/
+backend/venv/
+env/
+ENV/
 
-# Production
-/build
-/frontend/build
+# Node
+node_modules/
+npm-debug.log*
 
 # Environment
 .env
 .env.local
+.env.production
 
-# Data
-/data/*.db
-/backups/*.db
+# Database & Data
+*.db
+*.db-journal
+/data/
+/backups/
+backend/*.db
+backend/*.db-journal
+backend/backups/
+
+# Docker
+docker-compose.override.yml
 
 # OS
 .DS_Store
 Thumbs.db
+*~
 
 # IDE
 .vscode/
@@ -28,4 +46,16 @@ Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
+logs/
+backend/logs/
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib

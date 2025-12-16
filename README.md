@@ -1,10 +1,47 @@
 # Camp Snackbar POS System
 
-A simple Point of Sale system for managing camp snackbar accounts and transactions.
+A production-ready Point of Sale system for managing camp snackbar accounts and transactions with role-based access control, real-time prep queue, and comprehensive security.
+
+## Features
+
+✅ **Touch-First Tablet Interface** - Optimized for 7-11" tablets
+✅ **Role-Based Access Control** - Admin, POS, and Prep user roles
+✅ **Real-Time Prep Queue** - Live updates via WebSocket
+✅ **Account Management** - Family and individual accounts
+✅ **Security Hardened** - CSRF protection, XSS prevention, input validation
+✅ **Production Ready** - Docker containerization with Caddy reverse proxy
+✅ **Comprehensive Reports** - Sales, inventory, and transaction reports
+✅ **Automated Backups** - Daily database backups
+
+## Quick Start (Recommended: Docker)
+
+**Fastest deployment for Intel/AMD x86_64 systems:**
+
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com | sh
+
+# Deploy application
+./deploy.sh install
+
+# Access at http://localhost or http://YOUR-IP
+```
+
+See [Docker Deployment Guide](docs/deployment/DOCKER_DEPLOYMENT.md) for full instructions.
 
 ## System Requirements
 
-- Debian-based system (Debian, Ubuntu, Raspberry Pi OS)
+### Hardware
+- **CPU:** Intel/AMD x86_64 (2+ cores recommended)
+- **RAM:** 2GB minimum, 8GB recommended
+- **Storage:** 10GB minimum
+
+### Software (Docker Deployment)
+- Linux (Ubuntu 22.04 LTS, Debian 12, or similar)
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### Software (Manual Deployment)
 - Python 3.7 or higher
 - pip (Python package manager)
 
@@ -223,20 +260,58 @@ python3 app.py
 
 The server will run with debug mode enabled and auto-reload on code changes.
 
-## Security Notes
+## Security
 
-1. **Change the default admin password** immediately after setup
-2. The system uses JWT tokens for authentication
-3. For production deployment, consider:
-   - Using a reverse proxy (nginx)
-   - Enabling HTTPS
-   - Restricting CORS origins
-   - Using a production WSGI server (gunicorn)
+All critical security features are implemented and tested:
+- ✅ **CSRF Protection** - Token-based request verification
+- ✅ **XSS Prevention** - HTML escaping on all user input
+- ✅ **Input Validation** - Marshmallow schemas on all endpoints
+- ✅ **Authentication** - Session-based with Flask-Login
+- ✅ **Authorization** - Role-based access control (RBAC)
+
+See [Security Test Report](docs/security/SECURITY_TEST_REPORT.md) for comprehensive test results (20/20 tests passed).
+
+**Important:** Change the default admin password immediately after installation!
+
+## Documentation
+
+- **[Admin Guide](ADMIN_GUIDE.md)** - System administration and management
+- **[Changelog](CHANGELOG.md)** - Version history and updates
+- **[Deployment](docs/deployment/)** - Installation and deployment guides
+- **[Security](docs/security/)** - Security documentation and test reports
+- **[Archive](docs/archive/)** - Historical development documentation
+
+## Project Structure
+
+```
+camp-snackbar-pos/
+├── backend/           # Flask application
+│   ├── app.py        # Main application
+│   ├── models/       # Data models
+│   ├── migrations/   # Database migrations
+│   └── validation.py # Input validation schemas
+├── static/           # Frontend assets
+│   ├── js/          # JavaScript modules
+│   ├── css/         # Stylesheets
+│   └── images/      # Images and icons
+├── docs/            # Documentation
+│   ├── deployment/  # Deployment guides
+│   ├── security/    # Security documentation
+│   └── archive/     # Historical docs
+├── Dockerfile       # Container image definition
+├── docker-compose.yml # Container orchestration
+├── deploy.sh        # Deployment automation script
+└── README.md        # This file
+```
+
+## Support
+
+For issues or questions:
+1. Check the [Admin Guide](ADMIN_GUIDE.md)
+2. Review [Docker Deployment Guide](docs/deployment/DOCKER_DEPLOYMENT.md)
+3. Run security tests: `python3 security_tests.py`
+4. Check application logs: `./deploy.sh logs`
 
 ## License
 
 [Add your license here]
-
-## Support
-
-[Add support information here]

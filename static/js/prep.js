@@ -5,6 +5,8 @@
 
 import { API_URL } from './utils/constants.js';
 import { socket } from './utils/socket.js';
+import { escapeHtml } from './utils/escape.js';
+import { fetchPost } from './utils/csrf.js';
 
 // State
 let prepQueue = [];
@@ -86,8 +88,8 @@ function renderByProduct(container, summaryContainer, summaryGrid) {
         .map(([product, total]) => {
             const isActive = currentFilter === product;
             return `
-                <div class="summary-item ${isActive ? 'active' : ''}" onclick="window.filterByProduct('${product}')" style="cursor: pointer;">
-                    <span class="summary-product">${product}</span>
+                <div class="summary-item ${isActive ? 'active' : ''}" onclick="window.filterByProduct('${escapeHtml(product).replace(/'/g, "\\'")}\')" style="cursor: pointer;">
+                    <span class="summary-product">${escapeHtml(product)}</span>
                     <span class="summary-count">${total}</span>
                 </div>
             `;
@@ -137,8 +139,8 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
         .map(([account, total]) => {
             const isActive = currentFilter === account;
             return `
-                <div class="summary-item ${isActive ? 'active' : ''}" onclick="window.filterByAccount('${account}')" style="cursor: pointer;">
-                    <span class="summary-product">${account}</span>
+                <div class="summary-item ${isActive ? 'active' : ''}" onclick="window.filterByAccount('${escapeHtml(account).replace(/'/g, "\\'")}\')" style="cursor: pointer;">
+                    <span class="summary-product">${escapeHtml(account)}</span>
                     <span class="summary-count">${total}</span>
                 </div>
             `;
@@ -187,14 +189,14 @@ function createPrepCard(item) {
 
     card.innerHTML = `
         <div class="prep-card-header">
-            <div class="product-name">${item.product_name}</div>
+            <div class="product-name">${escapeHtml(item.product_name)}</div>
             <div class="quantity-badge">${item.quantity}</div>
         </div>
         <div class="account-info">
-            <strong>For:</strong> ${item.account_name}
+            <strong>For:</strong> ${escapeHtml(item.account_name)}
         </div>
         <div class="time-info ${urgencyClass}">
-            ${timeText}
+            ${escapeHtml(timeText)}
         </div>
         <button class="complete-btn" onclick="window.completeItem(${item.id})">
             ✓ Complete
@@ -206,14 +208,8 @@ function createPrepCard(item) {
 
 async function completeItem(itemId) {
     try {
-        const response = await fetch(`${API_URL}/prep-queue/${itemId}/complete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                completed_by: 'Prep Staff'
-            })
+        const response = await fetchPost(`${API_URL}/prep-queue/${itemId}/complete`, {
+            completed_by: 'Prep Staff'
         });
 
         if (response.ok) {
@@ -330,20 +326,20 @@ function createOrderCard(order) {
     const itemsListHTML = order.items.map(item => `
         <div class="order-item">
             <span class="order-item-qty">${item.quantity}x</span>
-            <span>${item.product_name}</span>
+            <span>${escapeHtml(item.product_name)}</span>
         </div>
     `).join('');
 
     card.innerHTML = `
         <div class="prep-card-header">
-            <div class="product-name">${order.account_name}</div>
+            <div class="product-name">${escapeHtml(order.account_name)}</div>
             <div class="quantity-badge">${totalItems}</div>
         </div>
         <div class="order-items-list">
             ${itemsListHTML}
         </div>
         <div class="time-info ${urgencyClass}">
-            ${timeText}
+            ${escapeHtml(timeText)}
         </div>
         <button class="complete-btn" onclick="window.completeOrder(${order.transaction_id})">
             ✓ Complete Order
@@ -412,14 +408,8 @@ async function completeOrder(transactionId) {
 
         // Complete each item in the order
         const completePromises = orderItems.map(item =>
-            fetch(`${API_URL}/prep-queue/${item.id}/complete`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    completed_by: 'Prep Staff'
-                })
+            fetchPost(`${API_URL}/prep-queue/${item.id}/complete`, {
+                completed_by: 'Prep Staff'
             })
         );
 

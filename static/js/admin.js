@@ -1,4 +1,6 @@
 import { confirmDialog } from './utils/dialog.js';
+import { escapeHtml } from './utils/escape.js';
+import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
 
 // Global state
 let authToken = localStorage.getItem('adminToken');
@@ -158,8 +160,8 @@ function displayProductsTable() {
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${category.name}</td>
-                    <td>${product.name}</td>
+                    <td>${escapeHtml(category.name)}</td>
+                    <td>${escapeHtml(product.name)}</td>
                     <td>$${product.price.toFixed(2)}</td>
                     <td><span class="status-badge ${product.active ? 'status-active' : 'status-inactive'}">
                         ${product.active ? 'Active' : 'Inactive'}
@@ -335,14 +337,9 @@ async function saveProduct() {
         const url = productId ? `${API_URL}/products/${productId}` : `${API_URL}/products`;
         const method = productId ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(productData)
-        });
+        const response = method === 'PUT'
+            ? await fetchPut(url, productData)
+            : await fetchPost(url, productData);
 
         if (response.ok) {
             showSuccess(productId ? 'Product updated' : 'Product added');
@@ -385,7 +382,7 @@ async function loadCategories() {
                 const productCount = category.products ? category.products.length : 0;
 
                 row.innerHTML = `
-                    <td>${category.name}</td>
+                    <td>${escapeHtml(category.name)}</td>
                     <td>${productCount}</td>
                     <td style="text-align: right;">
                         <button class="btn-edit" onclick="editCategory(${category.id})">Edit</button>
@@ -451,14 +448,9 @@ async function saveCategory() {
         const url = categoryId ? `${API_URL}/categories/${categoryId}` : `${API_URL}/categories`;
         const method = categoryId ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(categoryData)
-        });
+        const response = method === 'PUT'
+            ? await fetchPut(url, categoryData)
+            : await fetchPost(url, categoryData);
 
         if (response.ok) {
             showSuccess(categoryId ? 'Category updated' : 'Category added');
@@ -495,12 +487,7 @@ async function deleteCategoryFromModal() {
     }
 
     try {
-        const response = await fetch(`${API_URL}/categories/${categoryId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${authToken}`
-            }
-        });
+        const response = await fetchDelete(`${API_URL}/categories/${categoryId}`);
 
         if (response.ok) {
             showSuccess('Category deleted');
@@ -550,14 +537,14 @@ function displayAccountsTable(accountsList) {
             : '<span class="badge badge-inactive">Inactive</span>';
 
         row.innerHTML = `
-            <td>${account.account_number}</td>
-            <td>${account.account_name}</td>
-            <td><span class="type-badge">${account.account_type}</span></td>
+            <td>${escapeHtml(account.account_number)}</td>
+            <td>${escapeHtml(account.account_name)}</td>
+            <td><span class="type-badge">${escapeHtml(account.account_type)}</span></td>
             <td>${statusBadge}</td>
             <td style="color: ${account.current_balance < 0 ? '#dc3545' : '#28a745'}; font-weight: 600;">
                 $${account.current_balance.toFixed(2)}
             </td>
-            <td>${createdDate}</td>
+            <td>${escapeHtml(createdDate)}</td>
             <td style="text-align: right;">
                 <button class="btn-edit" onclick="editAccount(${account.id})">Edit</button>
                 <button class="btn-view" onclick="viewAccountDetailsModal(${account.id})">View Details</button>
@@ -671,14 +658,9 @@ async function saveAccount() {
         const url = accountId ? `${API_URL}/accounts/${accountId}` : `${API_URL}/accounts`;
         const method = accountId ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(accountData)
-        });
+        const response = method === 'PUT'
+            ? await fetchPut(url, accountData)
+            : await fetchPost(url, accountData);
 
         if (response.ok) {
             showSuccess(accountId ? 'Account updated' : 'Account created');
@@ -717,10 +699,11 @@ async function viewAccountDetailsModal(accountId) {
 
         let familyMembersHTML = '';
         if (account.family_members && account.family_members.length > 0) {
+            const escapedMembers = account.family_members.map(m => escapeHtml(m)).join(', ');
             familyMembersHTML = `
                 <div class="detail-row">
                     <span class="detail-label">Family Members:</span>
-                    <span class="detail-value">${account.family_members.join(', ')}</span>
+                    <span class="detail-value">${escapedMembers}</span>
                 </div>
             `;
         }
@@ -730,7 +713,7 @@ async function viewAccountDetailsModal(accountId) {
             notesHTML = `
                 <div class="detail-row">
                     <span class="detail-label">Notes:</span>
-                    <span class="detail-value">${account.notes}</span>
+                    <span class="detail-value">${escapeHtml(account.notes)}</span>
                 </div>
             `;
         }
@@ -757,8 +740,8 @@ async function viewAccountDetailsModal(accountId) {
                                     const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
                                     return `
                                         <tr>
-                                            <td>${dateStr}</td>
-                                            <td><span class="type-badge">${t.transaction_type}</span></td>
+                                            <td>${escapeHtml(dateStr)}</td>
+                                            <td><span class="type-badge">${escapeHtml(t.transaction_type)}</span></td>
                                             <td style="color: ${t.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                                                 $${Math.abs(t.total_amount).toFixed(2)}
                                             </td>
@@ -785,11 +768,11 @@ async function viewAccountDetailsModal(accountId) {
         detailsDiv.innerHTML = `
             <div class="detail-row">
                 <span class="detail-label">Account Name:</span>
-                <span class="detail-value">${account.account_name}</span>
+                <span class="detail-value">${escapeHtml(account.account_name)}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Account Type:</span>
-                <span class="detail-value"><span class="type-badge">${account.account_type}</span></span>
+                <span class="detail-value"><span class="type-badge">${escapeHtml(account.account_type)}</span></span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Current Balance:</span>
@@ -807,7 +790,7 @@ async function viewAccountDetailsModal(accountId) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Created:</span>
-                <span class="detail-value">${new Date(account.created_at).toLocaleString()}</span>
+                <span class="detail-value">${escapeHtml(new Date(account.created_at).toLocaleString())}</span>
             </div>
             ${familyMembersHTML}
             ${notesHTML}
@@ -875,14 +858,7 @@ async function addFundsToAccount() {
             notes: notes || 'Funds added to account'
         };
 
-        const response = await authenticatedFetch(`${API_URL}/transactions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(paymentData)
-        });
+        const response = await fetchPost(`${API_URL}/transactions`, paymentData);
 
         if (response.ok) {
             showSuccess(`$${amount.toFixed(2)} added successfully`);
@@ -943,9 +919,9 @@ function displayTransactionsTable(transactionsList) {
 
         row.innerHTML = `
             <td>#${transaction.id}</td>
-            <td>${dateStr}</td>
-            <td>${transaction.account_name || 'N/A'}</td>
-            <td><span class="type-badge">${transaction.transaction_type}</span></td>
+            <td>${escapeHtml(dateStr)}</td>
+            <td>${escapeHtml(transaction.account_name || 'N/A')}</td>
+            <td><span class="type-badge">${escapeHtml(transaction.transaction_type)}</span></td>
             <td style="color: ${transaction.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                 $${Math.abs(transaction.total_amount).toFixed(2)}
             </td>
@@ -986,7 +962,7 @@ async function viewTransactionDetails(transactionId) {
                         ${data.items.map((item, index) => `
                             <div class="item-row" style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: #f8f9fa; margin-bottom: 0.5rem; border-radius: 6px;">
                                 <div style="flex: 1;">
-                                    <span style="font-weight: 600;">${item.product_name}</span>
+                                    <span style="font-weight: 600;">${escapeHtml(item.product_name)}</span>
                                     <span style="color: #666;"> x ${item.quantity}</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 1rem;">
@@ -1037,15 +1013,15 @@ async function viewTransactionDetails(transactionId) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Date/Time:</span>
-                <span class="detail-value">${date.toLocaleString()}</span>
+                <span class="detail-value">${escapeHtml(date.toLocaleString())}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Account:</span>
-                <span class="detail-value">${data.account_name || 'N/A'}</span>
+                <span class="detail-value">${escapeHtml(data.account_name || 'N/A')}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Type:</span>
-                <span class="detail-value">${data.transaction_type}</span>
+                <span class="detail-value">${escapeHtml(data.transaction_type)}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Amount:</span>
@@ -1057,7 +1033,7 @@ async function viewTransactionDetails(transactionId) {
             ${data.notes ? `
                 <div class="detail-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee;">
                     <span class="detail-label">Notes:</span>
-                    <span class="detail-value" style="white-space: pre-wrap;">${data.notes}</span>
+                    <span class="detail-value" style="white-space: pre-wrap;">${escapeHtml(data.notes)}</span>
                 </div>
             ` : ''}
             ${warningHTML}
@@ -1194,14 +1170,7 @@ async function processAdjustment() {
             original_transaction_id: transaction.id
         };
 
-        const response = await authenticatedFetch(`${API_URL}/transactions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(adjustmentData)
-        });
+        const response = await fetchPost(`${API_URL}/transactions`, adjustmentData);
 
         if (response.ok) {
             showSuccess('Adjustment processed successfully');
