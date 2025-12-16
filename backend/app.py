@@ -42,9 +42,6 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Initialize CSRF Protection
 csrf = CSRFProtect(app)
 
-# Exempt SocketIO from CSRF (uses session authentication)
-csrf.exempt(socketio)
-
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -312,6 +309,7 @@ def get_account(account_id):
 
 @app.route('/api/accounts', methods=['POST'])
 @admin_required
+@validate_json(AccountSchema)
 def create_account():
     """Create new account"""
     data = request.get_json()
@@ -360,6 +358,7 @@ def create_account():
 
 @app.route('/api/pos/accounts', methods=['POST'])
 @pos_or_admin_required
+@validate_json(AccountSchema)
 def create_account_pos():
     """Create new account from POS (POS and Admin only)"""
     data = request.get_json()
@@ -406,6 +405,7 @@ def create_account_pos():
 
 @app.route('/api/accounts/<int:account_id>', methods=['PUT'])
 @admin_required
+@validate_json(AccountSchema)
 def update_account(account_id):
     """Update account"""
     data = request.get_json()
@@ -482,6 +482,7 @@ def get_products():
 
 @app.route('/api/products', methods=['POST'])
 @admin_required
+@validate_json(ProductSchema)
 def create_product():
     """Create new product"""
     data = request.get_json()
@@ -493,17 +494,18 @@ def create_product():
         (data['category_id'], data['name'], data['price'], data.get('inventory_quantity', 0),
          data.get('track_inventory', False), data.get('display_order', 0), data.get('requires_prep', 0))
     )
-    
+
     product_id = cursor.lastrowid
     conn.commit()
     conn.close()
-    
+
     socketio.emit('product_created', {'product_id': product_id})
-    
+
     return jsonify({'success': True, 'product_id': product_id}), 201
 
 @app.route('/api/products/<int:product_id>', methods=['PUT'])
 @admin_required
+@validate_json(ProductSchema)
 def update_product(product_id):
     """Update product"""
     data = request.get_json()
@@ -529,6 +531,7 @@ def update_product(product_id):
 
 @app.route('/api/categories', methods=['POST'])
 @admin_required
+@validate_json(CategorySchema)
 def create_category():
     """Create new category"""
     data = request.get_json()
@@ -548,6 +551,7 @@ def create_category():
 
 @app.route('/api/categories/<int:category_id>', methods=['PUT'])
 @admin_required
+@validate_json(CategorySchema)
 def update_category(category_id):
     """Update category"""
     data = request.get_json()
@@ -712,6 +716,7 @@ def get_transaction(transaction_id):
 
 @app.route('/api/transactions', methods=['POST'])
 @pos_or_admin_required
+@validate_json(TransactionSchema)
 def create_transaction():
     """Create new transaction (POS and Admin only)"""
     data = request.get_json()
@@ -994,7 +999,7 @@ def get_users():
     """Get all users (Admin only)"""
     conn = get_db()
     cursor = conn.execute("""
-        SELECT id, username, full_name, role, created_at
+        SELECT id, username, full_name, role, is_active, created_at
         FROM users
         ORDER BY username
     """)
@@ -1006,6 +1011,7 @@ def get_users():
             'username': row['username'],
             'full_name': row['full_name'],
             'role': row['role'],
+            'is_active': row['is_active'],
             'created_at': row['created_at']
         })
 
@@ -1015,6 +1021,7 @@ def get_users():
 @app.route('/api/users', methods=['POST'])
 @login_required
 @admin_required
+@validate_json(UserSchema)
 def create_user():
     """Create a new user (Admin only)"""
     data = request.json
@@ -1060,6 +1067,7 @@ def create_user():
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 @login_required
 @admin_required
+@validate_json(UserSchema)
 def update_user(user_id):
     """Update a user (Admin only)"""
     data = request.json
@@ -1068,6 +1076,7 @@ def update_user(user_id):
     full_name = data.get('full_name', '').strip()
     role = data.get('role', '').strip()
     password = data.get('password', '').strip()
+    is_active = data.get('is_active')  # Can be True, False, or None (not provided)
 
     if not username:
         return jsonify({'error': 'Username is required'}), 400
@@ -1084,6 +1093,11 @@ def update_user(user_id):
         conn.close()
         return jsonify({'error': 'User not found'}), 404
 
+    # Prevent deactivating admin user
+    if user['username'] == 'admin' and is_active is False:
+        conn.close()
+        return jsonify({'error': 'Cannot deactivate admin user'}), 400
+
     # Check if new username conflicts with existing user (if username changed)
     if username != user['username']:
         cursor = conn.execute("SELECT id FROM users WHERE username = ? AND id != ?", (username, user_id))
@@ -1093,19 +1107,23 @@ def update_user(user_id):
 
     # Update user
     try:
+        # Build the UPDATE query dynamically based on what fields are provided
+        update_fields = ['username = ?', 'full_name = ?', 'role = ?']
+        update_values = [username, full_name, role]
+
         if password:
             password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            conn.execute("""
-                UPDATE users
-                SET username = ?, full_name = ?, role = ?, password_hash = ?
-                WHERE id = ?
-            """, (username, full_name, role, password_hash, user_id))
-        else:
-            conn.execute("""
-                UPDATE users
-                SET username = ?, full_name = ?, role = ?
-                WHERE id = ?
-            """, (username, full_name, role, user_id))
+            update_fields.append('password_hash = ?')
+            update_values.append(password_hash)
+
+        if is_active is not None:
+            update_fields.append('is_active = ?')
+            update_values.append(1 if is_active else 0)
+
+        update_values.append(user_id)
+
+        query = f"UPDATE users SET {', '.join(update_fields)} WHERE id = ?"
+        conn.execute(query, tuple(update_values))
 
         conn.commit()
         conn.close()
@@ -1133,6 +1151,15 @@ def delete_user(user_id):
     if user['username'] == 'admin':
         conn.close()
         return jsonify({'error': 'Cannot delete admin user'}), 400
+
+    # Check if user has created any transactions
+    cursor = conn.execute("SELECT COUNT(*) as count FROM transactions WHERE created_by = ?", (user_id,))
+    result = cursor.fetchone()
+    transaction_count = result['count']
+
+    if transaction_count > 0:
+        conn.close()
+        return jsonify({'error': f'Cannot delete user: they have created {transaction_count} transaction(s). To preserve transaction history, users who have created transactions cannot be deleted.'}), 400
 
     try:
         conn.execute("DELETE FROM users WHERE id = ?", (user_id,))

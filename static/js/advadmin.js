@@ -1,4 +1,7 @@
 // Advanced Admin JavaScript
+import { escapeHtml } from './utils/escape.js';
+import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
+
 const API_URL = '/api';
 
 let users = [];
@@ -38,22 +41,30 @@ function displayUsers() {
     const tbody = document.getElementById('usersTableBody');
 
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No users found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No users found</td></tr>';
         return;
     }
 
-    tbody.innerHTML = users.map(user => `
-        <tr>
-            <td>${user.username}</td>
-            <td>${user.full_name || '-'}</td>
-            <td><span class="type-badge">${user.role}</span></td>
-            <td>${new Date(user.created_at).toLocaleDateString()}</td>
-            <td>
+    tbody.innerHTML = users.map(user => {
+        const isActive = user.is_active !== 0;
+        const statusBadge = isActive
+            ? '<span class="type-badge" style="background: #4CAF50;">Active</span>'
+            : '<span class="type-badge" style="background: #999;">Inactive</span>';
+
+        return `
+        <tr style="${!isActive ? 'opacity: 0.6;' : ''}">
+            <td>${escapeHtml(user.username)}</td>
+            <td>${escapeHtml(user.full_name || '-')}</td>
+            <td><span class="type-badge">${escapeHtml(user.role)}</span></td>
+            <td>${statusBadge}</td>
+            <td>${escapeHtml(new Date(user.created_at).toLocaleDateString())}</td>
+            <td style="text-align: right;">
                 <button class="btn-edit" onclick="editUser(${user.id})">Edit</button>
-                ${user.username !== 'admin' ? `<button class="btn-danger" onclick="deleteUser(${user.id}, '${user.username}')">Delete</button>` : ''}
+                ${user.username !== 'admin' ? `<button class="btn-danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username).replace(/'/g, "\\'")}')">Delete</button>` : ''}
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function showAddUserModal() {
@@ -65,6 +76,7 @@ function showAddUserModal() {
     document.getElementById('userRole').value = 'pos';
     document.getElementById('password').value = '';
     document.getElementById('password').required = true;
+    document.getElementById('activeGroup').style.display = 'none'; // Hide active checkbox for new users
     document.getElementById('userModal').classList.remove('hidden');
 }
 
@@ -80,6 +92,15 @@ function editUser(userId) {
     document.getElementById('userRole').value = user.role;
     document.getElementById('password').value = '';
     document.getElementById('password').required = false;
+
+    // Show active checkbox for editing (but not for admin user)
+    if (user.username !== 'admin') {
+        document.getElementById('activeGroup').style.display = 'block';
+        document.getElementById('userActive').checked = user.is_active !== 0;
+    } else {
+        document.getElementById('activeGroup').style.display = 'none';
+    }
+
     document.getElementById('userModal').classList.remove('hidden');
 }
 
@@ -115,18 +136,18 @@ async function saveUser() {
         userData.password = password;
     }
 
+    // Include is_active only when editing (not when creating new users)
+    if (userId && document.getElementById('activeGroup').style.display !== 'none') {
+        userData.is_active = document.getElementById('userActive').checked;
+    }
+
     try {
         const url = userId ? `${API_URL}/users/${userId}` : `${API_URL}/users`;
         const method = userId ? 'PUT' : 'POST';
 
-        const response = await fetch(url, {
-            method,
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(userData)
-        });
+        const response = method === 'PUT'
+            ? await fetchPut(url, userData)
+            : await fetchPost(url, userData);
 
         if (!response.ok) {
             const error = await response.json();
@@ -148,10 +169,7 @@ async function deleteUser(userId, username) {
     }
 
     try {
-        const response = await fetch(`${API_URL}/users/${userId}`, {
-            method: 'DELETE',
-            credentials: 'include'
-        });
+        const response = await fetchDelete(`${API_URL}/users/${userId}`);
 
         if (!response.ok) {
             const error = await response.json();
