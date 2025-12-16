@@ -525,6 +525,43 @@ def update_product(product_id):
 
     return jsonify({'success': True})
 
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+@admin_required
+def delete_product(product_id):
+    """Delete product if it has no associated transactions"""
+    conn = get_db()
+
+    # Check if product exists
+    cursor = conn.execute("SELECT id, name FROM products WHERE id = ?", (product_id,))
+    product = cursor.fetchone()
+
+    if not product:
+        conn.close()
+        return jsonify({'error': 'Product not found'}), 404
+
+    # Check if product has any transaction items
+    cursor = conn.execute(
+        "SELECT COUNT(*) as count FROM transaction_items WHERE product_id = ?",
+        (product_id,)
+    )
+    result = cursor.fetchone()
+    transaction_count = result['count']
+
+    if transaction_count > 0:
+        conn.close()
+        return jsonify({
+            'error': f'Cannot delete product: it appears in {transaction_count} transaction(s). To preserve transaction history, products that have been sold cannot be deleted. You can mark it as inactive instead.'
+        }), 400
+
+    # Safe to delete - no transaction history
+    conn.execute("DELETE FROM products WHERE id = ?", (product_id,))
+    conn.commit()
+    conn.close()
+
+    socketio.emit('product_deleted', {'product_id': product_id})
+
+    return jsonify({'success': True})
+
 # ============================================================================
 # Category Routes
 # ============================================================================

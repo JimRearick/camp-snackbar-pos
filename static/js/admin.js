@@ -215,6 +215,9 @@ async function showAddProductForm() {
     document.getElementById('productPrice').value = '';
     document.getElementById('productActive').checked = true;
 
+    // Hide delete button for new products
+    document.getElementById('deleteProductBtn').style.display = 'none';
+
     // Show modal FIRST so DOM elements are accessible
     document.getElementById('productModal').classList.remove('hidden');
 
@@ -275,6 +278,11 @@ async function editProduct(productId) {
                 categorySelect.value = product.category_id;
                 console.log('Category select value after setting:', categorySelect.value);
             }, 100);
+
+            // Show delete button for existing products
+            const deleteBtn = document.getElementById('deleteProductBtn');
+            deleteBtn.style.display = 'block';
+            deleteBtn.setAttribute('data-product-name', product.name);
         }
     } catch (error) {
         showError('Failed to load product');
@@ -362,6 +370,37 @@ async function saveProduct() {
 
 function hideProductModal() {
     document.getElementById('productModal').classList.add('hidden');
+}
+
+async function deleteProductFromModal() {
+    const productId = document.getElementById('productId').value;
+    const deleteBtn = document.getElementById('deleteProductBtn');
+    const productName = deleteBtn.getAttribute('data-product-name');
+
+    const confirmed = await confirmDialog(
+        `Are you sure you want to delete the product "${productName}"?`,
+        'Delete Product'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetchDelete(`${API_URL}/products/${productId}`);
+
+        if (response.ok) {
+            showSuccess('Product deleted');
+            hideProductModal();
+            loadProducts();
+        } else {
+            const errorData = await response.json();
+            showError(errorData.error || 'Failed to delete product');
+        }
+    } catch (error) {
+        showError('Failed to delete product: ' + error.message);
+        console.error('Error:', error);
+    }
 }
 
 // ============================================================================
@@ -1271,6 +1310,7 @@ window.showAddCategoryForm = showAddCategoryForm;
 window.showAddAccountForm = showAddAccountForm;
 window.hideProductModal = hideProductModal;
 window.saveProduct = saveProduct;
+window.deleteProductFromModal = deleteProductFromModal;
 window.hideCategoryModal = hideCategoryModal;
 window.saveCategory = saveCategory;
 window.deleteCategoryFromModal = deleteCategoryFromModal;
