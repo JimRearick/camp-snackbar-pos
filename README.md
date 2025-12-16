@@ -15,19 +15,26 @@ A production-ready Point of Sale system for managing camp snackbar accounts and 
 
 ## Quick Start (Recommended: Docker)
 
-**Fastest deployment for Intel/AMD x86_64 systems:**
+**3-step installation using pre-built containers:**
 
 ```bash
-# Install Docker
-curl -fsSL https://get.docker.com | sh
+# 1. Install Docker (one-time setup)
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+sudo apt install -y docker-compose-plugin git
 
-# Deploy application
-./deploy.sh install
+# 2. Download and install
+git clone https://github.com/YOUR_USERNAME/camp-snackbar-pos.git
+cd camp-snackbar-pos
+chmod +x install.sh
+./install.sh
 
-# Access at http://localhost or http://YOUR-IP
+# 3. Access at http://localhost or http://YOUR-SERVER-IP
+# Login: admin / admin (CHANGE PASSWORD IMMEDIATELY!)
 ```
 
-See [Docker Deployment Guide](docs/deployment/DOCKER_DEPLOYMENT.md) for full instructions.
+See [Simple Installation Guide](docs/deployment/SIMPLE_INSTALL.md) for detailed instructions.
 
 ## System Requirements
 
