@@ -114,13 +114,6 @@ CREATE TABLE settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Admin sessions table (legacy - will be deprecated)
-CREATE TABLE admin_sessions (
-    token TEXT PRIMARY KEY,
-    expires_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
 -- Backup log table
 CREATE TABLE backup_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

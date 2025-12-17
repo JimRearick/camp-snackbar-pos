@@ -64,34 +64,6 @@ STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
 # Create backup directory if it doesn't exist
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# Session storage - using database for persistence across restarts
-def get_active_sessions():
-    """Get active sessions from database"""
-    conn = get_db()
-    cursor = conn.execute(
-        "SELECT token, expires_at FROM admin_sessions WHERE expires_at > datetime('now')"
-    )
-    sessions = {row['token']: datetime.fromisoformat(row['expires_at']) for row in cursor.fetchall()}
-    conn.close()
-    return sessions
-
-def save_session(token, expires_at):
-    """Save session to database"""
-    conn = get_db()
-    conn.execute(
-        "INSERT OR REPLACE INTO admin_sessions (token, expires_at) VALUES (?, ?)",
-        (token, expires_at.isoformat())
-    )
-    conn.commit()
-    conn.close()
-
-def delete_session(token):
-    """Delete session from database"""
-    conn = get_db()
-    conn.execute("DELETE FROM admin_sessions WHERE token = ?", (token,))
-    conn.commit()
-    conn.close()
-
 # ============================================================================
 # Database Helper Functions
 # ============================================================================
