@@ -440,6 +440,7 @@ def get_products():
                 'price': prod_row['price'],
                 'inventory_quantity': prod_row['inventory_quantity'],
                 'track_inventory': bool(prod_row['track_inventory']),
+                'requires_prep': bool(prod_row['requires_prep']),
                 'active': bool(prod_row['active'])
             })
         
