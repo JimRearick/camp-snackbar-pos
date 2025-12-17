@@ -10,7 +10,9 @@ if [ -f /app/data/camp_snackbar.db ]; then
         echo "Valid database found at /app/data/camp_snackbar.db"
     else
         echo "Database exists but is invalid or missing tables, reinitializing..."
+        # Remove both the database and any existing symlink
         rm -f /app/data/camp_snackbar.db
+        rm -f /app/backend/camp_snackbar.db
     fi
 fi
 
@@ -27,6 +29,7 @@ fi
 # Create symlink if it doesn't exist
 if [ ! -L /app/backend/camp_snackbar.db ] && [ ! -f /app/backend/camp_snackbar.db ]; then
     ln -s /app/data/camp_snackbar.db /app/backend/camp_snackbar.db
+    echo "Created symlink: /app/backend/camp_snackbar.db -> /app/data/camp_snackbar.db"
 fi
 
 # Execute the main command
