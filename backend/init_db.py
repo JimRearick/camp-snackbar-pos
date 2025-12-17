@@ -5,6 +5,11 @@ import os
 # Use local path for development
 DB_PATH = 'camp_snackbar.db'
 
+# Remove existing database if it exists to ensure clean initialization
+if os.path.exists(DB_PATH):
+    os.remove(DB_PATH)
+    print(f"Removed existing database at {DB_PATH}")
+
 # Read schema file
 with open('schema.sql', 'r') as f:
     schema = f.read()
