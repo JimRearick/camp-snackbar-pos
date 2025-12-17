@@ -66,8 +66,8 @@ if [ ! -f .env ]; then
 # Camp Snackbar POS Configuration
 # Generated on $(date)
 
-# Docker image to use (change if you're hosting your own)
-DOCKER_IMAGE=yourname/camp-snackbar-pos:latest
+# Docker image to use (GitHub Container Registry)
+DOCKER_IMAGE=ghcr.io/YOUR_GITHUB_USERNAME/camp-snackbar-pos:latest
 
 # Security - CRITICAL: Change this in production!
 SECRET_KEY=${SECRET_KEY}

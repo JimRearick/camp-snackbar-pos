@@ -2,6 +2,8 @@
 
 Touch-first, tablet-optimized Point of Sale system for summer camps and concession stands.
 
+Hosted on **GitHub Container Registry (GHCR)** - no Docker Hub account needed!
+
 ## Quick Start
 
 ### Prerequisites
@@ -10,20 +12,17 @@ Touch-first, tablet-optimized Point of Sale system for summer camps and concessi
 - 8GB RAM minimum
 - Network access for tablets
 
-### Installation (3 Steps)
+### Installation (2 Steps)
 
-**1. Download the compose file:**
+**1. Clone the repository:**
 ```bash
-mkdir camp-snackbar-pos
+git clone https://github.com/YOUR_GITHUB_USERNAME/camp-snackbar-pos.git
 cd camp-snackbar-pos
-curl -o docker-compose.yml https://raw.githubusercontent.com/YOUR_USERNAME/camp-snackbar-pos/main/docker-compose.yml
-curl -o Caddyfile https://raw.githubusercontent.com/YOUR_USERNAME/camp-snackbar-pos/main/Caddyfile
-curl -o install.sh https://raw.githubusercontent.com/YOUR_USERNAME/camp-snackbar-pos/main/install.sh
-chmod +x install.sh
 ```
 
 **2. Run the installer:**
 ```bash
+chmod +x install.sh
 ./install.sh
 ```
 
@@ -37,8 +36,8 @@ chmod +x install.sh
 Edit `.env` file (auto-created by install.sh):
 
 ```env
-# Use official image or your own
-DOCKER_IMAGE=yourname/camp-snackbar-pos:latest
+# Docker image from GitHub Container Registry
+DOCKER_IMAGE=ghcr.io/YOUR_GITHUB_USERNAME/camp-snackbar-pos:latest
 
 # Generate new secret key with:
 # python3 -c "import secrets; print(secrets.token_hex(32))"

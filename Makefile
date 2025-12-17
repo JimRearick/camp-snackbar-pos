@@ -1,33 +1,34 @@
 # Camp Snackbar POS - Makefile
-# For maintainers: Build and publish Docker images
+# For maintainers: Build and publish Docker images to GitHub Container Registry
 
 # Configuration
-DOCKER_USERNAME ?= yourname
+GITHUB_USERNAME ?= YOUR_GITHUB_USERNAME
 IMAGE_NAME = camp-snackbar-pos
 VERSION ?= latest
-FULL_IMAGE = $(DOCKER_USERNAME)/$(IMAGE_NAME):$(VERSION)
+FULL_IMAGE = ghcr.io/$(GITHUB_USERNAME)/$(IMAGE_NAME):$(VERSION)
 
 .PHONY: help build push release test clean
 
 help:
-	@echo "Camp Snackbar POS - Docker Image Management"
+	@echo "Camp Snackbar POS - Docker Image Management (GHCR)"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
 	@echo "Targets:"
 	@echo "  build       Build Docker image locally"
-	@echo "  push        Push image to Docker Hub (requires login)"
+	@echo "  push        Push image to GitHub Container Registry (requires login)"
 	@echo "  release     Build and push image"
 	@echo "  test        Test the built image locally"
 	@echo "  clean       Remove local images and containers"
+	@echo "  login       Login to GitHub Container Registry"
 	@echo ""
 	@echo "Environment Variables:"
-	@echo "  DOCKER_USERNAME  Your Docker Hub username (default: yourname)"
+	@echo "  GITHUB_USERNAME  Your GitHub username (default: YOUR_GITHUB_USERNAME)"
 	@echo "  VERSION          Image version tag (default: latest)"
 	@echo ""
 	@echo "Examples:"
 	@echo "  make build"
-	@echo "  make DOCKER_USERNAME=myuser VERSION=v1.0.0 release"
+	@echo "  make GITHUB_USERNAME=myuser VERSION=v1.0.0 release"
 
 build:
 	@echo "Building Docker image: $(FULL_IMAGE)"
@@ -35,7 +36,7 @@ build:
 	@echo "✓ Build complete: $(FULL_IMAGE)"
 
 push:
-	@echo "Pushing to Docker Hub: $(FULL_IMAGE)"
+	@echo "Pushing to GitHub Container Registry: $(FULL_IMAGE)"
 	docker push $(FULL_IMAGE)
 	@echo "✓ Push complete: $(FULL_IMAGE)"
 
@@ -64,6 +65,8 @@ clean:
 	@echo "✓ Cleanup complete"
 
 login:
-	@echo "Logging in to Docker Hub..."
-	docker login
+	@echo "Logging in to GitHub Container Registry..."
+	@echo "Use your GitHub Personal Access Token (PAT) as password"
+	@echo "Create PAT at: https://github.com/settings/tokens (select 'write:packages' scope)"
+	docker login ghcr.io
 	@echo "✓ Login complete"
