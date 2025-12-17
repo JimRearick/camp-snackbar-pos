@@ -62,6 +62,13 @@ if [ ! -f .env ]; then
     # Generate secret key
     SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null || openssl rand -hex 32)
 
+    # Detect host timezone
+    if [ -f /etc/timezone ]; then
+        HOST_TZ=$(cat /etc/timezone)
+    else
+        HOST_TZ=$(timedatectl show -p Timezone --value 2>/dev/null || echo "America/New_York")
+    fi
+
     cat > .env << EOF
 # Camp Snackbar POS Configuration
 # Generated on $(date)
@@ -74,6 +81,9 @@ SECRET_KEY=${SECRET_KEY}
 
 # Flask Environment
 FLASK_ENV=production
+
+# Timezone (auto-detected from host: ${HOST_TZ})
+TZ=${HOST_TZ}
 EOF
 
     print_success "Created .env configuration file"

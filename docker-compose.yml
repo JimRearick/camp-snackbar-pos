@@ -9,10 +9,14 @@ services:
     environment:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-please-change-this-secret-key-in-production}
+      - TZ=${TZ:-America/New_York}
     volumes:
       # Persist database and backups
       - ./data:/app/data
       - ./backups:/app/backups
+      # Sync timezone with host
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
 networks:
   camp-network:
