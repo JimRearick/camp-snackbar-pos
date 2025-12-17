@@ -1,5 +1,5 @@
 import { confirmDialog } from './utils/dialog.js';
-import { escapeHtml } from './utils/escape.js';
+import { escapeHtml, formatLocalDateTime, formatLocalDate } from './utils/escape.js';
 import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
 
 // Global state
@@ -569,7 +569,7 @@ function displayAccountsTable(accountsList) {
 
     accountsList.forEach(account => {
         const row = document.createElement('tr');
-        const createdDate = new Date(account.created_at).toLocaleDateString();
+        const createdDate = formatLocalDate(account.created_at);
         const isActive = account.active !== false;
         const statusBadge = isActive
             ? '<span class="badge badge-success">Active</span>'
@@ -775,8 +775,7 @@ async function viewAccountDetailsModal(accountId) {
                             </thead>
                             <tbody>
                                 ${transactions.map(t => {
-                                    const date = new Date(t.created_at);
-                                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                                    const dateStr = formatLocalDateTime(t.created_at);
                                     return `
                                         <tr>
                                             <td>${escapeHtml(dateStr)}</td>
@@ -829,7 +828,7 @@ async function viewAccountDetailsModal(accountId) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Created:</span>
-                <span class="detail-value">${escapeHtml(new Date(account.created_at).toLocaleString())}</span>
+                <span class="detail-value">${escapeHtml(formatLocalDateTime(account.created_at))}</span>
             </div>
             ${familyMembersHTML}
             ${notesHTML}
@@ -953,8 +952,7 @@ function displayTransactionsTable(transactionsList) {
 
     transactionsList.forEach(transaction => {
         const row = document.createElement('tr');
-        const date = new Date(transaction.created_at);
-        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        const dateStr = formatLocalDateTime(transaction.created_at);
 
         row.innerHTML = `
             <td>#${transaction.id}</td>
