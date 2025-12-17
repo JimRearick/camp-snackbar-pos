@@ -1,6 +1,9 @@
 services:
   # Main application (Flask + Gunicorn)
   app:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ${DOCKER_IMAGE:-ghcr.io/jimrearick/camp-snackbar-pos:latest}
     container_name: camp-snackbar-app
     restart: unless-stopped

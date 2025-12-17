@@ -138,7 +138,7 @@ CREATE INDEX idx_prep_queue_status ON prep_queue(status, ordered_at);
 
 -- Default data: Users (password: admin)
 INSERT INTO users (username, password_hash, role, full_name, is_active) VALUES
-    ('admin', 'scrypt:32768:8:1$9yT7OfmFVK2Eb6QE$f475495ca5a95d1fb8406422998848ecec0737a3dbf7df07cb6b4d68eb192b84d7760db0c326bef1b0da9b49b2d23fccf5fff4d667e9126998300419f21dedb0', 1);
+    ('admin', 'scrypt:32768:8:1$9yT7OfmFVK2Eb6QE$f475495ca5a95d1fb8406422998848ecec0737a3dbf7df07cb6b4d68eb192b84d7760db0c326bef1b0da9b49b2d23fccf5fff4d667e9126998300419f21dedb0', 'admin', 'Administrator', 1);
 
 -- Default data: Categories
 INSERT INTO categories (name, display_order) VALUES
