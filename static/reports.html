@@ -212,6 +212,62 @@
             color: #999;
         }
 
+        .top-product-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .top-product-item:hover {
+            background: #e9ecef;
+        }
+
+        .top-product-rank {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #667eea;
+            min-width: 30px;
+        }
+
+        .top-product-info {
+            flex: 1;
+            padding: 0 1rem;
+        }
+
+        .top-product-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .top-product-category {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .top-product-stats {
+            text-align: right;
+        }
+
+        .top-product-revenue {
+            font-weight: 600;
+            color: #28a745;
+        }
+
+        .top-product-quantity {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        @media (max-width: 1200px) {
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
             .admin-content {
                 padding: 1rem;
@@ -245,6 +301,14 @@
 
             .stat-value {
                 font-size: 1.5rem;
+            }
+
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+
+            div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
             }
         }
     </style>
@@ -305,13 +369,21 @@
                             <div class="stat-value" id="totalBalanceDue">-</div>
                         </div>
                     </div>
-                    <div style="background: white; border-radius: 8px; padding: 1.5rem; margin-top: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <h3 style="margin: 0 0 1rem 0; color: #333;">Sales by Category</h3>
-                        <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 2rem;">
-                            <div style="position: relative;">
-                                <canvas id="categoryPieChart" width="300" height="300"></canvas>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem;">
+                        <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h3 style="margin: 0 0 1rem 0; color: #333;">Sales by Category</h3>
+                            <div style="display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 2rem;">
+                                <div style="position: relative;">
+                                    <canvas id="categoryPieChart" width="250" height="250"></canvas>
+                                </div>
+                                <div id="categoryLegend" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
                             </div>
-                            <div id="categoryLegend" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+                        </div>
+                        <div style="background: white; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h3 style="margin: 0 0 1rem 0; color: #333;">🏆 Top 10 Best Sellers</h3>
+                            <div id="topProductsList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                <div style="color: #999; text-align: center; padding: 2rem;">Loading...</div>
+                            </div>
                         </div>
                     </div>
                 </div>

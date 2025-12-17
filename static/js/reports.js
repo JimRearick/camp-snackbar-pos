@@ -94,8 +94,9 @@ async function loadSummary() {
             .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
         document.getElementById('totalBalanceDue').textContent = `$${balanceDue.toFixed(2)}`;
 
-        // Load pie chart
+        // Load pie chart and top products
         await loadCategoryPieChart();
+        await loadTopProducts();
     } catch (error) {
         console.error('Error loading summary:', error);
     }
@@ -213,6 +214,67 @@ async function loadCategoryPieChart() {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('Error loading chart', canvas.width / 2, canvas.height / 2);
+    }
+}
+
+// ============================================================================
+// Top Products Widget
+// ============================================================================
+
+async function loadTopProducts() {
+    try {
+        const salesResponse = await fetch(`${API_URL}/reports/sales`);
+        const salesData = await salesResponse.json();
+
+        const productsResponse = await fetch(`${API_URL}/products`);
+        const productsData = await productsResponse.json();
+
+        // Create a map of product names to categories
+        const productToCategory = {};
+        productsData.categories.forEach(cat => {
+            cat.products.forEach(prod => {
+                productToCategory[prod.name] = cat.name;
+            });
+        });
+
+        // Get top 10 products by revenue
+        const topProducts = salesData.sales
+            .slice(0, 10)
+            .map(product => ({
+                ...product,
+                category: productToCategory[product.product_name] || 'Unknown'
+            }));
+
+        const container = document.getElementById('topProductsList');
+
+        if (topProducts.length === 0) {
+            container.innerHTML = '<div style="color: #999; text-align: center; padding: 2rem;">No sales data available</div>';
+            return;
+        }
+
+        // Medal emojis for top 3
+        const medals = ['🥇', '🥈', '🥉'];
+
+        container.innerHTML = topProducts.map((product, index) => {
+            const rank = index < 3 ? medals[index] : `${index + 1}.`;
+            return `
+                <div class="top-product-item">
+                    <div class="top-product-rank">${rank}</div>
+                    <div class="top-product-info">
+                        <div class="top-product-name">${escapeHtml(product.product_name)}</div>
+                        <div class="top-product-category">${escapeHtml(product.category)}</div>
+                    </div>
+                    <div class="top-product-stats">
+                        <div class="top-product-revenue">$${product.total_revenue.toFixed(2)}</div>
+                        <div class="top-product-quantity">${product.total_quantity} sold</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading top products:', error);
+        document.getElementById('topProductsList').innerHTML =
+            '<div style="color: #dc3545; text-align: center; padding: 2rem;">Error loading top products</div>';
     }
 }
 
