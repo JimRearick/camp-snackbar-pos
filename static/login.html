@@ -218,7 +218,9 @@
                     // Login successful - redirect based on role
                     window.location.href = data.redirect;
                 } else {
-                    showError(data.error || 'Login failed. Please check your credentials.');
+                    console.error('Login failed:', response.status, data);
+                    const errorMsg = data.error || data.details || 'Login failed. Please check your credentials.';
+                    showError(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
                     loginButton.disabled = false;
                     loginButton.textContent = 'Log In';
                     loadingMessage.classList.remove('visible');
