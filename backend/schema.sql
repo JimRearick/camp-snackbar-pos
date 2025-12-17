@@ -74,6 +74,7 @@ CREATE TABLE transactions (
     has_been_adjusted INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INTEGER,
+    created_by_username TEXT,
     FOREIGN KEY (account_id) REFERENCES accounts(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
@@ -153,12 +154,18 @@ INSERT INTO products (category_id, name, price, display_order, requires_prep) VA
     (1, 'Gummy Bears', 1.25, 2, 0),
     (1, 'Skittles', 1.25, 3, 0),
     (2, 'Coca-Cola', 2.00, 1, 0),
+    (2, 'Diet Coke', 2.00, 1, 0),
     (2, 'Sprite', 2.00, 2, 0),
     (2, 'Root Beer', 2.00, 3, 0),
     (3, 'Bottled Water', 1.50, 1, 0),
     (3, 'Gatorade', 2.50, 2, 0),
     (3, 'Juice Box', 1.75, 3, 0),
     (4, 'Hamburger', 5.00, 1, 1),
+    (4, 'Hamburger with Onions', 5.00, 1, 1),
+    (4, 'Hamburger no Bun', 5.00, 1, 1),
+    (4, 'Cheeseburger', 5.00, 1, 1),
+    (4, 'Cheeseburger with Onions', 5.00, 1, 1),
+    (4, 'Cheeseburger no Bun', 5.00, 1, 1),
     (4, 'Hot Dog', 3.50, 2, 1);
 
 -- Default data: Settings
