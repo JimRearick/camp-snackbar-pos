@@ -24,6 +24,11 @@ RUN pip install --no-cache-dir gunicorn==21.2.0
 # Stage 2: Runtime stage
 FROM python:3.11-slim
 
+# Install runtime dependencies for healthcheck
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create app user for security (don't run as root)
 RUN useradd -m -u 1000 appuser && \
     mkdir -p /app/data /app/backups && \
@@ -60,7 +65,7 @@ EXPOSE 8000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/login.html', timeout=5)" || exit 1
+    CMD wget --quiet --tries=1 --spider http://localhost:8000/login.html || exit 1
 
 # Run with Gunicorn (production WSGI server)
 CMD ["gunicorn", \
