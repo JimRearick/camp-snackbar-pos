@@ -93,8 +93,126 @@ async function loadSummary() {
             .filter(acc => acc.current_balance < 0)
             .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
         document.getElementById('totalBalanceDue').textContent = `$${balanceDue.toFixed(2)}`;
+
+        // Load pie chart
+        await loadCategoryPieChart();
     } catch (error) {
         console.error('Error loading summary:', error);
+    }
+}
+
+// ============================================================================
+// Category Pie Chart
+// ============================================================================
+
+async function loadCategoryPieChart() {
+    try {
+        const salesResponse = await fetch(`${API_URL}/reports/sales`);
+        const salesData = await salesResponse.json();
+
+        const productsResponse = await fetch(`${API_URL}/products`);
+        const productsData = await productsResponse.json();
+
+        // Create a map of product names to categories
+        const productToCategory = {};
+        productsData.categories.forEach(cat => {
+            cat.products.forEach(prod => {
+                productToCategory[prod.name] = cat.name;
+            });
+        });
+
+        // Aggregate sales by category
+        const categoryTotals = {};
+        salesData.sales.forEach(sale => {
+            const category = productToCategory[sale.product_name] || 'Unknown';
+            if (!categoryTotals[category]) {
+                categoryTotals[category] = 0;
+            }
+            categoryTotals[category] += sale.total_revenue;
+        });
+
+        // Sort by revenue
+        const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+        // Color palette
+        const colors = [
+            '#667eea', // Purple
+            '#f5576c', // Red
+            '#4facfe', // Blue
+            '#38ef7d', // Green
+            '#f093fb', // Pink
+            '#feca57', // Yellow
+            '#ff6348', // Orange
+            '#48dbfb'  // Cyan
+        ];
+
+        // Draw pie chart
+        const canvas = document.getElementById('categoryPieChart');
+        const ctx = canvas.getContext('2d');
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(centerX, centerY) - 10;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Calculate total
+        const total = sortedCategories.reduce((sum, [, value]) => sum + value, 0);
+
+        if (total === 0) {
+            // Draw "No Data" message
+            ctx.fillStyle = '#999';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('No sales data', centerX, centerY);
+            document.getElementById('categoryLegend').innerHTML = '<div style="color: #999;">No sales data available</div>';
+            return;
+        }
+
+        // Draw pie slices
+        let currentAngle = -Math.PI / 2; // Start at top
+        sortedCategories.forEach(([category, value], index) => {
+            const sliceAngle = (value / total) * 2 * Math.PI;
+
+            ctx.fillStyle = colors[index % colors.length];
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            currentAngle += sliceAngle;
+        });
+
+        // Draw legend
+        const legendDiv = document.getElementById('categoryLegend');
+        legendDiv.innerHTML = sortedCategories.map(([category, value], index) => {
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 20px; height: 20px; background: ${colors[index % colors.length]}; border-radius: 3px; flex-shrink: 0;"></div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: #333;">${escapeHtml(category)}</div>
+                        <div style="font-size: 0.9rem; color: #666;">$${value.toFixed(2)} (${percentage}%)</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading category pie chart:', error);
+        const canvas = document.getElementById('categoryPieChart');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#dc3545';
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Error loading chart', canvas.width / 2, canvas.height / 2);
     }
 }
 
