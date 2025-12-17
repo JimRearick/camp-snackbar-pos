@@ -432,10 +432,13 @@ async function confirmCheckout() {
 }
 
 // Show success message
-function showSuccess() {
+function showSuccess(message = 'Transaction completed successfully!') {
     const toast = document.getElementById('successMessage');
+    const text = document.getElementById('successText');
+
+    text.textContent = message;
     toast.classList.remove('hidden');
-    
+
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 2000);
@@ -531,7 +534,7 @@ async function createNewAccount() {
 
         // Hide form and show success
         hideNewAccountForm();
-        showSuccess();
+        showSuccess('Account created successfully!');
 
         // Auto-select the new account if we can find it
         const newAccount = accounts.find(acc => acc.account_number === result.account_number);
