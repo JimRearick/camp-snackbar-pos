@@ -65,12 +65,13 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD wget --quiet --tries=1 --spider http://localhost:8000/login.html || exit 1
 
 # Run with Gunicorn (production WSGI server)
+# Note: Using only 1 worker with eventlet for Socket.IO compatibility
 CMD ["gunicorn", \
      "--chdir", "/app/backend", \
      "--bind", "0.0.0.0:8000", \
-     "--workers", "4", \
-     "--threads", "2", \
+     "--workers", "1", \
      "--worker-class", "eventlet", \
+     "--worker-connections", "1000", \
      "--timeout", "120", \
      "--access-logfile", "-", \
      "--error-logfile", "-", \
