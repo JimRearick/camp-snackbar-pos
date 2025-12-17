@@ -152,7 +152,7 @@ function populateCategoryFilter(categories) {
 
 function displayProductsTable() {
     const searchTerm = document.getElementById('productSearchInput')?.value.toLowerCase() || '';
-    const statusFilter = document.getElementById('productStatusFilter')?.value || 'active';
+    const showInactive = document.getElementById('showInactiveProducts')?.checked || false;
     const categoryFilter = document.getElementById('productCategoryFilter')?.value || '';
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
@@ -165,13 +165,10 @@ function displayProductsTable() {
             }
 
             category.products.forEach(product => {
-                // Filter based on status
-                if (statusFilter === 'active' && !product.active) {
-                    return; // Skip inactive products
-                } else if (statusFilter === 'inactive' && product.active) {
-                    return; // Skip active products
+                // Filter based on status - show active products always, show inactive only if checkbox is checked
+                if (!product.active && !showInactive) {
+                    return; // Skip inactive products unless showInactive is checked
                 }
-                // If statusFilter is empty string, show all products
 
                 // Filter based on search term
                 if (searchTerm) {

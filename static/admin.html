@@ -45,11 +45,10 @@
                         <select id="productCategoryFilter" class="filter-select" onchange="filterProductsTable()">
                             <option value="">All Categories</option>
                         </select>
-                        <select id="productStatusFilter" class="filter-select" onchange="filterProductsTable()">
-                            <option value="active">Active Only</option>
-                            <option value="">All Products</option>
-                            <option value="inactive">Inactive Only</option>
-                        </select>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem;">
+                            <input type="checkbox" id="showInactiveProducts" onchange="filterProductsTable()">
+                            <span>Show Inactive</span>
+                        </label>
                         <div class="search-box">
                             <input type="text" id="productSearchInput" class="search-input"
                                    placeholder="Search products..." oninput="filterProductsTable()">
