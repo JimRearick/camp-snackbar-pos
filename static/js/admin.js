@@ -121,6 +121,9 @@ async function loadProducts() {
         // Cache the data for filtering
         allProductsData = data;
 
+        // Populate category filter dropdown
+        populateCategoryFilter(data.categories);
+
         // Display products with current filter
         displayProductsTable();
 
@@ -130,14 +133,37 @@ async function loadProducts() {
     }
 }
 
+function populateCategoryFilter(categories) {
+    const select = document.getElementById('productCategoryFilter');
+    if (!select) return;
+
+    // Keep "All Categories" option and add category options
+    select.innerHTML = '<option value="">All Categories</option>';
+
+    if (categories && Array.isArray(categories)) {
+        categories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat.id;
+            option.textContent = cat.name;
+            select.appendChild(option);
+        });
+    }
+}
+
 function displayProductsTable() {
     const searchTerm = document.getElementById('productSearchInput')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('productStatusFilter')?.value || 'active';
+    const categoryFilter = document.getElementById('productCategoryFilter')?.value || '';
     const tbody = document.getElementById('productsTableBody');
     tbody.innerHTML = '';
 
     if (allProductsData && allProductsData.categories && Array.isArray(allProductsData.categories)) {
         allProductsData.categories.forEach(category => {
+            // Filter based on category
+            if (categoryFilter && category.id.toString() !== categoryFilter) {
+                return; // Skip categories that don't match filter
+            }
+
             category.products.forEach(product => {
                 // Filter based on status
                 if (statusFilter === 'active' && !product.active) {

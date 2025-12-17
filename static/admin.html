@@ -42,6 +42,9 @@
                 <div class="tab-header">
                     <h2>Inventory Management</h2>
                     <div style="display: flex; gap: 1rem; align-items: center;">
+                        <select id="productCategoryFilter" class="filter-select" onchange="filterProductsTable()">
+                            <option value="">All Categories</option>
+                        </select>
                         <select id="productStatusFilter" class="filter-select" onchange="filterProductsTable()">
                             <option value="active">Active Only</option>
                             <option value="">All Products</option>
