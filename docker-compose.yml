@@ -4,6 +4,8 @@ services:
     image: ${DOCKER_IMAGE:-ghcr.io/jimrearick/camp-snackbar-pos:latest}
     container_name: camp-snackbar-app
     restart: unless-stopped
+    ports:
+      - "80:8000"    # Expose Flask app directly on port 80
     environment:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-please-change-this-secret-key-in-production}
@@ -11,34 +13,7 @@ services:
       # Persist database and backups
       - ./data:/app/data
       - ./backups:/app/backups
-    networks:
-      - camp-network
-
-  # Caddy reverse proxy (automatic HTTPS)
-  caddy:
-    image: caddy:2-alpine
-    container_name: camp-snackbar-caddy
-    restart: unless-stopped
-    ports:
-      - "80:80"      # HTTP
-      - "443:443"    # HTTPS
-      - "443:443/udp" # HTTP/3
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    networks:
-      - camp-network
-    depends_on:
-      app:
-        condition: service_healthy
 
 networks:
   camp-network:
     driver: bridge
-
-volumes:
-  caddy_data:
-    driver: local
-  caddy_config:
-    driver: local

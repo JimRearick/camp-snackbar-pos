@@ -83,12 +83,11 @@ docker compose exec app cp /app/data/camp_snackbar.db /app/backups/manual_backup
 - **Prep Queue** - Kitchen display system
 - **Account Management** - Family and individual accounts
 - **Security Hardened** - CSRF, XSS protection, input validation
-- **Auto HTTPS** - Caddy reverse proxy with automatic SSL
+- **Offline First** - Works completely offline on local network
 
 ## Default Ports
 
-- HTTP: 80
-- HTTPS: 443 (auto-configured by Caddy)
+- HTTP: 80 (accessible at http://SERVER_IP)
 
 ## Support
 
