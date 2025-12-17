@@ -16,7 +16,7 @@ Hosted on **GitHub Container Registry (GHCR)** - no Docker Hub account needed!
 
 **1. Clone the repository:**
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/camp-snackbar-pos.git
+git clone https://github.com/JimRearick/camp-snackbar-pos.git
 cd camp-snackbar-pos
 ```
 
@@ -37,7 +37,7 @@ Edit `.env` file (auto-created by install.sh):
 
 ```env
 # Docker image from GitHub Container Registry
-DOCKER_IMAGE=ghcr.io/YOUR_GITHUB_USERNAME/camp-snackbar-pos:latest
+DOCKER_IMAGE=ghcr.io/jimrearick/camp-snackbar-pos:latest
 
 # Generate new secret key with:
 # python3 -c "import secrets; print(secrets.token_hex(32))"

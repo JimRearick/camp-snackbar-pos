@@ -2,7 +2,7 @@
 # For maintainers: Build and publish Docker images to GitHub Container Registry
 
 # Configuration
-GITHUB_USERNAME ?= YOUR_GITHUB_USERNAME
+GITHUB_USERNAME ?= jimrearick
 IMAGE_NAME = camp-snackbar-pos
 VERSION ?= latest
 FULL_IMAGE = ghcr.io/$(GITHUB_USERNAME)/$(IMAGE_NAME):$(VERSION)
@@ -23,7 +23,7 @@ help:
 	@echo "  login       Login to GitHub Container Registry"
 	@echo ""
 	@echo "Environment Variables:"
-	@echo "  GITHUB_USERNAME  Your GitHub username (default: YOUR_GITHUB_USERNAME)"
+	@echo "  GITHUB_USERNAME  Your GitHub username (default: jimrearick)"
 	@echo "  VERSION          Image version tag (default: latest)"
 	@echo ""
 	@echo "Examples:"

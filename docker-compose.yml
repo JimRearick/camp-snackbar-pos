@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Main application (Flask + Gunicorn)
   app:
-    image: ${DOCKER_IMAGE:-ghcr.io/YOUR_GITHUB_USERNAME/camp-snackbar-pos:latest}
+    image: ${DOCKER_IMAGE:-ghcr.io/jimrearick/camp-snackbar-pos:latest}
     container_name: camp-snackbar-app
     restart: unless-stopped
     environment:

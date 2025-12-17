@@ -67,7 +67,7 @@ if [ ! -f .env ]; then
 # Generated on $(date)
 
 # Docker image to use (GitHub Container Registry)
-DOCKER_IMAGE=ghcr.io/YOUR_GITHUB_USERNAME/camp-snackbar-pos:latest
+DOCKER_IMAGE=ghcr.io/jimrearick/camp-snackbar-pos:latest
 
 # Security - CRITICAL: Change this in production!
 SECRET_KEY=${SECRET_KEY}
