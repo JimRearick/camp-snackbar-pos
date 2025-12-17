@@ -29,10 +29,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app user for security (don't run as root)
-RUN useradd -m -u 1000 appuser && \
-    mkdir -p /app/data /app/backups && \
-    chown -R appuser:appuser /app
+# Create directories for data persistence
+RUN mkdir -p /app/data /app/backups
 
 # Copy virtual environment from builder
 COPY --from=builder /opt/venv /opt/venv
@@ -47,12 +45,9 @@ ENV PATH="/opt/venv/bin:$PATH" \
 WORKDIR /app
 
 # Copy application files
-COPY --chown=appuser:appuser backend/ /app/backend/
-COPY --chown=appuser:appuser static/ /app/static/
-COPY --chown=appuser:appuser docker-entrypoint.sh /app/
-
-# Switch to non-root user
-USER appuser
+COPY backend/ /app/backend/
+COPY static/ /app/static/
+COPY docker-entrypoint.sh /app/
 
 # Set entrypoint
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
