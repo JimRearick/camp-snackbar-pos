@@ -44,12 +44,16 @@ WORKDIR /app
 # Copy application files
 COPY --chown=appuser:appuser backend/ /app/backend/
 COPY --chown=appuser:appuser static/ /app/static/
+COPY --chown=appuser:appuser docker-entrypoint.sh /app/
 
 # Copy static files to be served by the app
 RUN cp -r /app/static /app/backend/
 
 # Switch to non-root user
 USER appuser
+
+# Set entrypoint
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Expose port
 EXPOSE 8000
