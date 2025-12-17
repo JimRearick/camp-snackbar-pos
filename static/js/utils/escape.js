@@ -116,8 +116,48 @@ export function escapeRegex(text) {
     return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+/**
+ * Formats a UTC timestamp string to local date and time
+ * SQLite CURRENT_TIMESTAMP returns UTC, this converts to local timezone
+ *
+ * @param {string} utcTimestamp - UTC timestamp from database (e.g., "2025-12-17 15:30:00")
+ * @returns {string} - Formatted local date and time (e.g., "12/17/2025 10:30:00 AM")
+ *
+ * @example
+ * const localTime = formatLocalDateTime("2025-12-17 15:30:00");
+ * // Returns: "12/17/2025 10:30:00 AM" (if timezone is EST)
+ */
+export function formatLocalDateTime(utcTimestamp) {
+    if (!utcTimestamp) return '';
+
+    // SQLite timestamps are in UTC but don't have 'Z' suffix
+    // Add 'Z' to indicate UTC timezone
+    const utcString = utcTimestamp.includes('Z') ? utcTimestamp : utcTimestamp + 'Z';
+    const date = new Date(utcString);
+
+    // Format to local date and time
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+}
+
+/**
+ * Formats a UTC timestamp string to local date only
+ *
+ * @param {string} utcTimestamp - UTC timestamp from database
+ * @returns {string} - Formatted local date (e.g., "12/17/2025")
+ */
+export function formatLocalDate(utcTimestamp) {
+    if (!utcTimestamp) return '';
+
+    const utcString = utcTimestamp.includes('Z') ? utcTimestamp : utcTimestamp + 'Z';
+    const date = new Date(utcString);
+
+    return date.toLocaleDateString();
+}
+
 // Make functions available globally for non-module scripts
 window.escapeHtml = escapeHtml;
 window.escapeAttribute = escapeAttribute;
 window.createSafeElement = createSafeElement;
 window.sanitizeUrl = sanitizeUrl;
+window.formatLocalDateTime = formatLocalDateTime;
+window.formatLocalDate = formatLocalDate;
