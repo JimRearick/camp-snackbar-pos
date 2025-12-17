@@ -385,10 +385,10 @@
 
     <!-- Authentication Check -->
     <script type="module">
-        import { initAuth } from './js/utils/auth.js';
+        import { safeInitAuth } from './js/utils/auth.js';
 
         // Require Admin role only
-        initAuth('admin', (user) => {
+        safeInitAuth('admin', (user) => {
             console.log('Reports authenticated:', user.username);
         });
     </script>

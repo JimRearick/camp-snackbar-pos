@@ -169,6 +169,16 @@ export async function initAuth(requiredRoles, onAuthSuccess) {
     }
 }
 
+/**
+ * Safe wrapper for initAuth that prevents errors from bubbling
+ * Use this in HTML script tags to avoid console errors during redirect
+ */
+export function safeInitAuth(requiredRoles, onAuthSuccess) {
+    initAuth(requiredRoles, onAuthSuccess).catch(() => {
+        // Silently handle - redirect is already happening
+    });
+}
+
 // Legacy compatibility (deprecated - will be removed in Phase 4)
 export function isAuthenticated() {
     console.warn('isAuthenticated() is deprecated. Use checkAuth() instead.');

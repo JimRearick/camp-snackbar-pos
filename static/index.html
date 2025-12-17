@@ -199,10 +199,10 @@
 
     <!-- Authentication Check -->
     <script type="module">
-        import { initAuth, displayUserInfo } from './js/utils/auth.js';
+        import { safeInitAuth, displayUserInfo } from './js/utils/auth.js';
 
         // Require POS or Admin role
-        initAuth(['pos', 'admin'], (user) => {
+        safeInitAuth(['pos', 'admin'], (user) => {
             console.log('POS authenticated:', user.username, '(', user.role, ')');
 
             // Show admin navigation if user is admin
