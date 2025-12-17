@@ -586,7 +586,7 @@ function displayAccountsTable(accountsList) {
             <td>${escapeHtml(createdDate)}</td>
             <td style="text-align: right;">
                 <button class="btn-edit" onclick="editAccount(${account.id})">Edit</button>
-                <button class="btn-view" onclick="viewAccountDetailsModal(${account.id})">View Details</button>
+                <button class="btn-view" onclick="viewAccountDetailsModal(${account.id})">Details</button>
             </td>
         `;
         tbody.appendChild(row);
