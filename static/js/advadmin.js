@@ -227,7 +227,14 @@ async function loadTestData() {
             output.style.display = 'block';
         }
 
-        showSuccess('Test data loaded successfully!');
+        showSuccess('Test data loaded successfully! Refresh the Admin or POS page to see new accounts.');
+
+        // Suggest page reload
+        setTimeout(() => {
+            if (confirm('Test data loaded! Would you like to refresh this page to see changes in other tabs?')) {
+                window.location.reload();
+            }
+        }, 2000);
     } catch (error) {
         console.error('Error loading test data:', error);
         spinner.style.display = 'none';
@@ -269,7 +276,14 @@ async function deleteTestData() {
         // Show success message
         message.innerHTML = `<span style="color: #28a745;">✓ ${result.message}</span>`;
 
-        showSuccess('Test data deleted successfully!');
+        showSuccess('Test data deleted successfully! Refresh the Admin or POS page to see changes.');
+
+        // Suggest page reload
+        setTimeout(() => {
+            if (confirm('Test data deleted! Would you like to refresh this page to see changes in other tabs?')) {
+                window.location.reload();
+            }
+        }, 2000);
     } catch (error) {
         console.error('Error deleting test data:', error);
         spinner.style.display = 'none';
