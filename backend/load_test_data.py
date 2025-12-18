@@ -74,11 +74,21 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
     """Create test accounts"""
     cursor = conn.cursor()
     accounts_created = []
+    used_names = set()  # Track used names to avoid duplicates
 
     print(f"Creating {num_family} family accounts...")
     for i in range(num_family):
         account_number = f"FAM{1000 + i}"
-        account_name = get_family_name()
+
+        # Generate unique family name
+        attempts = 0
+        while attempts < 100:
+            account_name = get_family_name()
+            if account_name not in used_names:
+                used_names.add(account_name)
+                break
+            attempts += 1
+
         family_members = generate_family_members()
 
         cursor.execute('''
@@ -95,7 +105,15 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
     print(f"Creating {num_individual} individual accounts...")
     for i in range(num_individual):
         account_number = f"IND{2000 + i}"
-        account_name = get_individual_name()
+
+        # Generate unique individual name
+        attempts = 0
+        while attempts < 100:
+            account_name = get_individual_name()
+            if account_name not in used_names:
+                used_names.add(account_name)
+                break
+            attempts += 1
 
         cursor.execute('''
             INSERT INTO accounts (account_number, account_name, account_type, active)
@@ -111,7 +129,16 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
     print(f"Creating {num_cabin} cabin/group accounts...")
     for i in range(num_cabin):
         account_number = f"CAB{3000 + i}"
-        account_name = get_cabin_name()
+
+        # Generate unique cabin name
+        attempts = 0
+        while attempts < 100:
+            account_name = get_cabin_name()
+            if account_name not in used_names:
+                used_names.add(account_name)
+                break
+            attempts += 1
+
         members = [get_individual_name() for _ in range(random.randint(4, 8))]
 
         cursor.execute('''
