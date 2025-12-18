@@ -8,12 +8,37 @@ let selectedAccount = null;
 let products = [];
 let accounts = [];
 let prepQueueViewMode = 'product'; // 'product' or 'order'
+let urgentThresholdMinutes = 5; // Default: red after 5 minutes
+let warningThresholdMinutes = 2; // Default: yellow after 2 minutes
 
 // API Base URL
 const API_URL = window.location.origin + '/api';
 
+// Load settings (prep queue thresholds)
+async function loadSettings() {
+    try {
+        const response = await fetch(`${API_URL}/settings`);
+        if (response.ok) {
+            const settings = await response.json();
+            const colorTime = parseInt(settings.prep_queue_color_time || '5');
+
+            // Set urgent threshold from setting
+            urgentThresholdMinutes = colorTime;
+
+            // Set warning threshold at 40% of urgent time (min 1 minute)
+            warningThresholdMinutes = Math.max(1, Math.floor(colorTime * 0.4));
+
+            console.log(`POS prep queue thresholds: yellow=${warningThresholdMinutes}min, red=${urgentThresholdMinutes}min`);
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        // Keep using defaults if settings fail to load
+    }
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', function() {
+    loadSettings(); // Load settings first
     loadProducts();
     loadAccounts();
 
@@ -605,10 +630,10 @@ async function loadPrepQueueList() {
                 let urgencyClass = '';
                 let timeText = `${minutesWaiting} min ago`;
 
-                if (minutesWaiting >= 5) {
+                if (minutesWaiting >= urgentThresholdMinutes) {
                     urgencyClass = 'urgent';
                     timeText = `⚠️ ${timeText}`;
-                } else if (minutesWaiting >= 2) {
+                } else if (minutesWaiting >= warningThresholdMinutes) {
                     urgencyClass = 'warning';
                 }
 
@@ -648,10 +673,10 @@ async function loadPrepQueueList() {
                 let urgencyClass = '';
                 let timeText = `${minutesWaiting} min ago`;
 
-                if (minutesWaiting >= 5) {
+                if (minutesWaiting >= urgentThresholdMinutes) {
                     urgencyClass = 'urgent';
                     timeText = `⚠️ ${timeText}`;
-                } else if (minutesWaiting >= 2) {
+                } else if (minutesWaiting >= warningThresholdMinutes) {
                     urgencyClass = 'warning';
                 }
 
