@@ -5,9 +5,17 @@ Creates sample accounts and transactions for testing/demo purposes
 """
 import sqlite3
 import random
+import os
 from datetime import datetime, timedelta
 
-DB_PATH = 'camp_snackbar.db'
+# Try to find the database in common locations
+# Priority: data/camp_snackbar.db (Docker) > camp_snackbar.db (local)
+if os.path.exists('/app/data/camp_snackbar.db'):
+    DB_PATH = '/app/data/camp_snackbar.db'
+elif os.path.exists('data/camp_snackbar.db'):
+    DB_PATH = 'data/camp_snackbar.db'
+else:
+    DB_PATH = 'camp_snackbar.db'
 
 # Sample data
 FIRST_NAMES = [
@@ -160,14 +168,24 @@ def create_transaction(conn, account_id, products, date):
         })
         total_amount += product['price'] * quantity
 
-    # Create transaction
-    cursor.execute('''
-        INSERT INTO transactions (
-            account_id, transaction_type, total_amount,
-            created_at, created_by, created_by_username
-        )
-        VALUES (?, 'purchase', ?, ?, 1, 'admin')
-    ''', (account_id, -total_amount, date))
+    # Create transaction (handle both old and new schema)
+    try:
+        cursor.execute('''
+            INSERT INTO transactions (
+                account_id, transaction_type, total_amount,
+                created_at, created_by, created_by_username
+            )
+            VALUES (?, 'purchase', ?, ?, 1, 'admin')
+        ''', (account_id, -total_amount, date))
+    except sqlite3.OperationalError:
+        # Fallback for older schema without created_by_username
+        cursor.execute('''
+            INSERT INTO transactions (
+                account_id, transaction_type, total_amount,
+                created_at, created_by
+            )
+            VALUES (?, 'purchase', ?, ?, 1)
+        ''', (account_id, -total_amount, date))
 
     transaction_id = cursor.lastrowid
 
@@ -262,16 +280,60 @@ def add_some_payments(conn, accounts, num_payments=10):
             payment_amount = abs(balance) * random.uniform(0.5, 1.0)
             payment_amount = round(payment_amount, 2)
 
-            cursor.execute('''
-                INSERT INTO transactions (
-                    account_id, transaction_type, total_amount, notes,
-                    created_at, created_by, created_by_username
-                )
-                VALUES (?, 'payment', ?, 'Test payment', ?, 1, 'admin')
-            ''', (account['id'], payment_amount, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            # Handle both old and new schema
+            try:
+                cursor.execute('''
+                    INSERT INTO transactions (
+                        account_id, transaction_type, total_amount, notes,
+                        created_at, created_by, created_by_username
+                    )
+                    VALUES (?, 'payment', ?, 'Test payment', ?, 1, 'admin')
+                ''', (account['id'], payment_amount, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            except sqlite3.OperationalError:
+                # Fallback for older schema
+                cursor.execute('''
+                    INSERT INTO transactions (
+                        account_id, transaction_type, total_amount, notes,
+                        created_at, created_by
+                    )
+                    VALUES (?, 'payment', ?, 'Test payment', ?, 1)
+                ''', (account['id'], payment_amount, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
 
     conn.commit()
     print(f"✓ Added {num_payments} payments")
+
+def clear_existing_test_data(conn):
+    """Remove any existing test data"""
+    cursor = conn.cursor()
+
+    # Check if test data exists
+    cursor.execute("SELECT COUNT(*) FROM accounts WHERE account_number LIKE 'FAM%' OR account_number LIKE 'IND%' OR account_number LIKE 'CAB%'")
+    count = cursor.fetchone()[0]
+
+    if count > 0:
+        print(f"\nFound {count} existing test accounts. Removing old test data...")
+
+        # Get IDs of test accounts
+        cursor.execute("SELECT id FROM accounts WHERE account_number LIKE 'FAM%' OR account_number LIKE 'IND%' OR account_number LIKE 'CAB%'")
+        test_account_ids = [row[0] for row in cursor.fetchall()]
+
+        if test_account_ids:
+            placeholders = ','.join('?' * len(test_account_ids))
+
+            # Delete prep queue items
+            cursor.execute(f"DELETE FROM prep_queue WHERE transaction_id IN (SELECT id FROM transactions WHERE account_id IN ({placeholders}))", test_account_ids)
+
+            # Delete transaction items
+            cursor.execute(f"DELETE FROM transaction_items WHERE transaction_id IN (SELECT id FROM transactions WHERE account_id IN ({placeholders}))", test_account_ids)
+
+            # Delete transactions
+            cursor.execute(f"DELETE FROM transactions WHERE account_id IN ({placeholders})", test_account_ids)
+
+            # Delete accounts
+            cursor.execute(f"DELETE FROM accounts WHERE id IN ({placeholders})", test_account_ids)
+
+            conn.commit()
+            print(f"✓ Removed old test data\n")
 
 def main():
     """Main function to load test data"""
@@ -288,6 +350,8 @@ def main():
         return
 
     try:
+        # Clear any existing test data
+        clear_existing_test_data(conn)
         # Get existing products
         products = get_products(conn)
         if not products:

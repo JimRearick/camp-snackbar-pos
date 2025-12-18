@@ -27,18 +27,19 @@ python3 load_test_data.py
 
 ### Docker Container
 
-```bash
-# Copy script into running container
-docker cp backend/load_test_data.py camp-snackbar-app:/app/backend/
+**Recommended method** (runs from host directory):
 
-# Execute inside container
-docker exec -it camp-snackbar-app python3 /app/backend/load_test_data.py
+```bash
+# Copy script into running container and execute
+docker cp backend/load_test_data.py camp-snackbar-app:/tmp/load_test_data.py
+docker exec -it camp-snackbar-app python3 /tmp/load_test_data.py
 ```
 
-Or in one command:
+**Alternative** (if script is already in the image):
 
 ```bash
-docker exec -it camp-snackbar-app python3 -c "$(cat backend/load_test_data.py)"
+# Execute inside container (if script exists in image)
+docker exec -it camp-snackbar-app python3 /app/backend/load_test_data.py
 ```
 
 ## What You'll See
