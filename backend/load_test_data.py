@@ -6,6 +6,7 @@ Creates sample accounts and transactions for testing/demo purposes
 import sqlite3
 import random
 import os
+import json
 from datetime import datetime, timedelta
 
 # Try to find the database in common locations
@@ -83,7 +84,7 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
         cursor.execute('''
             INSERT INTO accounts (account_number, account_name, account_type, family_members, active)
             VALUES (?, ?, 'family', ?, 1)
-        ''', (account_number, account_name, '\n'.join(family_members)))
+        ''', (account_number, account_name, json.dumps(family_members)))
 
         accounts_created.append({
             'id': cursor.lastrowid,
@@ -116,7 +117,7 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
         cursor.execute('''
             INSERT INTO accounts (account_number, account_name, account_type, family_members, active)
             VALUES (?, ?, 'family', ?, 1)
-        ''', (account_number, account_name, '\n'.join(members)))
+        ''', (account_number, account_name, json.dumps(members)))
 
         accounts_created.append({
             'id': cursor.lastrowid,
