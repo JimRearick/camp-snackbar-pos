@@ -618,17 +618,14 @@ function displayAccountsTable(accountsList) {
 
 function filterAccountsTable() {
     const searchTerm = document.getElementById('accountSearchInput').value.toLowerCase();
-    const statusFilter = document.getElementById('accountStatusFilter')?.value || 'active';
+    const showInactive = document.getElementById('showInactiveAccounts')?.checked || false;
 
     let filtered = allAccounts;
 
-    // Apply status filter first
-    if (statusFilter === 'active') {
+    // Apply status filter first - show active accounts always, show inactive only if checked
+    if (!showInactive) {
         filtered = filtered.filter(acc => acc.active !== false);
-    } else if (statusFilter === 'inactive') {
-        filtered = filtered.filter(acc => acc.active === false);
     }
-    // If statusFilter is empty string, show all accounts
 
     // Then apply search filter
     if (searchTerm) {
