@@ -29,8 +29,15 @@
         </header>
 
         <div class="admin-content">
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('users')">👥 Users</button>
+                <button class="tab-btn" onclick="switchTab('testdata')">🧪 Test Data</button>
+                <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+            </div>
+
             <!-- User Roles Tab -->
-            <div id="usersTab" class="tab-content active" style="display: flex;">
+            <div id="usersTab" class="tab-content active">
                 <div class="tab-header">
                     <h2>User Role Management</h2>
                     <button class="btn-primary" onclick="showAddUserModal()">+ Add User</button>
@@ -54,10 +61,14 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
 
-                <!-- Test Data Management Section -->
-                <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
-                    <h3 style="margin: 0 0 1rem 0; color: #333;">🧪 Test Data Management</h3>
+            <!-- Test Data Tab -->
+            <div id="testdataTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>🧪 Test Data Management</h2>
+                </div>
+                <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
                     <p style="color: #666; margin-bottom: 1.5rem;">
                         Load or delete sample test data for development and demo purposes.
                         Test data includes 30 accounts (families, individuals, cabins) and 14 days of transaction history.
@@ -76,6 +87,52 @@
                             <span id="testDataMessage"></span>
                         </div>
                         <pre id="testDataOutput" style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; display: none;"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settingsTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>⚙️ System Settings</h2>
+                </div>
+                <div class="admin-form" style="max-width: 600px;">
+                    <div class="form-group">
+                        <label for="campName">Camp Name</label>
+                        <input type="text" id="campName" class="form-input" placeholder="Summer Camp Snack Bar">
+                        <small style="color: #666;">Display name for your camp or organization</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="currencySymbol">Currency Symbol</label>
+                        <input type="text" id="currencySymbol" class="form-input" placeholder="$" maxlength="3">
+                        <small style="color: #666;">Currency symbol to display (e.g., $, €, £)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Automatic Backups</label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;">
+                            <span>Enable automatic database backups</span>
+                        </label>
+                        <small style="color: #666;">Automatically backup the database daily</small>
+                    </div>
+
+                    <div class="form-group" id="backupTimeGroup">
+                        <label for="backupTime">Backup Time</label>
+                        <input type="time" id="backupTime" class="form-input" value="00:00">
+                        <small style="color: #666;">Time of day to perform automatic backup (24-hour format)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="internetBackupUrl">Internet Backup URL (Optional)</label>
+                        <input type="url" id="internetBackupUrl" class="form-input" placeholder="https://example.com/backup">
+                        <small style="color: #666;">Optional URL to upload backups to an external server</small>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                        <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
                     </div>
                 </div>
             </div>

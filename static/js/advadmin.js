@@ -13,6 +13,37 @@ let currentEditingUser = null;
 
 function initAdvAdmin() {
     loadUsers();
+    loadSettings();
+}
+
+// ============================================================================
+// Tab Management
+// ============================================================================
+
+function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    const tabContent = document.getElementById(`${tabName}Tab`);
+    if (tabContent) {
+        tabContent.classList.add('active');
+    }
+
+    // Activate corresponding button
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+        if (btn.textContent.toLowerCase().includes(tabName)) {
+            btn.classList.add('active');
+        }
+    });
 }
 
 // ============================================================================
@@ -293,6 +324,91 @@ async function deleteTestData() {
 }
 
 // ============================================================================
+// Settings Management
+// ============================================================================
+
+async function loadSettings() {
+    try {
+        const response = await fetch(`${API_URL}/settings`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load settings');
+        }
+
+        const settings = await response.json();
+
+        // Populate form fields
+        document.getElementById('campName').value = settings.camp_name || '';
+        document.getElementById('currencySymbol').value = settings.currency_symbol || '$';
+        document.getElementById('backupEnabled').checked = settings.backup_enabled === 'true';
+        document.getElementById('backupTime').value = settings.backup_time || '00:00';
+        document.getElementById('internetBackupUrl').value = settings.internet_backup_url || '';
+
+        // Show/hide backup time based on enabled status
+        updateBackupTimeVisibility();
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showError('Failed to load settings: ' + error.message);
+    }
+}
+
+async function saveSettings() {
+    const settings = {
+        camp_name: document.getElementById('campName').value.trim(),
+        currency_symbol: document.getElementById('currencySymbol').value.trim(),
+        backup_enabled: document.getElementById('backupEnabled').checked ? 'true' : 'false',
+        backup_time: document.getElementById('backupTime').value,
+        internet_backup_url: document.getElementById('internetBackupUrl').value.trim()
+    };
+
+    // Validation
+    if (!settings.camp_name) {
+        showError('Camp name is required');
+        return;
+    }
+
+    if (!settings.currency_symbol) {
+        showError('Currency symbol is required');
+        return;
+    }
+
+    try {
+        const response = await fetchPut(`${API_URL}/settings`, settings);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save settings');
+        }
+
+        showSuccess('Settings saved successfully');
+    } catch (error) {
+        console.error('Error saving settings:', error);
+        showError('Failed to save settings: ' + error.message);
+    }
+}
+
+function updateBackupTimeVisibility() {
+    const backupEnabled = document.getElementById('backupEnabled').checked;
+    const backupTimeGroup = document.getElementById('backupTimeGroup');
+
+    if (backupEnabled) {
+        backupTimeGroup.style.display = 'block';
+    } else {
+        backupTimeGroup.style.display = 'none';
+    }
+}
+
+// Add event listener for backup enabled checkbox
+document.addEventListener('DOMContentLoaded', () => {
+    const backupCheckbox = document.getElementById('backupEnabled');
+    if (backupCheckbox) {
+        backupCheckbox.addEventListener('change', updateBackupTimeVisibility);
+    }
+});
+
+// ============================================================================
 // Toast Messages
 // ============================================================================
 
@@ -321,6 +437,7 @@ function showError(message) {
 // ============================================================================
 
 window.initAdvAdmin = initAdvAdmin;
+window.switchTab = switchTab;
 window.showAddUserModal = showAddUserModal;
 window.editUser = editUser;
 window.hideUserModal = hideUserModal;
@@ -328,3 +445,5 @@ window.saveUser = saveUser;
 window.deleteUser = deleteUser;
 window.loadTestData = loadTestData;
 window.deleteTestData = deleteTestData;
+window.loadSettings = loadSettings;
+window.saveSettings = saveSettings;
