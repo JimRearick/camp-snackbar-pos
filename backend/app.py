@@ -1278,50 +1278,6 @@ def delete_test_data():
         conn.close()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/settings', methods=['GET'])
-@login_required
-def get_settings():
-    """Get all settings"""
-    conn = get_db()
-
-    try:
-        cursor = conn.execute("SELECT key, value FROM settings")
-        settings = {}
-        for row in cursor.fetchall():
-            settings[row['key']] = row['value']
-
-        conn.close()
-        return jsonify(settings)
-    except Exception as e:
-        conn.close()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/settings', methods=['PUT'])
-@admin_required
-def update_settings():
-    """Update settings (Admin only)"""
-    data = request.get_json()
-    conn = get_db()
-
-    try:
-        # Update each setting
-        for key, value in data.items():
-            conn.execute("""
-                INSERT INTO settings (key, value, updated_at)
-                VALUES (?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT(key) DO UPDATE SET
-                    value = excluded.value,
-                    updated_at = CURRENT_TIMESTAMP
-            """, (key, value))
-
-        conn.commit()
-        conn.close()
-
-        return jsonify({'success': True, 'message': 'Settings updated successfully'})
-    except Exception as e:
-        conn.close()
-        return jsonify({'error': str(e)}), 500
-
 # ============================================================================
 # Report Routes
 # ============================================================================
