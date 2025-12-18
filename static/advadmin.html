@@ -130,6 +130,12 @@
                         <small style="color: #666;">Optional URL to upload backups to an external server</small>
                     </div>
 
+                    <div class="form-group">
+                        <label for="prepQueueColorTime">Prep Queue Color Change Time (minutes)</label>
+                        <input type="number" id="prepQueueColorTime" class="form-input" placeholder="5" min="1" max="60">
+                        <small style="color: #666;">Number of minutes before prep queue items change color (default: 5 minutes)</small>
+                    </div>
+
                     <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                         <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
                         <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>

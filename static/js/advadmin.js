@@ -345,6 +345,7 @@ async function loadSettings() {
         document.getElementById('backupEnabled').checked = settings.backup_enabled === 'true';
         document.getElementById('backupTime').value = settings.backup_time || '00:00';
         document.getElementById('internetBackupUrl').value = settings.internet_backup_url || '';
+        document.getElementById('prepQueueColorTime').value = settings.prep_queue_color_time || '5';
 
         // Show/hide backup time based on enabled status
         updateBackupTimeVisibility();
@@ -360,7 +361,8 @@ async function saveSettings() {
         currency_symbol: document.getElementById('currencySymbol').value.trim(),
         backup_enabled: document.getElementById('backupEnabled').checked ? 'true' : 'false',
         backup_time: document.getElementById('backupTime').value,
-        internet_backup_url: document.getElementById('internetBackupUrl').value.trim()
+        internet_backup_url: document.getElementById('internetBackupUrl').value.trim(),
+        prep_queue_color_time: document.getElementById('prepQueueColorTime').value || '5'
     };
 
     // Validation
@@ -371,6 +373,12 @@ async function saveSettings() {
 
     if (!settings.currency_symbol) {
         showError('Currency symbol is required');
+        return;
+    }
+
+    const colorTime = parseInt(settings.prep_queue_color_time);
+    if (isNaN(colorTime) || colorTime < 1 || colorTime > 60) {
+        showError('Prep queue color time must be between 1 and 60 minutes');
         return;
     }
 
