@@ -1181,6 +1181,103 @@ def delete_user(user_id):
         conn.close()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/load-test-data', methods=['POST'])
+@admin_required
+def load_test_data():
+    """Load test data (Admin only)"""
+    import subprocess
+    import os
+
+    # Path to the test data script
+    script_path = os.path.join(os.path.dirname(__file__), 'load_test_data.py')
+
+    if not os.path.exists(script_path):
+        return jsonify({'error': 'Test data script not found'}), 404
+
+    try:
+        # Run the test data script
+        result = subprocess.run(
+            ['python3', script_path],
+            capture_output=True,
+            text=True,
+            timeout=60  # 60 second timeout
+        )
+
+        if result.returncode != 0:
+            return jsonify({
+                'error': 'Failed to load test data',
+                'output': result.stderr
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': 'Test data loaded successfully!',
+            'output': result.stdout
+        })
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Test data loading timed out'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/test-data', methods=['DELETE'])
+@admin_required
+def delete_test_data():
+    """Delete test data (Admin only)"""
+    conn = get_db()
+
+    try:
+        # Get IDs of test accounts
+        cursor = conn.execute("""
+            SELECT id FROM accounts
+            WHERE account_number LIKE 'FAM%'
+               OR account_number LIKE 'IND%'
+               OR account_number LIKE 'CAB%'
+        """)
+        test_account_ids = [row['id'] for row in cursor.fetchall()]
+
+        if not test_account_ids:
+            conn.close()
+            return jsonify({'message': 'No test data found to delete'})
+
+        placeholders = ','.join('?' * len(test_account_ids))
+
+        # Delete prep queue items
+        conn.execute(f"""
+            DELETE FROM prep_queue
+            WHERE transaction_id IN (
+                SELECT id FROM transactions WHERE account_id IN ({placeholders})
+            )
+        """, test_account_ids)
+
+        # Delete transaction items
+        conn.execute(f"""
+            DELETE FROM transaction_items
+            WHERE transaction_id IN (
+                SELECT id FROM transactions WHERE account_id IN ({placeholders})
+            )
+        """, test_account_ids)
+
+        # Delete transactions
+        conn.execute(f"""
+            DELETE FROM transactions WHERE account_id IN ({placeholders})
+        """, test_account_ids)
+
+        # Delete accounts
+        conn.execute(f"""
+            DELETE FROM accounts WHERE id IN ({placeholders})
+        """, test_account_ids)
+
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': f'Deleted {len(test_account_ids)} test accounts and their associated data'
+        })
+    except Exception as e:
+        conn.close()
+        return jsonify({'error': str(e)}), 500
+
 # ============================================================================
 # Report Routes
 # ============================================================================

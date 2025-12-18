@@ -185,6 +185,100 @@ async function deleteUser(userId, username) {
 }
 
 // ============================================================================
+// Test Data Management
+// ============================================================================
+
+async function loadTestData() {
+    if (!confirm('Load test data? This will create 30 sample accounts and 14 days of transaction history. Any existing test data will be replaced.')) {
+        return;
+    }
+
+    const statusDiv = document.getElementById('testDataStatus');
+    const spinner = document.getElementById('testDataSpinner');
+    const message = document.getElementById('testDataMessage');
+    const output = document.getElementById('testDataOutput');
+
+    // Show status and spinner
+    statusDiv.style.display = 'block';
+    spinner.style.display = 'block';
+    message.textContent = 'Loading test data...';
+    output.style.display = 'none';
+    output.textContent = '';
+
+    try {
+        const response = await fetchPost(`${API_URL}/admin/load-test-data`, {});
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to load test data');
+        }
+
+        const result = await response.json();
+
+        // Hide spinner
+        spinner.style.display = 'none';
+
+        // Show success message
+        message.innerHTML = `<span style="color: #28a745;">✓ ${result.message}</span>`;
+
+        // Show output if available
+        if (result.output) {
+            output.textContent = result.output;
+            output.style.display = 'block';
+        }
+
+        showSuccess('Test data loaded successfully!');
+    } catch (error) {
+        console.error('Error loading test data:', error);
+        spinner.style.display = 'none';
+        message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
+        showError('Failed to load test data: ' + error.message);
+    }
+}
+
+async function deleteTestData() {
+    if (!confirm('Delete all test data? This will remove all accounts with FAM*, IND*, or CAB* account numbers and their associated transactions. This cannot be undone.')) {
+        return;
+    }
+
+    const statusDiv = document.getElementById('testDataStatus');
+    const spinner = document.getElementById('testDataSpinner');
+    const message = document.getElementById('testDataMessage');
+    const output = document.getElementById('testDataOutput');
+
+    // Show status and spinner
+    statusDiv.style.display = 'block';
+    spinner.style.display = 'block';
+    message.textContent = 'Deleting test data...';
+    output.style.display = 'none';
+    output.textContent = '';
+
+    try {
+        const response = await fetchDelete(`${API_URL}/admin/test-data`);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete test data');
+        }
+
+        const result = await response.json();
+
+        // Hide spinner
+        spinner.style.display = 'none';
+
+        // Show success message
+        message.innerHTML = `<span style="color: #28a745;">✓ ${result.message}</span>`;
+
+        showSuccess('Test data deleted successfully!');
+    } catch (error) {
+        console.error('Error deleting test data:', error);
+        spinner.style.display = 'none';
+        message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
+        showError('Failed to delete test data: ' + error.message);
+    }
+}
+
+// ============================================================================
 // Toast Messages
 // ============================================================================
 
@@ -218,3 +312,5 @@ window.editUser = editUser;
 window.hideUserModal = hideUserModal;
 window.saveUser = saveUser;
 window.deleteUser = deleteUser;
+window.loadTestData = loadTestData;
+window.deleteTestData = deleteTestData;

@@ -54,6 +54,30 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- Test Data Management Section -->
+                <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h3 style="margin: 0 0 1rem 0; color: #333;">🧪 Test Data Management</h3>
+                    <p style="color: #666; margin-bottom: 1.5rem;">
+                        Load or delete sample test data for development and demo purposes.
+                        Test data includes 30 accounts (families, individuals, cabins) and 14 days of transaction history.
+                    </p>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn-primary" onclick="loadTestData()" style="background: #28a745; border-color: #28a745;">
+                            📥 Load Test Data
+                        </button>
+                        <button class="btn-secondary" onclick="deleteTestData()" style="background: #dc3545; border-color: #dc3545; color: white;">
+                            🗑️ Delete Test Data
+                        </button>
+                    </div>
+                    <div id="testDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div class="spinner" id="testDataSpinner" style="display: none;"></div>
+                            <span id="testDataMessage"></span>
+                        </div>
+                        <pre id="testDataOutput" style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; display: none;"></pre>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
