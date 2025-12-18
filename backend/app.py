@@ -1457,9 +1457,9 @@ def list_backups():
 # ============================================================================
 
 @app.route('/api/settings', methods=['GET'])
-@admin_required
+@login_required
 def get_settings():
-    """Get all settings"""
+    """Get all settings (all authenticated users can read)"""
     conn = get_db()
     cursor = conn.execute("SELECT key, value FROM settings")
     
