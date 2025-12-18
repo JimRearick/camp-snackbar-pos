@@ -25,13 +25,10 @@ async function loadSettings() {
         const response = await fetch(`${API_URL}/settings`);
         if (response.ok) {
             const settings = await response.json();
-            const colorTime = parseInt(settings.prep_queue_color_time || '5');
 
-            // Set urgent threshold from setting
-            urgentThresholdMinutes = colorTime;
-
-            // Set warning threshold at 40% of urgent time (min 1 minute)
-            warningThresholdMinutes = Math.max(1, Math.floor(colorTime * 0.4));
+            // Load both warning and urgent thresholds from settings
+            warningThresholdMinutes = parseInt(settings.prep_queue_warning_time || '2');
+            urgentThresholdMinutes = parseInt(settings.prep_queue_urgent_time || '5');
 
             console.log(`Prep queue thresholds: yellow=${warningThresholdMinutes}min, red=${urgentThresholdMinutes}min`);
         }

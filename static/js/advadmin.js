@@ -345,7 +345,8 @@ async function loadSettings() {
         document.getElementById('backupEnabled').checked = settings.backup_enabled === 'true';
         document.getElementById('backupTime').value = settings.backup_time || '00:00';
         document.getElementById('internetBackupUrl').value = settings.internet_backup_url || '';
-        document.getElementById('prepQueueColorTime').value = settings.prep_queue_color_time || '5';
+        document.getElementById('prepQueueWarningTime').value = settings.prep_queue_warning_time || '2';
+        document.getElementById('prepQueueUrgentTime').value = settings.prep_queue_urgent_time || '5';
 
         // Show/hide backup time based on enabled status
         updateBackupTimeVisibility();
@@ -362,7 +363,8 @@ async function saveSettings() {
         backup_enabled: document.getElementById('backupEnabled').checked ? 'true' : 'false',
         backup_time: document.getElementById('backupTime').value,
         internet_backup_url: document.getElementById('internetBackupUrl').value.trim(),
-        prep_queue_color_time: document.getElementById('prepQueueColorTime').value || '5'
+        prep_queue_warning_time: document.getElementById('prepQueueWarningTime').value || '2',
+        prep_queue_urgent_time: document.getElementById('prepQueueUrgentTime').value || '5'
     };
 
     // Validation
@@ -376,9 +378,20 @@ async function saveSettings() {
         return;
     }
 
-    const colorTime = parseInt(settings.prep_queue_color_time);
-    if (isNaN(colorTime) || colorTime < 1 || colorTime > 60) {
-        showError('Prep queue color time must be between 1 and 60 minutes');
+    const warningTime = parseInt(settings.prep_queue_warning_time);
+    if (isNaN(warningTime) || warningTime < 1 || warningTime > 60) {
+        showError('Prep queue warning time must be between 1 and 60 minutes');
+        return;
+    }
+
+    const urgentTime = parseInt(settings.prep_queue_urgent_time);
+    if (isNaN(urgentTime) || urgentTime < 1 || urgentTime > 60) {
+        showError('Prep queue urgent time must be between 1 and 60 minutes');
+        return;
+    }
+
+    if (warningTime >= urgentTime) {
+        showError('Warning time must be less than urgent time');
         return;
     }
 

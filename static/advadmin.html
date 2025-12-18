@@ -131,9 +131,15 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="prepQueueColorTime">Prep Queue Color Change Time (minutes)</label>
-                        <input type="number" id="prepQueueColorTime" class="form-input" placeholder="5" min="1" max="60">
-                        <small style="color: #666;">Number of minutes before prep queue items change color (default: 5 minutes)</small>
+                        <label for="prepQueueWarningTime">Prep Queue Warning Time (Yellow - minutes)</label>
+                        <input type="number" id="prepQueueWarningTime" class="form-input" placeholder="2" min="1" max="60">
+                        <small style="color: #666;">Minutes before prep queue items turn yellow (default: 2 minutes)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="prepQueueUrgentTime">Prep Queue Urgent Time (Red - minutes)</label>
+                        <input type="number" id="prepQueueUrgentTime" class="form-input" placeholder="5" min="1" max="60">
+                        <small style="color: #666;">Minutes before prep queue items turn red (default: 5 minutes)</small>
                     </div>
 
                     <div style="display: flex; gap: 1rem; margin-top: 2rem;">
