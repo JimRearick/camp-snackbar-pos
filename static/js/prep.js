@@ -64,12 +64,8 @@ async function loadPrepQueue() {
 
 function renderPrepQueue() {
     const container = document.getElementById('prepContainer');
-    const countDisplay = document.getElementById('queueCount');
     const summaryContainer = document.getElementById('prepSummary');
     const summaryGrid = document.getElementById('summaryGrid');
-
-    // Update count - always show total count
-    countDisplay.textContent = prepQueue.length;
 
     // Clear container
     container.innerHTML = '';
@@ -107,7 +103,22 @@ function renderByProduct(container, summaryContainer, summaryGrid) {
 
     // Update summary section
     summaryContainer.style.display = 'block';
-    summaryGrid.innerHTML = Object.entries(productTotals)
+
+    // Build summary HTML with view mode buttons first
+    const viewModeHTML = `
+        <div class="summary-item active" id="viewByProductChip" onclick="window.setViewMode('product')" style="cursor: pointer;">
+            <span class="summary-product">By Product</span>
+        </div>
+        <div class="summary-item" id="viewByOrderChip" onclick="window.setViewMode('order')" style="cursor: pointer;">
+            <span class="summary-product">By Order</span>
+        </div>
+        <div class="summary-item" onclick="window.clearFilter()" style="cursor: pointer;" title="Click to show all items">
+            <span class="summary-product">Total Items</span>
+            <span class="summary-count">${prepQueue.length}</span>
+        </div>
+    `;
+
+    const productsHTML = Object.entries(productTotals)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([product, total]) => {
             const isActive = currentFilter === product;
@@ -118,6 +129,8 @@ function renderByProduct(container, summaryContainer, summaryGrid) {
                 </div>
             `;
         }).join('');
+
+    summaryGrid.innerHTML = viewModeHTML + productsHTML;
 
     // Filter items if needed
     const itemsToDisplay = currentFilter
@@ -158,7 +171,22 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
 
     // Update summary section
     summaryContainer.style.display = 'block';
-    summaryGrid.innerHTML = Object.entries(accountTotals)
+
+    // Build summary HTML with view mode buttons first
+    const viewModeHTML = `
+        <div class="summary-item" id="viewByProductChip" onclick="window.setViewMode('product')" style="cursor: pointer;">
+            <span class="summary-product">By Product</span>
+        </div>
+        <div class="summary-item active" id="viewByOrderChip" onclick="window.setViewMode('order')" style="cursor: pointer;">
+            <span class="summary-product">By Order</span>
+        </div>
+        <div class="summary-item" onclick="window.clearFilter()" style="cursor: pointer;" title="Click to show all items">
+            <span class="summary-product">Total Items</span>
+            <span class="summary-count">${prepQueue.length}</span>
+        </div>
+    `;
+
+    const accountsHTML = Object.entries(accountTotals)
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([account, total]) => {
             const isActive = currentFilter === account;
@@ -169,6 +197,8 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
                 </div>
             `;
         }).join('');
+
+    summaryGrid.innerHTML = viewModeHTML + accountsHTML;
 
     // Filter orders if needed
     let ordersToDisplay = Object.values(orderGroups);
@@ -380,10 +410,6 @@ function createOrderCard(order) {
 function setViewMode(mode) {
     viewMode = mode;
     currentFilter = null; // Clear filter when switching views
-
-    // Update button states
-    document.getElementById('viewByProduct').classList.toggle('active', mode === 'product');
-    document.getElementById('viewByOrder').classList.toggle('active', mode === 'order');
 
     renderPrepQueue();
 }
