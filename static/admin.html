@@ -30,6 +30,7 @@
             <a href="#" onclick="window.showTab('accounts'); updateActiveNav(this); return false;"><span class="icon">👥</span> Accounts</a>
             <a href="#" onclick="window.showTab('inventory'); updateActiveNav(this); return false;"><span class="icon">📦</span> Products</a>
             <a href="#" onclick="window.showTab('categories'); updateActiveNav(this); return false;"><span class="icon">🏷️</span> Categories</a>
+            <a href="#" onclick="window.showTab('users'); updateActiveNav(this); return false;"><span class="icon">👤</span> Users</a>
         </nav>
 
         <div class="page-content">
@@ -166,6 +167,33 @@
                     </table>
                 </div>
             </div>
+
+            <!-- User Management Tab -->
+            <div id="usersTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>User Management</h2>
+                    <button class="btn-primary" onclick="showAddUserModal()">+ Add User</button>
+                </div>
+                <div class="accounts-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 2rem;">Loading users...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -174,7 +202,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="productModalTitle">Add Product</h2>
-                <button class="btn-close" onclick="hideProductModal()">✕</button>
+                <div class="header-actions">
+                    <button class="btn-delete-icon" id="deleteProductBtn" onclick="deleteProductFromModal()" style="display: none;" title="Delete Product">🗑️</button>
+                    <button class="btn-close" onclick="hideProductModal()">✕</button>
+                </div>
             </div>
             <div class="modal-body">
                 <form id="productForm" class="admin-form">
@@ -196,22 +227,17 @@
                     </div>
                     <div class="form-group">
                         <label>
-                            <input type="checkbox" id="productActive" checked>
-                            Active
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label>
                             <input type="checkbox" id="productRequiresPrep">
                             Requires Preparation
                         </label>
                     </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="productActive" checked>
+                            Active
+                        </label>
+                    </div>
                 </form>
-                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
-                    <button class="btn-secondary" id="deleteProductBtn" onclick="deleteProductFromModal()" style="display: none; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        Delete Product
-                    </button>
-                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="hideProductModal()">Cancel</button>
@@ -225,7 +251,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="categoryModalTitle">Add Category</h2>
-                <button class="btn-close" onclick="hideCategoryModal()">✕</button>
+                <div class="header-actions">
+                    <button class="btn-delete-icon" id="deleteCategoryBtn" onclick="deleteCategoryFromModal()" style="display: none;" title="Delete Category">🗑️</button>
+                    <button class="btn-close" onclick="hideCategoryModal()">✕</button>
+                </div>
             </div>
             <div class="modal-body">
                 <form id="categoryForm" class="admin-form">
@@ -240,11 +269,6 @@
                         <small style="color: #666;">Color for product buttons on the POS page</small>
                     </div>
                 </form>
-                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
-                    <button class="btn-secondary" id="deleteCategoryBtn" onclick="deleteCategoryFromModal()" style="display: none; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        Delete Category
-                    </button>
-                </div>
             </div>
             <div class="modal-actions">
                 <button class="btn-secondary" onclick="hideCategoryModal()">Cancel</button>
@@ -369,6 +393,61 @@
                 <button class="btn-secondary" onclick="hideAddFundsModal()">Cancel</button>
                 <button class="btn-primary" onclick="addFundsToAccount()">Add Funds</button>
             </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit User Modal -->
+    <div id="userModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="userModalTitle">Add User</h2>
+                <div class="header-actions">
+                    <button class="btn-delete-icon" id="deleteUserBtn" onclick="deleteUserFromModal()" style="display: none;" title="Delete User">🗑️</button>
+                    <button class="btn-close" onclick="hideUserModal()">✕</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <form id="userForm" class="admin-form">
+                    <input type="hidden" id="userId">
+
+                    <div class="form-group">
+                        <label for="username">Username *</label>
+                        <input type="text" id="username" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" class="form-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userRole">Role *</label>
+                        <select id="userRole" class="form-input" required>
+                            <option value="admin">Admin</option>
+                            <option value="pos">POS</option>
+                            <option value="prep">Prep</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="passwordGroup">
+                        <label for="password">Password *</label>
+                        <input type="password" id="password" class="form-input">
+                        <small style="color: #666;">Leave blank to keep current password (when editing)</small>
+                    </div>
+
+                    <div class="form-group" id="activeGroup" style="display: none;">
+                        <label>
+                            <input type="checkbox" id="userActive" checked>
+                            Active
+                        </label>
+                        <small style="color: #666;">Inactive users cannot log in</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="hideUserModal()">Cancel</button>
+                <button class="btn-primary" onclick="saveUser()">Save User</button>
             </div>
         </div>
     </div>

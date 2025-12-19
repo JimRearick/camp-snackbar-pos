@@ -1,5 +1,78 @@
 # Camp Snackbar POS - Deployment Guide
 
+## 🚀 Quick Start with Deployment Scripts
+
+For **local development** and testing:
+```bash
+./deploy-local.sh
+```
+
+For **production releases** (creates git tag and triggers CI/CD):
+```bash
+./deploy-production.sh 1.2.0
+```
+
+See the sections below for detailed information about each deployment method.
+
+---
+
+## 🏠 Local Development Deployment
+
+Use the `deploy-local.sh` script to quickly rebuild and restart your local development environment.
+
+### Usage
+```bash
+./deploy-local.sh
+```
+
+### What it does
+1. Stops existing containers
+2. Builds a new Docker image from local code
+3. Starts containers
+4. Shows application URLs and default credentials
+
+### Access Points
+- **Login**: http://localhost/login.html
+- **POS Terminal**: http://localhost/index.html
+- **Admin Dashboard**: http://localhost/admin.html
+- **Prep Station**: http://localhost/prep.html
+- **Reports**: http://localhost/reports.html
+
+---
+
+## 📦 Production Deployment with Git Tags
+
+Use the `deploy-production.sh` script to create versioned releases that automatically build and publish Docker images to GitHub Container Registry.
+
+### Usage
+```bash
+./deploy-production.sh <version>
+```
+
+**Example:**
+```bash
+./deploy-production.sh 1.2.3
+```
+
+### What it does
+1. Validates version format (semantic versioning: MAJOR.MINOR.PATCH)
+2. Checks for uncommitted changes
+3. Shows changelog since last tag
+4. Creates annotated git tag
+5. Pushes tag to GitHub (triggers GitHub Actions)
+6. GitHub Actions builds and publishes Docker image
+
+### After the Build
+Once GitHub Actions completes (monitor at https://github.com/jimrearick/camp-snackbar-pos/actions), pull and deploy on your production server:
+
+```bash
+docker pull ghcr.io/jimrearick/camp-snackbar-pos:v1.2.3
+docker compose down
+docker compose up -d
+```
+
+---
+
 ## Quick Deployment (New Server)
 
 ### Minimum Files Required
@@ -100,10 +173,14 @@ Open your browser and navigate to:
 - **Reports**: http://your-server-ip/reports.html
 
 **Default Login Credentials:**
-- Username: `admin`
-- Password: `admin`
 
-**⚠️ IMPORTANT: Change the default password immediately after first login!**
+| Username | Password | Role |
+|----------|----------|------|
+| `admin` | `camp2026` | Full administrative access |
+| `pos` | `camp2026` | POS terminal access |
+| `prep` | `camp2026` | Prep station access |
+
+**⚠️ IMPORTANT: Change the default passwords immediately after first login!**
 
 ---
 

@@ -27,73 +27,19 @@
 
         <!-- In-Page Tab Navigation -->
         <nav class="tab-nav-bar">
-            <a href="#" class="active" onclick="switchTab('users'); updateActiveNav(this); return false;"><span class="icon">👥</span> Users</a>
+            <a href="#" class="active" onclick="switchTab('general'); updateActiveNav(this); return false;"><span class="icon">⚙️</span> General</a>
+            <a href="#" onclick="switchTab('backups'); updateActiveNav(this); return false;"><span class="icon">💾</span> Backups</a>
+            <a href="#" onclick="switchTab('prepqueue'); updateActiveNav(this); return false;"><span class="icon">⏱️</span> Prep Queue</a>
             <a href="#" onclick="switchTab('testdata'); updateActiveNav(this); return false;"><span class="icon">🧪</span> Test Data</a>
-            <a href="#" onclick="switchTab('settings'); updateActiveNav(this); return false;"><span class="icon">⚙️</span> Settings</a>
         </nav>
 
         <div class="page-content">
-            <div class="admin-content">
+            <div class="admin-content" style="padding: 2rem; overflow-y: auto; max-height: calc(100vh - 130px);">
 
-            <!-- User Roles Tab -->
-            <div id="usersTab" class="tab-content active">
+            <!-- General Settings Tab -->
+            <div id="generalTab" class="tab-content active">
                 <div class="tab-header">
-                    <h2>User Role Management</h2>
-                    <button class="btn-primary" onclick="showAddUserModal()">+ Add User</button>
-                </div>
-                <div class="accounts-table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Username</th>
-                                <th>Full Name</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th style="text-align: right;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <tr>
-                                <td colspan="6" style="text-align: center; padding: 2rem;">Loading users...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Test Data Tab -->
-            <div id="testdataTab" class="tab-content">
-                <div class="tab-header">
-                    <h2>🧪 Test Data Management</h2>
-                </div>
-                <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
-                    <p style="color: #666; margin-bottom: 1.5rem;">
-                        Load or delete sample test data for development and demo purposes.
-                        Test data includes 30 accounts (families, individuals, cabins) and 14 days of transaction history.
-                    </p>
-                    <div style="display: flex; gap: 1rem;">
-                        <button class="btn-primary" onclick="loadTestData()" style="background: #28a745; border-color: #28a745;">
-                            📥 Load Test Data
-                        </button>
-                        <button class="btn-secondary" onclick="deleteTestData()" style="background: #dc3545; border-color: #dc3545; color: white;">
-                            🗑️ Delete Test Data
-                        </button>
-                    </div>
-                    <div id="testDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div class="spinner" id="testDataSpinner" style="display: none;"></div>
-                            <span id="testDataMessage"></span>
-                        </div>
-                        <pre id="testDataOutput" style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; display: none;"></pre>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Tab -->
-            <div id="settingsTab" class="tab-content">
-                <div class="tab-header">
-                    <h2>⚙️ System Settings</h2>
+                    <h2>⚙️ General Settings</h2>
                 </div>
                 <div class="admin-form" style="max-width: 600px;">
                     <div class="form-group">
@@ -108,10 +54,23 @@
                         <small style="color: #666;">Currency symbol to display (e.g., $, €, £)</small>
                     </div>
 
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                        <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backups Tab -->
+            <div id="backupsTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>💾 Backup Settings</h2>
+                </div>
+                <div class="admin-form" style="max-width: 600px;">
                     <div class="form-group">
                         <label>Automatic Backups</label>
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;">
+                            <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;" onchange="updateBackupTimeVisibility()">
                             <span>Enable automatic database backups</span>
                         </label>
                         <small style="color: #666;">Automatically backup the database daily</small>
@@ -129,14 +88,31 @@
                         <small style="color: #666;">Optional URL to upload backups to an external server</small>
                     </div>
 
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                        <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prep Queue Tab -->
+            <div id="prepqueueTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>⏱️ Prep Queue Settings</h2>
+                </div>
+                <div class="admin-form" style="max-width: 600px;">
+                    <p style="color: #666; margin-bottom: 1.5rem;">
+                        Configure how long items can wait in the prep queue before they are highlighted as warnings or urgent.
+                    </p>
+
                     <div class="form-group">
-                        <label for="prepQueueWarningTime">Prep Queue Warning Time (Yellow - minutes)</label>
+                        <label for="prepQueueWarningTime">Warning Time (Yellow - minutes)</label>
                         <input type="number" id="prepQueueWarningTime" class="form-input" placeholder="2" min="1" max="60">
                         <small style="color: #666;">Minutes before prep queue items turn yellow (default: 2 minutes)</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="prepQueueUrgentTime">Prep Queue Urgent Time (Red - minutes)</label>
+                        <label for="prepQueueUrgentTime">Urgent Time (Red - minutes)</label>
                         <input type="number" id="prepQueueUrgentTime" class="form-input" placeholder="5" min="1" max="60">
                         <small style="color: #666;">Minutes before prep queue items turn red (default: 5 minutes)</small>
                     </div>
@@ -147,57 +123,35 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Add/Edit User Modal -->
-    <div id="userModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="userModalTitle">Add User</h2>
-                <button class="btn-close" onclick="hideUserModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <form id="userForm" class="admin-form">
-                    <input type="hidden" id="userId">
-
-                    <div class="form-group">
-                        <label for="username">Username *</label>
-                        <input type="text" id="username" class="form-input" required>
+            <!-- Test Data Tab -->
+            <div id="testdataTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>🧪 Test Data Management</h2>
+                </div>
+                <div style="max-width: 600px;">
+                    <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                        <p style="color: #666; margin-bottom: 1.5rem;">
+                            Load or delete sample test data for development and demo purposes.
+                            Test data includes 30 accounts (families, individuals, cabins) and 14 days of transaction history.
+                        </p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button class="btn-primary" onclick="loadTestData()" style="background: #28a745; border-color: #28a745;">
+                                📥 Load Test Data
+                            </button>
+                            <button class="btn-secondary" onclick="deleteTestData()" style="background: #dc3545; border-color: #dc3545; color: white;">
+                                🗑️ Delete Test Data
+                            </button>
+                        </div>
+                        <div id="testDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="spinner" id="testDataSpinner" style="display: none;"></div>
+                                <span id="testDataMessage"></span>
+                            </div>
+                            <pre id="testDataOutput" style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; display: none;"></pre>
+                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="fullName">Full Name *</label>
-                        <input type="text" id="fullName" class="form-input" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="userRole">Role *</label>
-                        <select id="userRole" class="form-input" required>
-                            <option value="admin">Admin</option>
-                            <option value="pos">POS</option>
-                            <option value="prep">Prep</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group" id="passwordGroup">
-                        <label for="password">Password *</label>
-                        <input type="password" id="password" class="form-input">
-                        <small style="color: #666;">Leave blank to keep current password (when editing)</small>
-                    </div>
-
-                    <div class="form-group" id="activeGroup" style="display: none;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" id="userActive" checked style="width: auto; cursor: pointer;">
-                            <span>User is active</span>
-                        </label>
-                        <small style="color: #666;">Inactive users cannot log in</small>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-secondary" onclick="hideUserModal()">Cancel</button>
-                <button class="btn-primary" onclick="saveUser()">Save User</button>
+                </div>
             </div>
         </div>
     </div>

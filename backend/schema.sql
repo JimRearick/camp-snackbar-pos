@@ -138,9 +138,12 @@ CREATE INDEX idx_sessions_token ON user_sessions(session_token);
 CREATE INDEX idx_sessions_user ON user_sessions(user_id);
 CREATE INDEX idx_prep_queue_status ON prep_queue(status, ordered_at);
 
--- Default data: Users (password: admin)
+-- Default data: Users
+-- All passwords: camp2026
 INSERT INTO users (username, password_hash, role, full_name, is_active) VALUES
-    ('admin', '$2b$12$cUyRi89HPWvlniwJ1qg1Qu9ROubm5YGVsgxPGv639Eyl4NCNOKU8i', 'admin', 'Administrator', 1);
+    ('admin', 'scrypt:32768:8:1$OHbLJzRT87H9wNGB$c212dd35cd6b77b84939f9bd4200b7cbdb439c288bf3b78cbf63621191b3b5348c2137d17914759ba3a5b8463ee1493df66c29356d1202925a90d6a473dcb3e9', 'admin', 'Administrator', 1),
+    ('pos', 'scrypt:32768:8:1$J6DzHkKWH3iPp0DA$ae0051d56c587ec01933e78fabf2d0324d75ca4a23844d1dd584a6ac6d82b5a95431394cf43ada63d8b64c5019c72d0b6a04f06a5faa14126b2a003d0611f19d', 'pos', 'POS Terminal', 1),
+    ('prep', 'scrypt:32768:8:1$Ar7ybwQnaTOM540o$a70e726cde1f13e011435180a0504ecf25995b7fb7f5966787803af8b44a4843aa90fd5645f714e51c4a85f1f1141e82bcf2535bc4d66a75044a94265c6b30e0', 'prep', 'Prep Station', 1);
 
 -- Default data: Categories
 INSERT INTO categories (name, display_order) VALUES
@@ -148,6 +151,7 @@ INSERT INTO categories (name, display_order) VALUES
     ('Soda', 2),
     ('Drinks', 3),
     ('Grill', 4);
+    ('Chips', 5);
 
 -- Default data: Products
 INSERT INTO products (category_id, name, price, display_order, requires_prep) VALUES
@@ -163,11 +167,12 @@ INSERT INTO products (category_id, name, price, display_order, requires_prep) VA
     (3, 'Juice Box', 1.75, 3, 0),
     (4, 'Hamburger', 5.00, 1, 1),
     (4, 'Hamburger with Onions', 5.00, 1, 1),
-    (4, 'Hamburger no Bun', 5.00, 1, 1),
+    (4, 'Naked Hamburger', 5.00, 1, 1),
     (4, 'Cheeseburger', 5.00, 1, 1),
     (4, 'Cheeseburger with Onions', 5.00, 1, 1),
-    (4, 'Cheeseburger no Bun', 5.00, 1, 1),
+    (4, 'Naked Cheeseburger', 5.00, 1, 1),
     (4, 'Hot Dog', 3.50, 2, 1);
+    (5, 'Ruffles', 2.00, 2, 1);
 
 -- Default data: Settings
 INSERT INTO settings (key, value) VALUES
@@ -175,4 +180,6 @@ INSERT INTO settings (key, value) VALUES
     ('camp_name', 'Summer Camp Snack Bar'),
     ('backup_enabled', 'true'),
     ('backup_time', '00:00'),
-    ('internet_backup_url', '');
+    ('internet_backup_url', ''),
+    ('prep_queue_warning_time', '2'),
+    ('prep_queue_urgent_time', '5');
