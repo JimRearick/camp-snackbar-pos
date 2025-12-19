@@ -46,6 +46,58 @@ body {
     vertical-align: middle;
 }
 
+/* Header Navigation */
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-nav a,
+.header-nav button {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    position: relative;
+}
+
+.header-nav a:hover,
+.header-nav button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.header-nav .icon {
+    font-size: 1.1rem;
+}
+
+#prepQueueCount {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 /* Account Info Box - Fixed Size */
 .account-info-box {
     background: rgba(255,255,255,0.2);
@@ -56,6 +108,7 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     overflow: hidden;
 }
 
@@ -99,6 +152,8 @@ body {
     flex-direction: column;
     gap: 0.25rem;
     overflow: hidden;
+    align-items: center;
+    width: 100%;
 }
 
 .account-name {
@@ -107,6 +162,8 @@ body {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: center;
+    width: 100%;
 }
 
 .account-members {
@@ -120,6 +177,8 @@ body {
     -webkit-box-orient: vertical;
     line-height: 1.2rem;
     max-height: 2.4rem;
+    text-align: center;
+    width: 100%;
 }
 
 /* Main Content */
@@ -682,22 +741,6 @@ body {
 
 .btn-prep-queue:active {
     transform: scale(0.95);
-}
-
-#prepQueueCount {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: #ef4444;
-    color: white;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.9rem;
-    font-weight: 700;
 }
 
 /* View Toggle Buttons */

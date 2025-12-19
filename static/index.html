@@ -20,22 +20,14 @@
                     <!-- Account info will be populated here -->
                 </div>
             </div>
-            <div style="display: flex; gap: 1rem; align-items: center;">
+            <div class="header-nav">
                 <!-- Admin-only navigation -->
-                <div id="adminNav" style="display: none; gap: 1rem;">
-                    <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
-                        ⚙️
-                    </button>
-                    <button class="btn-prep-queue" onclick="window.location.href='/reports.html'" title="Reports">
-                        📊
-                    </button>
-                </div>
-                <button class="btn-prep-queue" onclick="showPrepQueueModal()" title="View Prep Queue">
-                    🍔 <span id="prepQueueCount" style="display: none;"></span>
+                <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
+                <a href="/reports.html" id="reportsNavBtn" style="display: none;"><span class="icon">📊</span> Reports</a>
+                <button onclick="showPrepQueueModal()" title="View Prep Queue">
+                    <span class="icon">🍔</span> Prep Queue <span id="prepQueueCount" style="display: none;"></span>
                 </button>
-                <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
-                    🚪
-                </button>
+                <button onclick="window.authLogout()"><span class="icon">🚪</span> Logout</button>
             </div>
         </header>
 
@@ -211,7 +203,8 @@
 
             // Show admin navigation if user is admin
             if (user.role === 'admin') {
-                document.getElementById('adminNav').style.display = 'flex';
+                document.getElementById('adminNavBtn').style.display = 'flex';
+                document.getElementById('reportsNavBtn').style.display = 'flex';
             }
         });
     </script>

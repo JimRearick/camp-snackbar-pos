@@ -37,6 +37,40 @@
             font-weight: 700;
         }
 
+        /* Prep Navigation */
+        .prep-nav {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .prep-nav a,
+        .prep-nav button {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .prep-nav a:hover,
+        .prep-nav button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .prep-nav .icon {
+            font-size: 1.1rem;
+        }
+
         .queue-count {
             background: rgba(255,255,255,0.15);
             padding: 0.75rem 1.25rem;
@@ -413,30 +447,20 @@
 </head>
 <body>
     <header class="prep-header">
-        <h1>🍔 Prep Station</h1>
-        <div style="display: flex; gap: 1rem; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <h1>🍔 Prep Station</h1>
             <!-- View Mode Toggle -->
             <div class="view-toggle">
                 <button class="view-toggle-btn active" id="viewByProductBtn" onclick="window.setViewMode('product')">By Product</button>
                 <button class="view-toggle-btn" id="viewByOrderBtn" onclick="window.setViewMode('order')">By Order</button>
             </div>
-
+        </div>
+        <div class="prep-nav">
             <!-- Navigation buttons -->
-            <button id="posNavBtn" class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal" style="display: none;">
-                🛒
-            </button>
-            <!-- Admin-only navigation -->
-            <div id="adminNav" style="display: none;">
-                <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
-                    ⚙️
-                </button>
-                <button class="btn-prep-queue" onclick="window.location.href='/reports.html'" title="Reports">
-                    📊
-                </button>
-            </div>
-            <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
-                🚪
-            </button>
+            <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
+            <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
+            <a href="/reports.html" id="reportsNavBtn" style="display: none;"><span class="icon">📊</span> Reports</a>
+            <button onclick="window.authLogout()"><span class="icon">🚪</span> Logout</button>
         </div>
     </header>
 
@@ -474,8 +498,9 @@
 
             // Show admin navigation if user is admin
             if (user.role === 'admin') {
-                document.getElementById('adminNav').style.display = 'flex';
-                document.getElementById('posNavBtn').style.display = 'block';
+                document.getElementById('adminNavBtn').style.display = 'flex';
+                document.getElementById('reportsNavBtn').style.display = 'flex';
+                document.getElementById('posNavBtn').style.display = 'flex';
             }
         });
     </script>
