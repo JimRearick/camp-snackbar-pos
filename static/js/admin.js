@@ -137,6 +137,9 @@ function populateCategoryFilter(categories) {
     const select = document.getElementById('productCategoryFilter');
     if (!select) return;
 
+    // Save current selection
+    const currentValue = select.value;
+
     // Keep "All Categories" option and add category options
     select.innerHTML = '<option value="">All Categories</option>';
 
@@ -147,6 +150,11 @@ function populateCategoryFilter(categories) {
             option.textContent = cat.name;
             select.appendChild(option);
         });
+    }
+
+    // Restore previous selection
+    if (currentValue) {
+        select.value = currentValue;
     }
 }
 
