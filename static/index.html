@@ -13,13 +13,11 @@
         <header class="header">
             <div style="display: flex; gap: 1rem; align-items: center; flex: 1;">
                 <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
-                <button class="btn-prep-queue" onclick="showPrepQueueModal()" title="View Prep Queue">
-                    🍔 <span id="prepQueueCount" style="display: none;"></span>
+                <button class="btn-select-account" onclick="showAccountSelector()">
+                    Select Account
                 </button>
-                <div id="selectedAccount" class="account-display">
-                    <button class="btn-select-account" onclick="showAccountSelector()">
-                        Select Account
-                    </button>
+                <div id="selectedAccountInfo" class="account-info-box" style="display: none;">
+                    <!-- Account info will be populated here -->
                 </div>
             </div>
             <div style="display: flex; gap: 1rem; align-items: center;">
@@ -32,6 +30,9 @@
                         📊
                     </button>
                 </div>
+                <button class="btn-prep-queue" onclick="showPrepQueueModal()" title="View Prep Queue">
+                    🍔 <span id="prepQueueCount" style="display: none;"></span>
+                </button>
                 <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
                     🚪
                 </button>
@@ -196,6 +197,9 @@
     <div id="errorMessage" class="toast toast-error hidden">
         <span id="errorText"></span>
     </div>
+
+    <!-- Socket.IO -->
+    <script src="/static/js/socket.io.min.js"></script>
 
     <!-- Authentication Check -->
     <script type="module">

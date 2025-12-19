@@ -1,6 +1,7 @@
 // Import security utilities
 import { escapeHtml } from './utils/escape.js';
 import { fetchPost } from './utils/csrf.js';
+import { socket } from './utils/socket.js';
 
 // Global state
 let cart = [];
@@ -86,6 +87,11 @@ function displayProducts(categories) {
                 card.className = 'product-card';
                 card.onclick = () => addToCart(product);
                 card.disabled = !selectedAccount;
+
+                // Apply category button color
+                if (category.button_color) {
+                    card.style.background = `linear-gradient(135deg, ${category.button_color} 0%, ${category.button_color}dd 100%)`;
+                }
 
                 card.innerHTML = `
                     <div class="product-name">${escapeHtml(product.name)}</div>
@@ -188,7 +194,7 @@ function selectAccount(account) {
 
 // Update account display in header
 function updateAccountDisplay() {
-    const display = document.getElementById('selectedAccount');
+    const infoBox = document.getElementById('selectedAccountInfo');
 
     if (selectedAccount) {
         let membersDisplay = '';
@@ -205,23 +211,16 @@ function updateAccountDisplay() {
             }
         }
 
-        display.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <div class="account-info">
-                    <div class="account-name">${escapeHtml(selectedAccount.account_name)}</div>
-                    ${membersDisplay}
-                </div>
-                <button class="btn-change-account" onclick="showAccountSelector()">
-                    Change Account
-                </button>
+        infoBox.innerHTML = `
+            <div class="account-info">
+                <div class="account-name">${escapeHtml(selectedAccount.account_name)}</div>
+                ${membersDisplay}
             </div>
         `;
+        infoBox.style.display = 'flex';
     } else {
-        display.innerHTML = `
-            <button class="btn-select-account" onclick="showAccountSelector()">
-                Select Account
-            </button>
-        `;
+        infoBox.style.display = 'none';
+        infoBox.innerHTML = '';
     }
 }
 
@@ -774,3 +773,20 @@ window.confirmCheckout = confirmCheckout;
 window.showPrepQueueModal = showPrepQueueModal;
 window.hidePrepQueueModal = hidePrepQueueModal;
 window.setPrepQueueViewMode = setPrepQueueViewMode;
+
+// ============================================================================
+// Real-time Updates
+// ============================================================================
+
+// Listen for category updates
+socket.on('category_updated', () => {
+    loadProducts();
+});
+
+socket.on('category_created', () => {
+    loadProducts();
+});
+
+socket.on('category_deleted', () => {
+    loadProducts();
+});

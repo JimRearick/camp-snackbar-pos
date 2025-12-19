@@ -6,35 +6,34 @@
     <title>Advanced Admin - Camp Snackbar</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin-nav.css">
 </head>
 <body>
     <!-- Advanced Admin Dashboard -->
     <div id="advAdminDashboard" class="admin-dashboard">
-        <header class="admin-header">
-            <div class="header-left">
+        <!-- Page Header with Gradient -->
+        <header class="page-header">
+            <h1>
                 <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
-                <h1>Advanced Admin</h1>
-            </div>
-            <div style="display: flex; gap: 1rem;">
-                <button id="posNavBtn" class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal" style="display: none;">
-                    🛒
-                </button>
-                <button class="btn-prep-queue" onclick="window.location.href='/admin.html'" title="Admin Dashboard">
-                    ⚙️
-                </button>
-                <button class="btn-prep-queue" onclick="window.authLogout()" title="Logout">
-                    🚪
-                </button>
+                Settings
+            </h1>
+            <div class="cross-page-nav">
+                <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
+                <a href="/admin.html"><span class="icon">📋</span> Admin</a>
+                <a href="/reports.html"><span class="icon">📈</span> Reports</a>
+                <button onclick="window.authLogout()"><span class="icon">🚪</span> Logout</button>
             </div>
         </header>
 
-        <div class="admin-content">
-            <!-- Tab Navigation -->
-            <div class="tab-nav">
-                <button class="tab-btn active" onclick="switchTab('users')">👥 Users</button>
-                <button class="tab-btn" onclick="switchTab('testdata')">🧪 Test Data</button>
-                <button class="tab-btn" onclick="switchTab('settings')">⚙️ Settings</button>
-            </div>
+        <!-- In-Page Tab Navigation -->
+        <nav class="tab-nav-bar">
+            <a href="#" class="active" onclick="switchTab('users'); updateActiveNav(this); return false;"><span class="icon">👥</span> Users</a>
+            <a href="#" onclick="switchTab('testdata'); updateActiveNav(this); return false;"><span class="icon">🧪</span> Test Data</a>
+            <a href="#" onclick="switchTab('settings'); updateActiveNav(this); return false;"><span class="icon">⚙️</span> Settings</a>
+        </nav>
+
+        <div class="page-content">
+            <div class="admin-content">
 
             <!-- User Roles Tab -->
             <div id="usersTab" class="tab-content active">
@@ -207,6 +206,10 @@
     <div id="successMessage" class="toast hidden"></div>
     <div id="errorMessage" class="toast toast-error hidden"></div>
 
+            </div>
+        </div>
+    </div>
+
     <!-- Authentication Check -->
     <script type="module">
         import { safeInitAuth } from './js/utils/auth.js';
@@ -217,7 +220,7 @@
 
             // Show POS navigation button for admin users
             if (user.role === 'admin') {
-                document.getElementById('posNavBtn').style.display = 'block';
+                document.getElementById('posNavBtn').style.display = 'flex';
             }
 
             // Initialize dashboard data
@@ -225,6 +228,18 @@
                 window.initAdvAdmin();
             }
         });
+    </script>
+
+    <script>
+        // Update active navigation state
+        function updateActiveNav(clickedLink) {
+            // Remove active class from all tab links
+            document.querySelectorAll('.tab-nav-bar a').forEach(link => {
+                link.classList.remove('active');
+            });
+            // Add active class to clicked link
+            clickedLink.classList.add('active');
+        }
     </script>
 
     <script type="module" src="/static/js/advadmin.js"></script>

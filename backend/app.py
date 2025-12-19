@@ -447,6 +447,7 @@ def get_products():
         categories.append({
             'id': cat_row['id'],
             'name': cat_row['name'],
+            'button_color': cat_row['button_color'],
             'products': products
         })
     
@@ -548,8 +549,8 @@ def create_category():
 
     conn = get_db()
     cursor = conn.execute(
-        "INSERT INTO categories (name) VALUES (?)",
-        (data['name'],)
+        "INSERT INTO categories (name, button_color) VALUES (?, ?)",
+        (data['name'], data.get('button_color', '#667eea'))
     )
     category_id = cursor.lastrowid
     conn.commit()
@@ -568,8 +569,8 @@ def update_category(category_id):
 
     conn = get_db()
     conn.execute(
-        "UPDATE categories SET name = ? WHERE id = ?",
-        (data['name'], category_id)
+        "UPDATE categories SET name = ?, button_color = ? WHERE id = ?",
+        (data['name'], data.get('button_color', '#667eea'), category_id)
     )
     conn.commit()
     conn.close()

@@ -1,0 +1,156 @@
+/**
+ * Shared Navigation Styles for Admin Pages
+ * Used by: admin.html, reports.html, advadmin.html
+ */
+
+/* Page Header with Gradient (first line) */
+.page-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.page-header h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-header .header-logo {
+    height: 2rem;
+    vertical-align: middle;
+}
+
+/* Cross-Page Navigation (right side of header) */
+.cross-page-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.cross-page-nav a,
+.cross-page-nav button {
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.cross-page-nav a:hover,
+.cross-page-nav button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.cross-page-nav .icon {
+    font-size: 1.1rem;
+}
+
+/* In-Page Tab Navigation (second line) */
+.tab-nav-bar {
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    min-height: 58px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tab-nav-bar a {
+    padding: 0.875rem 1.25rem;
+    color: #64748b;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+}
+
+.tab-nav-bar a:hover {
+    color: #667eea;
+    background: #f8fafc;
+}
+
+.tab-nav-bar a.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    background: #f8fafc;
+}
+
+.tab-nav-bar a .icon {
+    font-size: 1.1rem;
+}
+
+/* Main Content Area */
+.page-content {
+    background: #f8fafc;
+    min-height: calc(100vh - 130px);
+}
+
+/* Ensure admin-content doesn't overlap tabs */
+.admin-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Responsive adjustments for tablets */
+@media (max-width: 1024px) {
+    .page-header {
+        padding: 1rem;
+    }
+
+    .tab-nav-bar {
+        padding: 0 1rem;
+    }
+
+    .tab-nav-bar a {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .cross-page-nav a,
+    .cross-page-nav button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header {
+        flex-wrap: wrap;
+    }
+
+    .cross-page-nav {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+    }
+
+    .tab-nav-bar {
+        overflow-x: auto;
+    }
+}

@@ -6,36 +6,34 @@
     <title>Admin - Camp Snackbar</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin-nav.css">
 </head>
 <body>
     <!-- Admin Dashboard -->
     <div id="adminDashboard" class="admin-dashboard">
-        <header class="admin-header">
-            <div class="header-left">
+        <!-- Page Header with Gradient -->
+        <header class="page-header">
+            <h1>
                 <img src="/static/images/IF_logo.png" alt="Logo" class="header-logo">
-                <h1>Camp Snackbar Admin</h1>
-            </div>
-            <div style="display: flex; gap: 1rem;">
-                <button id="posNavBtn" class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal" style="display: none;">
-                    🛒
-                </button>
-                <button class="btn-prep-queue" onclick="window.location.href='/reports.html'" title="Reports">
-                    📊
-                </button>
-                <button class="btn-prep-queue" onclick="logout()" title="Logout">
-                    🚪
-                </button>
+                Admin Dashboard
+            </h1>
+            <div class="cross-page-nav">
+                <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
+                <a href="/reports.html"><span class="icon">📈</span> Reports</a>
+                <button onclick="logout()"><span class="icon">🚪</span> Logout</button>
             </div>
         </header>
 
-        <div class="admin-content">
-            <!-- Navigation Tabs -->
-            <nav class="admin-tabs">
-                <button class="tab-button active" onclick="showTab('transactions')">Transactions</button>
-                <button class="tab-button" onclick="showTab('accounts')">Accounts</button>
-                <button class="tab-button" onclick="showTab('inventory')">Products</button>
-                <button class="tab-button" onclick="showTab('categories')">Categories</button>
-            </nav>
+        <!-- In-Page Tab Navigation -->
+        <nav class="tab-nav-bar">
+            <a href="#" class="active" onclick="window.showTab('transactions'); updateActiveNav(this); return false;"><span class="icon">🧾</span> Transactions</a>
+            <a href="#" onclick="window.showTab('accounts'); updateActiveNav(this); return false;"><span class="icon">👥</span> Accounts</a>
+            <a href="#" onclick="window.showTab('inventory'); updateActiveNav(this); return false;"><span class="icon">📦</span> Products</a>
+            <a href="#" onclick="window.showTab('categories'); updateActiveNav(this); return false;"><span class="icon">🏷️</span> Categories</a>
+        </nav>
+
+        <div class="page-content">
+            <div class="admin-content">
 
             <!-- Inventory Tab -->
             <div id="inventoryTab" class="tab-content">
@@ -87,6 +85,7 @@
                         <thead>
                             <tr>
                                 <th>Category Name</th>
+                                <th>Button Color</th>
                                 <th>Product Count</th>
                                 <th style="text-align: right;">Actions</th>
                             </tr>
@@ -235,6 +234,11 @@
                         <label for="categoryName">Category Name *</label>
                         <input type="text" id="categoryName" class="form-input" required>
                     </div>
+                    <div class="form-group">
+                        <label for="categoryButtonColor">Button Color *</label>
+                        <input type="color" id="categoryButtonColor" class="form-input" value="#667eea" required>
+                        <small style="color: #666;">Color for product buttons on the POS page</small>
+                    </div>
                 </form>
                 <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e0e0e0;">
                     <button class="btn-secondary" id="deleteCategoryBtn" onclick="deleteCategoryFromModal()" style="display: none; font-size: 0.9rem; padding: 0.5rem 1rem;">
@@ -365,12 +369,16 @@
                 <button class="btn-secondary" onclick="hideAddFundsModal()">Cancel</button>
                 <button class="btn-primary" onclick="addFundsToAccount()">Add Funds</button>
             </div>
+            </div>
         </div>
     </div>
 
     <!-- Toast Messages -->
     <div id="successToast" class="toast toast-success hidden"></div>
     <div id="errorToast" class="toast toast-error hidden"></div>
+
+    <!-- Socket.IO -->
+    <script src="/static/js/socket.io.min.js"></script>
 
     <!-- Authentication Check -->
     <script type="module">
@@ -382,7 +390,7 @@
 
             // Show POS navigation button for admin users
             if (user.role === 'admin') {
-                document.getElementById('posNavBtn').style.display = 'block';
+                document.getElementById('posNavBtn').style.display = 'flex';
             }
 
             // Initialize admin dashboard data
@@ -390,6 +398,18 @@
                 window.initAdminDashboard();
             }
         });
+    </script>
+
+    <script>
+        // Update active navigation state
+        function updateActiveNav(clickedLink) {
+            // Remove active class from all tab links
+            document.querySelectorAll('.tab-nav-bar a').forEach(link => {
+                link.classList.remove('active');
+            });
+            // Add active class to clicked link
+            clickedLink.classList.add('active');
+        }
     </script>
 
     <script type="module" src="/static/js/admin.js"></script>

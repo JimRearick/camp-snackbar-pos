@@ -167,6 +167,7 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 130px);
 }
 
 /* Tabs */

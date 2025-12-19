@@ -44,6 +44,7 @@ CREATE TABLE categories (
     name TEXT UNIQUE NOT NULL,
     display_order INTEGER DEFAULT 0,
     active BOOLEAN DEFAULT 1,
+    button_color TEXT DEFAULT '#667eea',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

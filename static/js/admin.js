@@ -1,6 +1,7 @@
 import { confirmDialog } from './utils/dialog.js';
 import { escapeHtml, formatLocalDateTime, formatLocalDate } from './utils/escape.js';
 import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
+import { socket } from './utils/socket.js';
 
 // Global state
 let authToken = localStorage.getItem('adminToken');
@@ -450,9 +451,16 @@ async function loadCategories() {
             data.categories.forEach(category => {
                 const row = document.createElement('tr');
                 const productCount = category.products ? category.products.length : 0;
+                const buttonColor = category.button_color || '#667eea';
 
                 row.innerHTML = `
                     <td>${escapeHtml(category.name)}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div style="width: 32px; height: 32px; background: ${escapeHtml(buttonColor)}; border-radius: 4px; border: 1px solid #ddd;"></div>
+                            <span style="font-family: monospace; font-size: 0.9rem;">${escapeHtml(buttonColor)}</span>
+                        </div>
+                    </td>
                     <td>${productCount}</td>
                     <td style="text-align: right;">
                         <button class="btn-edit" onclick="editCategory(${category.id})">Edit</button>
@@ -471,6 +479,7 @@ function showAddCategoryForm() {
     document.getElementById('categoryModalTitle').textContent = 'Add Category';
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
+    document.getElementById('categoryButtonColor').value = '#667eea';
     document.getElementById('deleteCategoryBtn').style.display = 'none';
     document.getElementById('categoryModal').classList.remove('hidden');
 }
@@ -488,6 +497,7 @@ async function editCategory(categoryId) {
             document.getElementById('categoryModalTitle').textContent = 'Edit Category';
             document.getElementById('categoryId').value = category.id;
             document.getElementById('categoryName').value = category.name;
+            document.getElementById('categoryButtonColor').value = category.button_color || '#667eea';
 
             // Show delete button for existing categories
             const deleteBtn = document.getElementById('deleteCategoryBtn');
@@ -506,13 +516,17 @@ async function editCategory(categoryId) {
 async function saveCategory() {
     const categoryId = document.getElementById('categoryId').value;
     const name = document.getElementById('categoryName').value.trim();
+    const buttonColor = document.getElementById('categoryButtonColor').value;
 
     if (!name) {
         showError('Please enter a category name');
         return;
     }
 
-    const categoryData = { name };
+    const categoryData = {
+        name,
+        button_color: buttonColor
+    };
 
     try {
         const url = categoryId ? `${API_URL}/categories/${categoryId}` : `${API_URL}/categories`;
@@ -964,7 +978,9 @@ async function loadTransactions() {
         // Filter by type if selected
         let filtered = allTransactions;
         if (typeFilter) {
+            console.log(`Filtering transactions by type: ${typeFilter}`);
             filtered = allTransactions.filter(t => t.transaction_type === typeFilter);
+            console.log(`Filtered ${allTransactions.length} transactions to ${filtered.length} matching '${typeFilter}'`);
         }
 
         displayTransactionsTable(filtered);
@@ -1360,3 +1376,52 @@ window.incrementAdjustQty = incrementAdjustQty;
 window.toggleAdjustMode = toggleAdjustMode;
 window.processAdjustment = processAdjustment;
 window.loadAccounts = loadAccounts;
+window.loadTransactions = loadTransactions;
+
+// ============================================================================
+// Real-time Updates
+// ============================================================================
+
+// Listen for category updates
+socket.on('category_updated', () => {
+    loadCategories();
+    loadProducts(); // Reload products to update category references
+});
+
+socket.on('category_created', () => {
+    loadCategories();
+    loadProducts();
+});
+
+socket.on('category_deleted', () => {
+    loadCategories();
+    loadProducts();
+});
+
+// Listen for product updates
+socket.on('product_updated', () => {
+    loadProducts();
+});
+
+socket.on('product_created', () => {
+    loadProducts();
+});
+
+socket.on('product_deleted', () => {
+    loadProducts();
+});
+
+// Listen for account updates
+socket.on('account_updated', () => {
+    loadAccounts();
+});
+
+socket.on('account_created', () => {
+    loadAccounts();
+});
+
+// Listen for transaction updates
+socket.on('transaction_created', () => {
+    loadAccounts(); // Reload to update balances
+    loadTransactions(); // Reload to show new transaction
+});
