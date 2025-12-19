@@ -61,4 +61,13 @@ if [[ -n "$TAG" ]]; then
   echo "🏷️  Creating tag $TAG..."
   git tag "$TAG"
 
-  echo "🚀 Pu
+  echo "🚀 Pushing commit and tag..."
+  git push
+  git push origin "$TAG"
+
+  echo "✅ Done! Pushed commit and tag $TAG"
+else
+  echo "🚀 Pushing commit (no tag)..."
+  git push
+  echo "✅ Done! Commit pushed without tag"
+fi
