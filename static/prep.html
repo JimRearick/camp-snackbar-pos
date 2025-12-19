@@ -415,6 +415,12 @@
     <header class="prep-header">
         <h1>🍔 Prep Station</h1>
         <div style="display: flex; gap: 1rem; align-items: center;">
+            <!-- View Mode Toggle -->
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" id="viewByProductBtn" onclick="window.setViewMode('product')">By Product</button>
+                <button class="view-toggle-btn" id="viewByOrderBtn" onclick="window.setViewMode('order')">By Order</button>
+            </div>
+
             <!-- Navigation buttons -->
             <button id="posNavBtn" class="btn-prep-queue" onclick="window.location.href='/index.html'" title="POS Terminal" style="display: none;">
                 🛒
@@ -437,16 +443,9 @@
     <!-- Horizontal Summary Bar -->
     <div id="prepSummary" class="prep-summary-container" style="display: none;">
         <div class="summary-grid" id="summaryGrid">
-            <!-- View mode buttons as summary items -->
-            <div class="summary-item active" id="viewByProductChip" onclick="window.setViewMode('product')" style="cursor: pointer;">
-                <span class="summary-product">By Product</span>
-            </div>
-            <div class="summary-item" id="viewByOrderChip" onclick="window.setViewMode('order')" style="cursor: pointer;">
-                <span class="summary-product">By Order</span>
-            </div>
-            <!-- Total items as summary item -->
+            <!-- All Items chip -->
             <div class="summary-item" onclick="window.clearFilter()" style="cursor: pointer;" title="Click to show all items">
-                <span class="summary-product">Total Items</span>
+                <span class="summary-product">All Items</span>
                 <span class="summary-count" id="queueCount">0</span>
             </div>
             <!-- Product/Account summary chips will be populated here -->

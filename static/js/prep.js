@@ -104,16 +104,10 @@ function renderByProduct(container, summaryContainer, summaryGrid) {
     // Update summary section
     summaryContainer.style.display = 'block';
 
-    // Build summary HTML with view mode buttons first
-    const viewModeHTML = `
-        <div class="summary-item active" id="viewByProductChip" onclick="window.setViewMode('product')" style="cursor: pointer;">
-            <span class="summary-product">By Product</span>
-        </div>
-        <div class="summary-item" id="viewByOrderChip" onclick="window.setViewMode('order')" style="cursor: pointer;">
-            <span class="summary-product">By Order</span>
-        </div>
+    // Build summary HTML - just All Items and products
+    const allItemsHTML = `
         <div class="summary-item" onclick="window.clearFilter()" style="cursor: pointer;" title="Click to show all items">
-            <span class="summary-product">Total Items</span>
+            <span class="summary-product">All Items</span>
             <span class="summary-count">${prepQueue.length}</span>
         </div>
     `;
@@ -130,7 +124,7 @@ function renderByProduct(container, summaryContainer, summaryGrid) {
             `;
         }).join('');
 
-    summaryGrid.innerHTML = viewModeHTML + productsHTML;
+    summaryGrid.innerHTML = allItemsHTML + productsHTML;
 
     // Filter items if needed
     const itemsToDisplay = currentFilter
@@ -172,16 +166,10 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
     // Update summary section
     summaryContainer.style.display = 'block';
 
-    // Build summary HTML with view mode buttons first
-    const viewModeHTML = `
-        <div class="summary-item" id="viewByProductChip" onclick="window.setViewMode('product')" style="cursor: pointer;">
-            <span class="summary-product">By Product</span>
-        </div>
-        <div class="summary-item active" id="viewByOrderChip" onclick="window.setViewMode('order')" style="cursor: pointer;">
-            <span class="summary-product">By Order</span>
-        </div>
+    // Build summary HTML - just All Items and accounts
+    const allItemsHTML = `
         <div class="summary-item" onclick="window.clearFilter()" style="cursor: pointer;" title="Click to show all items">
-            <span class="summary-product">Total Items</span>
+            <span class="summary-product">All Items</span>
             <span class="summary-count">${prepQueue.length}</span>
         </div>
     `;
@@ -198,7 +186,7 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
             `;
         }).join('');
 
-    summaryGrid.innerHTML = viewModeHTML + accountsHTML;
+    summaryGrid.innerHTML = allItemsHTML + accountsHTML;
 
     // Filter orders if needed
     let ordersToDisplay = Object.values(orderGroups);
@@ -410,6 +398,18 @@ function createOrderCard(order) {
 function setViewMode(mode) {
     viewMode = mode;
     currentFilter = null; // Clear filter when switching views
+
+    // Update header button states
+    const productBtn = document.getElementById('viewByProductBtn');
+    const orderBtn = document.getElementById('viewByOrderBtn');
+
+    if (mode === 'product') {
+        productBtn.classList.add('active');
+        orderBtn.classList.remove('active');
+    } else {
+        productBtn.classList.remove('active');
+        orderBtn.classList.add('active');
+    }
 
     renderPrepQueue();
 }
