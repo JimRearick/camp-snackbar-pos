@@ -332,6 +332,7 @@
         <!-- In-Page Tab Navigation -->
         <nav class="tab-nav-bar">
             <a href="#" class="active" onclick="showTab('summary'); updateActiveNav(this); return false;"><span class="icon">📊</span> Summary</a>
+            <a href="#" onclick="showTab('dailySales'); updateActiveNav(this); return false;"><span class="icon">📈</span> Daily Sales</a>
             <a href="#" onclick="showTab('sales'); updateActiveNav(this); return false;"><span class="icon">🛒</span> Sales by Product</a>
             <a href="#" onclick="showTab('category'); updateActiveNav(this); return false;"><span class="icon">🏷️</span> By Category</a>
             <a href="#" onclick="showTab('balances'); updateActiveNav(this); return false;"><span class="icon">💰</span> Balances</a>
@@ -382,6 +383,25 @@
                                 <div style="color: #999; text-align: center; padding: 2rem;">Loading...</div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Sales Tab -->
+            <div id="dailySalesTab" class="tab-content">
+                <div class="report-card">
+                    <div class="report-header">
+                        <h2>📈 Daily Sales - Last 14 Days</h2>
+                        <button class="btn-export" onclick="exportDailySalesToCSV()">
+                            <span>📥</span> Export to CSV
+                        </button>
+                    </div>
+                    <div style="background: white; border-radius: 8px; padding: 2rem; margin-bottom: 1rem;">
+                        <canvas id="dailySalesChart" style="max-height: 500px;"></canvas>
+                    </div>
+                    <div id="dailySalesLegend" style="display: flex; justify-content: center; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1rem;"></div>
+                    <div id="dailySalesTableContainer">
+                        <div class="loading">Loading daily sales data...</div>
                     </div>
                 </div>
             </div>

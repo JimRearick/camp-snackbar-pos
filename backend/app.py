@@ -423,7 +423,7 @@ def get_products():
     """Get all products grouped by category (All authenticated users)"""
     conn = get_db()
     
-    cursor = conn.execute("SELECT * FROM categories WHERE active = 1 ORDER BY display_order")
+    cursor = conn.execute("SELECT * FROM categories WHERE active = 1 ORDER BY name")
     categories = []
     
     for cat_row in cursor.fetchall():
@@ -1386,6 +1386,86 @@ def get_sales_report():
     
     conn.close()
     return jsonify({'sales': sales})
+
+@app.route('/api/reports/daily-sales', methods=['GET'])
+def get_daily_sales_report():
+    """Get daily sales breakdown by category for the last 14 days"""
+    from datetime import datetime, timedelta
+
+    conn = get_db()
+
+    # Calculate date range using local time (14 days including today)
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=13)
+
+    # Get sales by day and category for the last 14 days (including today)
+    cursor = conn.execute("""
+        SELECT
+            DATE(t.created_at) as sale_date,
+            c.name as category_name,
+            SUM(ti.line_total) as category_total
+        FROM transactions t
+        JOIN transaction_items ti ON t.id = ti.transaction_id
+        JOIN products p ON ti.product_id = p.id
+        JOIN categories c ON p.category_id = c.id
+        WHERE t.transaction_type = 'purchase'
+          AND DATE(t.created_at) >= ?
+        GROUP BY DATE(t.created_at), c.name
+        ORDER BY sale_date DESC, c.name
+    """, (start_date.strftime('%Y-%m-%d'),))
+
+    daily_sales = {}
+    categories_set = set()
+
+    for row in cursor.fetchall():
+        date = row['sale_date']
+        category = row['category_name']
+        total = row['category_total']
+
+        if date not in daily_sales:
+            daily_sales[date] = {}
+
+        daily_sales[date][category] = total
+        categories_set.add(category)
+
+    conn.close()
+
+    # Convert to sorted list of categories
+    categories = sorted(list(categories_set))
+
+    # Format the data for the chart
+    result = {
+        'categories': categories,
+        'daily_data': []
+    }
+
+    # Determine the actual date range to display
+    # Use the max date from actual sales data, or end_date if no sales yet
+    actual_dates = list(daily_sales.keys())
+    if actual_dates:
+        max_sale_date = max(actual_dates)
+        # Use the later of end_date or max sale date (in case DB is in GMT and ahead)
+        display_end_date = max(end_date, datetime.strptime(max_sale_date, '%Y-%m-%d').date())
+    else:
+        display_end_date = end_date
+
+    # Get all dates for the last 14 days (even if no sales)
+    current_date = start_date
+    while current_date <= display_end_date:
+        date_str = current_date.strftime('%Y-%m-%d')
+        day_data = {
+            'date': date_str,
+            'totals': {}
+        }
+
+        # Add category totals for this day (0 if no sales)
+        for category in categories:
+            day_data['totals'][category] = daily_sales.get(date_str, {}).get(category, 0)
+
+        result['daily_data'].append(day_data)
+        current_date += timedelta(days=1)
+
+    return jsonify(result)
 
 # ============================================================================
 # Backup Routes

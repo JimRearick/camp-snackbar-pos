@@ -7,6 +7,40 @@ import { apiGet } from './utils/api.js';
 import { escapeHtml } from './utils/escape.js';
 
 // ============================================================================
+// Initialization
+// ============================================================================
+
+async function loadCampName() {
+    try {
+        const response = await fetch(`${API_URL}/settings`);
+        if (response.ok) {
+            const settings = await response.json();
+
+            // Update camp name in header if provided
+            if (settings.camp_name) {
+                const headerTitle = document.querySelector('.header h1');
+                if (headerTitle) {
+                    // Keep the logo, just update the text
+                    const logo = headerTitle.querySelector('img');
+                    headerTitle.textContent = settings.camp_name;
+                    if (logo) {
+                        headerTitle.insertBefore(logo, headerTitle.firstChild);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading camp name:', error);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadCampName();
+    loadSummary(); // Load default tab
+});
+
+// ============================================================================
 // Tab Management
 // ============================================================================
 
@@ -33,6 +67,9 @@ window.showTab = function(tabName) {
     switch(tabName) {
         case 'summary':
             loadSummary();
+            break;
+        case 'dailySales':
+            loadDailySalesReport();
             break;
         case 'sales':
             loadSalesReport();
@@ -277,6 +314,317 @@ async function loadTopProducts() {
             '<div style="color: #dc3545; text-align: center; padding: 2rem;">Error loading top products</div>';
     }
 }
+
+// ============================================================================
+// Load Daily Sales Report
+// ============================================================================
+
+// Category colors (matching the pie chart colors)
+const CATEGORY_COLORS = {
+    'Candy': '#FF6384',
+    'Chips': '#36A2EB',
+    'Drinks': '#FFCE56',
+    'Grill': '#4BC0C0',
+    'Soda': '#9966FF'
+};
+
+// Patterns for better differentiation
+const CATEGORY_PATTERNS = {};
+
+function createPattern(ctx, color) {
+    const patternCanvas = document.createElement('canvas');
+    const patternContext = patternCanvas.getContext('2d');
+    patternCanvas.width = 10;
+    patternCanvas.height = 10;
+
+    patternContext.fillStyle = color;
+    patternContext.fillRect(0, 0, 10, 10);
+
+    return ctx.createPattern(patternCanvas, 'repeat');
+}
+
+let dailySalesData = null;
+
+async function loadDailySalesReport() {
+    try {
+        const response = await fetch(`${API_URL}/reports/daily-sales`);
+        const data = await response.json();
+
+        dailySalesData = data;
+
+        // Draw the column chart
+        drawDailySalesChart(data);
+
+        // Create legend
+        createDailySalesLegend(data.categories);
+
+        // Create data table
+        createDailySalesTable(data);
+
+    } catch (error) {
+        console.error('Error loading daily sales:', error);
+        document.getElementById('dailySalesTableContainer').innerHTML =
+            '<div class="no-data">Error loading daily sales data</div>';
+    }
+}
+
+function drawDailySalesChart(data) {
+    const canvas = document.getElementById('dailySalesChart');
+    const ctx = canvas.getContext('2d');
+
+    // Set canvas size based on container
+    const container = canvas.parentElement;
+    canvas.width = container.clientWidth - 64; // Account for padding
+    canvas.height = 400;
+
+    const padding = { top: 20, right: 20, bottom: 80, left: 60 };
+    const chartWidth = canvas.width - padding.left - padding.right;
+    const chartHeight = canvas.height - padding.top - padding.bottom;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (data.daily_data.length === 0 || data.categories.length === 0) {
+        ctx.fillStyle = '#999';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No sales data available', canvas.width / 2, canvas.height / 2);
+        return;
+    }
+
+    // Calculate max value for Y-axis
+    let maxValue = 0;
+    data.daily_data.forEach(day => {
+        let dayTotal = 0;
+        data.categories.forEach(cat => {
+            dayTotal += day.totals[cat] || 0;
+        });
+        maxValue = Math.max(maxValue, dayTotal);
+    });
+
+    // Round up to nearest nice number
+    const scale = Math.pow(10, Math.floor(Math.log10(maxValue)));
+    maxValue = Math.ceil(maxValue / scale) * scale;
+
+    // Draw Y-axis
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, padding.top + chartHeight);
+    ctx.stroke();
+
+    // Draw Y-axis labels and grid lines
+    const ySteps = 5;
+    ctx.font = '12px Arial';
+    ctx.fillStyle = '#666';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+
+    for (let i = 0; i <= ySteps; i++) {
+        const value = (maxValue / ySteps) * i;
+        const y = padding.top + chartHeight - (chartHeight / ySteps) * i;
+
+        // Grid line
+        ctx.strokeStyle = '#f0f0f0';
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(padding.left + chartWidth, y);
+        ctx.stroke();
+
+        // Label
+        ctx.fillText('$' + value.toFixed(0), padding.left - 10, y);
+    }
+
+    // Draw X-axis
+    ctx.strokeStyle = '#ccc';
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top + chartHeight);
+    ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight);
+    ctx.stroke();
+
+    // Calculate bar width and spacing
+    const barGroupWidth = chartWidth / data.daily_data.length;
+    const barWidth = Math.min(barGroupWidth * 0.7, 50);
+    const barSpacing = (barGroupWidth - barWidth) / 2;
+
+    // Draw bars for each day
+    data.daily_data.forEach((day, dayIndex) => {
+        const x = padding.left + dayIndex * barGroupWidth + barSpacing;
+        let stackY = padding.top + chartHeight;
+
+        // Draw stacked bars for each category
+        data.categories.forEach((category, catIndex) => {
+            const value = day.totals[category] || 0;
+            if (value > 0) {
+                const barHeight = (value / maxValue) * chartHeight;
+                const barY = stackY - barHeight;
+
+                // Use color for category
+                const color = CATEGORY_COLORS[category] || '#' + Math.floor(Math.random()*16777215).toString(16);
+                ctx.fillStyle = color;
+                ctx.fillRect(x, barY, barWidth, barHeight);
+
+                // Add border
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, barY, barWidth, barHeight);
+
+                stackY = barY;
+            }
+        });
+
+        // Draw date label with day of week
+        const date = new Date(day.date);
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayOfWeek = dayNames[date.getDay()];
+        const dateLabel = (date.getMonth() + 1) + '/' + date.getDate();
+
+        ctx.save();
+        ctx.translate(x + barWidth / 2, padding.top + chartHeight + 15);
+        ctx.rotate(-Math.PI / 4);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#666';
+
+        // Draw day of week in bold
+        ctx.font = 'bold 11px Arial';
+        ctx.fillText(dayOfWeek, 0, 0);
+
+        // Draw date below
+        ctx.font = '10px Arial';
+        ctx.fillText(dateLabel, 0, 12);
+        ctx.restore();
+    });
+
+    // Draw axis labels
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Sales ($)', padding.left - 35, padding.top + chartHeight / 2);
+    ctx.fillText('Date', padding.left + chartWidth / 2, canvas.height - 10);
+}
+
+function createDailySalesLegend(categories) {
+    const legendDiv = document.getElementById('dailySalesLegend');
+
+    const html = categories.map(category => {
+        const color = CATEGORY_COLORS[category] || '#' + Math.floor(Math.random()*16777215).toString(16);
+        return `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div style="width: 24px; height: 24px; background: ${color}; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); border-radius: 4px;"></div>
+                <span style="font-weight: 600; color: #333;">${escapeHtml(category)}</span>
+            </div>
+        `;
+    }).join('');
+
+    legendDiv.innerHTML = html;
+}
+
+function createDailySalesTable(data) {
+    const container = document.getElementById('dailySalesTableContainer');
+
+    let html = `
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+    `;
+
+    // Add category columns
+    data.categories.forEach(cat => {
+        html += `<th style="text-align: right;">${escapeHtml(cat)}</th>`;
+    });
+
+    html += `
+                    <th style="text-align: right; font-weight: 700;">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Add rows for each day (reverse to show most recent first)
+    const reversedData = [...data.daily_data].reverse();
+    reversedData.forEach(day => {
+        const date = new Date(day.date);
+        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        html += `<tr><td><strong>${escapeHtml(dayOfWeek)}</strong> ${escapeHtml(dateStr)}</td>`;
+
+        let dayTotal = 0;
+        data.categories.forEach(cat => {
+            const value = day.totals[cat] || 0;
+            dayTotal += value;
+            html += `<td class="currency">$${value.toFixed(2)}</td>`;
+        });
+
+        html += `<td class="currency" style="font-weight: 700;">$${dayTotal.toFixed(2)}</td></tr>`;
+    });
+
+    // Add totals row
+    html += `<tr style="border-top: 3px solid #333; background: #f8f9fa; font-weight: 700;">
+                <td>Total</td>`;
+
+    let grandTotal = 0;
+    data.categories.forEach(cat => {
+        let catTotal = 0;
+        data.daily_data.forEach(day => {
+            catTotal += day.totals[cat] || 0;
+        });
+        grandTotal += catTotal;
+        html += `<td class="currency">$${catTotal.toFixed(2)}</td>`;
+    });
+
+    html += `<td class="currency" style="font-size: 1.1rem;">$${grandTotal.toFixed(2)}</td></tr>`;
+    html += `</tbody></table>`;
+
+    container.innerHTML = html;
+}
+
+window.exportDailySalesToCSV = function() {
+    if (!dailySalesData) {
+        alert('No data to export');
+        return;
+    }
+
+    const headers = ['Date', ...dailySalesData.categories, 'Total'];
+
+    const rows = [...dailySalesData.daily_data].reverse().map(day => {
+        const date = new Date(day.date);
+        const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        const row = [`${dayOfWeek} ${dateStr}`];
+        let dayTotal = 0;
+
+        dailySalesData.categories.forEach(cat => {
+            const value = day.totals[cat] || 0;
+            dayTotal += value;
+            row.push(value.toFixed(2));
+        });
+
+        row.push(dayTotal.toFixed(2));
+        return row;
+    });
+
+    // Add totals row
+    const totalsRow = ['Total'];
+    let grandTotal = 0;
+    dailySalesData.categories.forEach(cat => {
+        let catTotal = 0;
+        dailySalesData.daily_data.forEach(day => {
+            catTotal += day.totals[cat] || 0;
+        });
+        grandTotal += catTotal;
+        totalsRow.push(catTotal.toFixed(2));
+    });
+    totalsRow.push(grandTotal.toFixed(2));
+    rows.push(totalsRow);
+
+    const filename = `daily-sales-${new Date().toISOString().split('T')[0]}.csv`;
+    exportToCSV(filename, headers, rows);
+};
 
 // ============================================================================
 // Load Sales Report
