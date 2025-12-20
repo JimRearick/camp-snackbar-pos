@@ -1399,19 +1399,37 @@ def get_daily_sales_report():
     start_date = end_date - timedelta(days=13)
 
     # Get sales by day and category for the last 14 days (including today)
+    # cursor = conn.execute("""
+    #     SELECT
+    #         DATE(t.created_at) as sale_date,
+    #         c.name as category_name,
+    #         SUM(ti.line_total) as category_total
+    #     FROM transactions t
+    #     JOIN transaction_items ti ON t.id = ti.transaction_id
+    #     JOIN products p ON ti.product_id = p.id
+    #     JOIN categories c ON p.category_id = c.id
+    #     WHERE t.transaction_type = 'purchase'
+    #       AND DATE(t.created_at) >= ?
+    #     GROUP BY DATE(t.created_at), c.name
+    #     ORDER BY sale_date DESC, c.name
+    # """, (start_date.strftime('%Y-%m-%d'),))
+
+ #
     cursor = conn.execute("""
-        SELECT
-            DATE(t.created_at) as sale_date,
-            c.name as category_name,
-            SUM(ti.line_total) as category_total
-        FROM transactions t
-        JOIN transaction_items ti ON t.id = ti.transaction_id
-        JOIN products p ON ti.product_id = p.id
-        JOIN categories c ON p.category_id = c.id
-        WHERE t.transaction_type = 'purchase'
-          AND DATE(t.created_at) >= ?
-        GROUP BY DATE(t.created_at), c.name
-        ORDER BY sale_date DESC, c.name
+SELECT
+    -- Shift the UTC timestamp to local time BEFORE extracting the date
+    DATE(t.created_at, 'localtime') as sale_date,
+    c.name as category_name,
+    SUM(ti.line_total) as category_total
+FROM transactions t
+JOIN transaction_items ti ON t.id = ti.transaction_id
+JOIN products p ON ti.product_id = p.id
+JOIN categories c ON p.category_id = c.id
+WHERE t.transaction_type = 'purchase'
+  -- Ensure the filter also uses the local date shift
+  AND DATE(t.created_at, 'localtime') >= ?
+GROUP BY DATE(t.created_at, 'localtime'), c.name
+ORDER BY sale_date DESC, c.name
     """, (start_date.strftime('%Y-%m-%d'),))
 
     daily_sales = {}
