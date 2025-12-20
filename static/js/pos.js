@@ -15,7 +15,7 @@ let warningThresholdMinutes = 2; // Default: yellow after 2 minutes
 // API Base URL
 const API_URL = window.location.origin + '/api';
 
-// Load settings (prep queue thresholds)
+// Load settings (prep queue thresholds and camp name)
 async function loadSettings() {
     try {
         const response = await fetch(`${API_URL}/settings`);
@@ -25,6 +25,19 @@ async function loadSettings() {
             // Load both warning and urgent thresholds from settings
             warningThresholdMinutes = parseInt(settings.prep_queue_warning_time || '2');
             urgentThresholdMinutes = parseInt(settings.prep_queue_urgent_time || '5');
+
+            // Update camp name in header if provided
+            if (settings.camp_name) {
+                const headerTitle = document.querySelector('.header h1');
+                if (headerTitle) {
+                    // Keep the logo, just update the text
+                    const logo = headerTitle.querySelector('img');
+                    headerTitle.textContent = settings.camp_name;
+                    if (logo) {
+                        headerTitle.insertBefore(logo, headerTitle.firstChild);
+                    }
+                }
+            }
 
             console.log(`POS prep queue thresholds: yellow=${warningThresholdMinutes}min, red=${urgentThresholdMinutes}min`);
         }
@@ -195,32 +208,23 @@ function selectAccount(account) {
 // Update account display in header
 function updateAccountDisplay() {
     const infoBox = document.getElementById('selectedAccountInfo');
+    const selectBtn = document.getElementById('btnSelectAccount');
 
     if (selectedAccount) {
-        let membersDisplay = '';
-        if (selectedAccount.account_type === 'family' && selectedAccount.family_members) {
-            let members = [];
-            if (Array.isArray(selectedAccount.family_members)) {
-                members = selectedAccount.family_members.filter(m => m && m.trim());
-            } else if (typeof selectedAccount.family_members === 'string') {
-                members = selectedAccount.family_members.split('\n').filter(m => m.trim());
-            }
-            if (members.length > 0) {
-                const escapedMembers = members.map(m => escapeHtml(m)).join(' • ');
-                membersDisplay = `<div class="account-members">${escapedMembers}</div>`;
-            }
-        }
-
+        // Show compact account info with just the name
         infoBox.innerHTML = `
-            <div class="account-info">
-                <div class="account-name">${escapeHtml(selectedAccount.account_name)}</div>
-                ${membersDisplay}
-            </div>
+            <div class="account-name">${escapeHtml(selectedAccount.account_name)}</div>
         `;
         infoBox.style.display = 'flex';
+
+        // Update button text
+        selectBtn.textContent = 'Change Account';
     } else {
         infoBox.style.display = 'none';
         infoBox.innerHTML = '';
+
+        // Reset button text
+        selectBtn.textContent = 'Select Account';
     }
 }
 

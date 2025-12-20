@@ -11,15 +11,7 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <div style="display: flex; gap: 1rem; align-items: center; flex: 1;">
-                <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
-                <button class="btn-select-account" onclick="showAccountSelector()">
-                    Select Account
-                </button>
-                <div id="selectedAccountInfo" class="account-info-box" style="display: none;">
-                    <!-- Account info will be populated here -->
-                </div>
-            </div>
+            <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
             <div class="header-nav">
                 <!-- Admin-only navigation -->
                 <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
@@ -33,15 +25,27 @@
 
         <!-- Main Content -->
         <div class="main-content">
-            <!-- Products Grid -->
-            <div class="products-section">
-                <h2>Products</h2>
-                <div id="productsGrid" class="products-grid">
-                    <!-- Products loaded dynamically -->
+            <!-- Left Column: Products -->
+            <div class="products-column">
+                <!-- Account Selection Bar -->
+                <div class="account-bar">
+                    <button class="btn-select-account" id="btnSelectAccount" onclick="showAccountSelector()">
+                        Select Account
+                    </button>
+                    <div id="selectedAccountInfo" class="account-info-compact" style="display: none;">
+                        <!-- Account info will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-section">
+                    <div id="productsGrid" class="products-grid">
+                        <!-- Products loaded dynamically -->
+                    </div>
                 </div>
             </div>
 
-            <!-- Cart Section -->
+            <!-- Right Column: Cart -->
             <div class="cart-section">
                 <h2>Current Order</h2>
                 <div id="cartItems" class="cart-items">

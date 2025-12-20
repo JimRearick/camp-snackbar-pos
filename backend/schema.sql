@@ -141,27 +141,32 @@ CREATE INDEX idx_prep_queue_status ON prep_queue(status, ordered_at);
 -- Default data: Users
 -- All passwords: camp2026
 INSERT INTO users (username, password_hash, role, full_name, is_active) VALUES
-    ('admin', 'scrypt:32768:8:1$OHbLJzRT87H9wNGB$c212dd35cd6b77b84939f9bd4200b7cbdb439c288bf3b78cbf63621191b3b5348c2137d17914759ba3a5b8463ee1493df66c29356d1202925a90d6a473dcb3e9', 'admin', 'Administrator', 1),
-    ('pos', 'scrypt:32768:8:1$J6DzHkKWH3iPp0DA$ae0051d56c587ec01933e78fabf2d0324d75ca4a23844d1dd584a6ac6d82b5a95431394cf43ada63d8b64c5019c72d0b6a04f06a5faa14126b2a003d0611f19d', 'pos', 'POS Terminal', 1),
-    ('prep', 'scrypt:32768:8:1$Ar7ybwQnaTOM540o$a70e726cde1f13e011435180a0504ecf25995b7fb7f5966787803af8b44a4843aa90fd5645f714e51c4a85f1f1141e82bcf2535bc4d66a75044a94265c6b30e0', 'prep', 'Prep Station', 1);
+    ('admin', '$2b$12$lWRqicqUpVKUqioxpCvCZu6H7iAEjf7bmEr1O/u8v/1YxxPGWLjJK', 'admin', 'Administrator', 1),
+    ('pos', '$2b$12$K4ysDuPofjq2D5VIy9puauSqgwRMS.rLJx5WvVhr.swxxX4GlHWPG', 'pos', 'POS Terminal', 1),
+    ('prep', '$2b$12$3lI4ur0qiEtaS4tTx8z1F.TjZnG1.2gOWS91moa06OgVh2SUHQQhO', 'prep', 'Prep Station', 1);
 
 -- Default data: Categories
 INSERT INTO categories (name, display_order) VALUES
     ('Candy', 1),
     ('Soda', 2),
     ('Drinks', 3),
-    ('Grill', 4);
+    ('Grill', 4),
     ('Chips', 5);
 
 -- Default data: Products
 INSERT INTO products (category_id, name, price, display_order, requires_prep) VALUES
-    (1, 'Chocolate Bar', 1.50, 1, 0),
+    (1, 'Snickers', 1.50, 1, 0),
+    (1, 'Twix', 1.50, 1, 0),
+    (1, 'Crunch', 1.50, 1, 0),
+    (1, 'Kit Kat', 1.50, 1, 0),
+    (1, 'M&Ms', 1.50, 1, 0),
     (1, 'Gummy Bears', 1.25, 2, 0),
     (1, 'Skittles', 1.25, 3, 0),
     (2, 'Coca-Cola', 2.00, 1, 0),
     (2, 'Diet Coke', 2.00, 1, 0),
     (2, 'Sprite', 2.00, 2, 0),
     (2, 'Root Beer', 2.00, 3, 0),
+    (2, 'Seltzer', 2.00, 3, 0),
     (3, 'Bottled Water', 1.50, 1, 0),
     (3, 'Gatorade', 2.50, 2, 0),
     (3, 'Juice Box', 1.75, 3, 0),
@@ -171,8 +176,11 @@ INSERT INTO products (category_id, name, price, display_order, requires_prep) VA
     (4, 'Cheeseburger', 5.00, 1, 1),
     (4, 'Cheeseburger with Onions', 5.00, 1, 1),
     (4, 'Naked Cheeseburger', 5.00, 1, 1),
-    (4, 'Hot Dog', 3.50, 2, 1);
-    (5, 'Ruffles', 2.00, 2, 1);
+    (4, 'Hot Dog', 3.50, 2, 1),
+    (5, 'Ruffles', 2.00, 2, 0),
+    (5, 'Doritos', 2.00, 2, 0),
+    (5, 'Fritos', 2.00, 2, 0),
+    (5, 'Cheetos', 2.00, 2, 0);
 
 -- Default data: Settings
 INSERT INTO settings (key, value) VALUES

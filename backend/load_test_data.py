@@ -34,52 +34,37 @@ LAST_NAMES = [
     'Lee', 'Thompson', 'White', 'Harris', 'Clark', 'Lewis', 'Robinson'
 ]
 
-CABIN_NAMES = [
-    'Eagle', 'Bear', 'Wolf', 'Hawk', 'Deer', 'Fox', 'Otter', 'Beaver',
-    'Moose', 'Elk', 'Cougar', 'Lynx', 'Raccoon', 'Badger', 'Porcupine'
-]
-
 def get_family_name():
     """Generate a family account name"""
     return f"{random.choice(LAST_NAMES)} Family"
-
-def get_cabin_name():
-    """Generate a cabin name"""
-    return f"Cabin {random.choice(CABIN_NAMES)}"
 
 def get_individual_name():
     """Generate an individual name"""
     return f"{random.choice(FIRST_NAMES)} {random.choice(LAST_NAMES)}"
 
 def generate_family_members():
-    """Generate 2-5 family member names"""
+    """Generate 2-5 family member first names"""
     num_members = random.randint(2, 5)
     members = []
-    last_name = random.choice(LAST_NAMES)
 
-    # Parents
-    if random.random() > 0.3:  # 70% chance of having parents listed
-        members.append(f"Mr. {last_name}")
-        if random.random() > 0.5:
-            members.append(f"Mrs. {last_name}")
+    for _ in range(num_members):
+        members.append(random.choice(FIRST_NAMES))
 
-    # Kids
-    num_kids = random.randint(1, 3)
-    for _ in range(num_kids):
-        members.append(f"{random.choice(FIRST_NAMES)} {last_name}")
+    return members
 
-    return members[:num_members]
-
-def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
+def create_test_accounts(conn, num_family=15, num_individual=10):
     """Create test accounts"""
     cursor = conn.cursor()
     accounts_created = []
     used_names = set()  # Track used names to avoid duplicates
 
+    # Get the next available account number (using same format as app: A###)
+    cursor.execute("SELECT MAX(CAST(SUBSTR(account_number, 2) AS INTEGER)) as max_num FROM accounts WHERE account_number LIKE 'A%'")
+    result = cursor.fetchone()
+    next_num = (result[0] + 1) if result[0] else 100  # Start at A100 for test data
+
     print(f"Creating {num_family} family accounts...")
     for i in range(num_family):
-        account_number = f"FAM{1000 + i}"
-
         # Generate unique family name
         attempts = 0
         while attempts < 100:
@@ -90,6 +75,8 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
             attempts += 1
 
         family_members = generate_family_members()
+        account_number = f"A{next_num:03d}"
+        next_num += 1
 
         cursor.execute('''
             INSERT INTO accounts (account_number, account_name, account_type, family_members, active)
@@ -104,8 +91,6 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
 
     print(f"Creating {num_individual} individual accounts...")
     for i in range(num_individual):
-        account_number = f"IND{2000 + i}"
-
         # Generate unique individual name
         attempts = 0
         while attempts < 100:
@@ -115,6 +100,9 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
                 break
             attempts += 1
 
+        account_number = f"A{next_num:03d}"
+        next_num += 1
+
         cursor.execute('''
             INSERT INTO accounts (account_number, account_name, account_type, active)
             VALUES (?, ?, 'individual', 1)
@@ -123,32 +111,6 @@ def create_test_accounts(conn, num_family=15, num_individual=10, num_cabin=5):
         accounts_created.append({
             'id': cursor.lastrowid,
             'type': 'individual',
-            'name': account_name
-        })
-
-    print(f"Creating {num_cabin} cabin/group accounts...")
-    for i in range(num_cabin):
-        account_number = f"CAB{3000 + i}"
-
-        # Generate unique cabin name
-        attempts = 0
-        while attempts < 100:
-            account_name = get_cabin_name()
-            if account_name not in used_names:
-                used_names.add(account_name)
-                break
-            attempts += 1
-
-        members = [get_individual_name() for _ in range(random.randint(4, 8))]
-
-        cursor.execute('''
-            INSERT INTO accounts (account_number, account_name, account_type, family_members, active)
-            VALUES (?, ?, 'family', ?, 1)
-        ''', (account_number, account_name, json.dumps(members)))
-
-        accounts_created.append({
-            'id': cursor.lastrowid,
-            'type': 'family',
             'name': account_name
         })
 
@@ -334,15 +296,27 @@ def clear_existing_test_data(conn):
     """Remove any existing test data"""
     cursor = conn.cursor()
 
-    # Check if test data exists
-    cursor.execute("SELECT COUNT(*) FROM accounts WHERE account_number LIKE 'FAM%' OR account_number LIKE 'IND%' OR account_number LIKE 'CAB%'")
+    # Check if test data exists (look for A### >= A100, or old numeric/FAM%/IND% formats)
+    cursor.execute("""
+        SELECT COUNT(*) FROM accounts
+        WHERE (account_number LIKE 'A%' AND CAST(SUBSTR(account_number, 2) AS INTEGER) >= 100)
+           OR (account_number GLOB '[0-9]*' AND CAST(account_number AS INTEGER) >= 1000)
+           OR account_number LIKE 'FAM%'
+           OR account_number LIKE 'IND%'
+    """)
     count = cursor.fetchone()[0]
 
     if count > 0:
         print(f"\nFound {count} existing test accounts. Removing old test data...")
 
         # Get IDs of test accounts
-        cursor.execute("SELECT id FROM accounts WHERE account_number LIKE 'FAM%' OR account_number LIKE 'IND%' OR account_number LIKE 'CAB%'")
+        cursor.execute("""
+            SELECT id FROM accounts
+            WHERE (account_number LIKE 'A%' AND CAST(SUBSTR(account_number, 2) AS INTEGER) >= 100)
+               OR (account_number GLOB '[0-9]*' AND CAST(account_number AS INTEGER) >= 1000)
+               OR account_number LIKE 'FAM%'
+               OR account_number LIKE 'IND%'
+        """)
         test_account_ids = [row[0] for row in cursor.fetchall()]
 
         if test_account_ids:
@@ -391,8 +365,7 @@ def main():
         accounts = create_test_accounts(
             conn,
             num_family=15,      # Family accounts
-            num_individual=10,   # Individual accounts
-            num_cabin=5          # Cabin/group accounts
+            num_individual=10   # Individual accounts
         )
 
         # Create transactions

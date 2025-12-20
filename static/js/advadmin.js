@@ -10,6 +10,37 @@ const API_URL = '/api';
 
 function initAdvAdmin() {
     loadSettings();
+    updateHeaderCampName();
+}
+
+// Update header with camp name from settings
+async function updateHeaderCampName() {
+    try {
+        const response = await fetch(`${API_URL}/settings`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const settings = await response.json();
+
+        // Update camp name in header if provided
+        if (settings.camp_name) {
+            const headerTitle = document.querySelector('.header h1');
+            if (headerTitle) {
+                // Keep the logo, just update the text
+                const logo = headerTitle.querySelector('img');
+                headerTitle.textContent = settings.camp_name;
+                if (logo) {
+                    headerTitle.insertBefore(logo, headerTitle.firstChild);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading camp name:', error);
+    }
 }
 
 // ============================================================================
@@ -85,14 +116,7 @@ async function loadTestData() {
             output.style.display = 'block';
         }
 
-        showSuccess('Test data loaded successfully! Refresh the Admin or POS page to see new accounts.');
-
-        // Suggest page reload
-        setTimeout(() => {
-            if (confirm('Test data loaded! Would you like to refresh this page to see changes in other tabs?')) {
-                window.location.reload();
-            }
-        }, 2000);
+        showSuccess('Test data loaded successfully!');
     } catch (error) {
         console.error('Error loading test data:', error);
         spinner.style.display = 'none';
@@ -134,14 +158,7 @@ async function deleteTestData() {
         // Show success message
         message.innerHTML = `<span style="color: #28a745;">✓ ${result.message}</span>`;
 
-        showSuccess('Test data deleted successfully! Refresh the Admin or POS page to see changes.');
-
-        // Suggest page reload
-        setTimeout(() => {
-            if (confirm('Test data deleted! Would you like to refresh this page to see changes in other tabs?')) {
-                window.location.reload();
-            }
-        }, 2000);
+        showSuccess('Test data deleted successfully!');
     } catch (error) {
         console.error('Error deleting test data:', error);
         spinner.style.display = 'none';
