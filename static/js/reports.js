@@ -1089,6 +1089,7 @@ window.loadAccountTransactionDetails = async function() {
 
         // Build transactions table
         let html = `
+            <div class="no-data">Selected ACCOUNT NAME</div>';
             <table class="report-table">
                 <thead>
                     <tr>

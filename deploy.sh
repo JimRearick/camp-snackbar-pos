@@ -140,15 +140,22 @@ logs() {
 update() {
     print_info "Updating Camp Snackbar POS..."
 
-    # Pull latest code
-    git pull
+    stop
+    
+    # Pull latest Container
+    docker compose pull
 
-    # Rebuild containers
-    docker compose down
-    docker compose build --no-cache
+    #Backup DB
+    backup
+
+    #Start new container
     docker compose up -d
 
     print_success "Updated successfully"
+
+    echo ""
+    echo "To view the logs"
+    echo "./deploy.sh logs app"
 }
 
 # Backup database
