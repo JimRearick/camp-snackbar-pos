@@ -1079,8 +1079,8 @@ window.loadAccountTransactionDetails = async function() {
         // Enable export button
         exportBtn.disabled = false;
 
-        // Clear summary section
-        summaryDiv.innerHTML = '';
+        // Set Account name in summary section
+        summaryDiv.innerHTML = `<h3 style="margin: 0 0 1rem 0; color: #333;text-align: center;">${escapeHtml(account.account_name)}</h3>`;
 
         if (transactions.length === 0) {
             container.innerHTML = '<div class="no-data">No transactions found for this account</div>';
@@ -1089,7 +1089,6 @@ window.loadAccountTransactionDetails = async function() {
 
         // Build transactions table
         let html = `
-            <div class="no-data">Selected ACCOUNT NAME</div>';
             <table class="report-table">
                 <thead>
                     <tr>
