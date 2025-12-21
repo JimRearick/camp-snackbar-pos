@@ -625,7 +625,7 @@ async function loadPrepQueueList() {
             sortedItems.forEach(item => {
                 const orderedAt = parseLocalDateTime(item.ordered_at);
                 const now = new Date();
-                const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+                const minutesWaiting = orderedAt ? Math.floor((now - orderedAt) / 1000 / 60) : 0;
 
                 let urgencyClass = '';
                 let timeText = `${minutesWaiting} min ago`;
@@ -668,7 +668,7 @@ async function loadPrepQueueList() {
             Object.values(grouped).forEach(order => {
                 const orderedAt = parseLocalDateTime(order.ordered_at);
                 const now = new Date();
-                const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+                const minutesWaiting = orderedAt ? Math.floor((now - orderedAt) / 1000 / 60) : 0;
 
                 let urgencyClass = '';
                 let timeText = `${minutesWaiting} min ago`;

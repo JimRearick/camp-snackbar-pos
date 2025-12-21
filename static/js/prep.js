@@ -225,7 +225,7 @@ function createPrepCard(item) {
     // Calculate time waiting
     const orderedAt = parseLocalDateTime(item.ordered_at);
     const now = new Date();
-    const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+    const minutesWaiting = orderedAt ? Math.floor((now - orderedAt) / 1000 / 60) : 0;
 
     // Apply urgency styling
     let urgencyClass = '';
@@ -357,7 +357,7 @@ function createOrderCard(order) {
     // Calculate time waiting
     const orderedAt = parseLocalDateTime(order.ordered_at);
     const now = new Date();
-    const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
+    const minutesWaiting = orderedAt ? Math.floor((now - orderedAt) / 1000 / 60) : 0;
 
     // Apply urgency styling
     let urgencyClass = '';

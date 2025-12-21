@@ -131,9 +131,23 @@ export function parseLocalDateTime(localTimestamp) {
 
     // Backend returns local time strings like "2025-12-20 17:37:21"
     // Parse as local time by constructing Date from components (avoids timezone conversion)
-    const [datePart, timePart] = localTimestamp.split(' ');
-    const [year, month, day] = datePart.split('-').map(Number);
-    const [hour, minute, second] = (timePart || '00:00:00').split(':').map(Number);
+    const parts = String(localTimestamp).split(' ');
+    if (parts.length < 1) return null;
+
+    const datePart = parts[0];
+    const timePart = parts[1] || '00:00:00';
+
+    const dateParts = datePart.split('-');
+    const timeParts = timePart.split(':');
+
+    if (dateParts.length !== 3) return null;
+
+    const year = Number(dateParts[0]);
+    const month = Number(dateParts[1]);
+    const day = Number(dateParts[2]);
+    const hour = Number(timeParts[0] || 0);
+    const minute = Number(timeParts[1] || 0);
+    const second = Number(timeParts[2] || 0);
 
     // Create date in local timezone (month is 0-indexed)
     return new Date(year, month - 1, day, hour, minute, second);
