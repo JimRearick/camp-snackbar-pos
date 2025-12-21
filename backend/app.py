@@ -619,25 +619,27 @@ def get_transactions():
     
     conn = get_db()
     query = """
-        SELECT t.*, a.account_name 
+        SELECT t.id, t.account_id, a.account_name, t.transaction_type,
+               t.total_amount, t.operator_name, t.notes,
+               datetime(t.created_at, 'localtime') as created_at
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
         WHERE 1=1
     """
     params = []
-    
+
     if account_id:
         query += " AND t.account_id = ?"
         params.append(account_id)
-    
+
     if start_date:
-        query += " AND DATE(t.created_at) >= ?"
+        query += " AND DATE(t.created_at, 'localtime') >= ?"
         params.append(start_date)
-    
+
     if end_date:
-        query += " AND DATE(t.created_at) <= ?"
+        query += " AND DATE(t.created_at, 'localtime') <= ?"
         params.append(end_date)
-    
+
     query += " ORDER BY t.created_at DESC LIMIT ?"
     params.append(limit)
     
@@ -682,7 +684,9 @@ def get_transaction(transaction_id):
     conn = get_db()
 
     cursor = conn.execute("""
-        SELECT t.*, a.account_name
+        SELECT t.id, t.account_id, a.account_name, t.transaction_type,
+               t.total_amount, t.operator_name, t.notes, t.has_been_adjusted,
+               datetime(t.created_at, 'localtime') as created_at
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
         WHERE t.id = ?
