@@ -1636,19 +1636,18 @@ def serve_static(path):
 # Scheduled Tasks
 # ============================================================================
 
-def check_internet_connectivity(host='8.8.8.8', timeout=3):
-    """Check if internet is available by pinging a reliable host"""
-    import subprocess
+def check_internet_connectivity(host='8.8.8.8', port=53, timeout=3):
+    """Check if internet is available by attempting to connect to a reliable host"""
+    import socket
     try:
-        # Ping Google DNS (works on both Linux and Windows)
-        result = subprocess.run(
-            ['ping', '-c', '1', '-W', str(timeout), host],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=timeout + 1
-        )
-        return result.returncode == 0
-    except Exception:
+        # Try to connect to Google DNS on port 53 (DNS service)
+        # This works without needing ping command
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(timeout)
+        sock.connect((host, port))
+        sock.close()
+        return True
+    except (socket.timeout, socket.error, OSError):
         return False
 
 def rsync_backup_to_remote(local_path, remote_config, max_retries=3):
