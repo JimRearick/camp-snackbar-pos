@@ -1398,8 +1398,11 @@ def get_daily_sales_report():
 
     conn = get_db()
 
-    # Calculate date range using local time (14 days including today)
-    end_date = datetime.now().date()
+    # Get today's date according to the database's local time setting
+    # This ensures consistency between the SQL query and our date range calculations
+    cursor = conn.execute("SELECT DATE('now', 'localtime') as today")
+    db_today = cursor.fetchone()['today']
+    end_date = datetime.strptime(db_today, '%Y-%m-%d').date()
     start_date = end_date - timedelta(days=13)
 
     # Get sales by day and category for the last 14 days (including today)
