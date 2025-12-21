@@ -1031,7 +1031,7 @@ async function viewTransactionDetails(transactionId) {
         window.adjustModeEnabled = false;
 
         const detailsDiv = document.getElementById('transactionDetails');
-        const date = new Date(data.created_at);
+        const dateTimeStr = formatLocalDateTime(data.created_at);
 
         // Check if transaction has already been adjusted
         const hasBeenAdjusted = data.has_been_adjusted || false;
@@ -1096,7 +1096,7 @@ async function viewTransactionDetails(transactionId) {
             </div>
             <div class="detail-row">
                 <span class="detail-label">Date/Time:</span>
-                <span class="detail-value">${escapeHtml(date.toLocaleString())}</span>
+                <span class="detail-value">${escapeHtml(dateTimeStr)}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Account:</span>
@@ -1232,7 +1232,7 @@ function displayUsers() {
             <td>${escapeHtml(user.full_name || '-')}</td>
             <td><span class="type-badge">${escapeHtml(user.role)}</span></td>
             <td>${statusBadge}</td>
-            <td>${escapeHtml(new Date(user.created_at).toLocaleDateString())}</td>
+            <td>${escapeHtml(formatLocalDate(user.created_at))}</td>
             <td style="text-align: right;">
                 <button class="btn-edit" onclick="editUser(${user.id})">Edit</button>
             </td>

@@ -1,5 +1,5 @@
 // Advanced Admin JavaScript
-import { escapeHtml } from './utils/escape.js';
+import { escapeHtml, formatLocalDateTime } from './utils/escape.js';
 import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
 
 const API_URL = '/api';
@@ -358,7 +358,7 @@ async function viewBackupLog() {
         html += `----------|---------|---------|----------------------|---------------------------\n`;
 
         backups.forEach(backup => {
-            const date = new Date(backup.created_at).toLocaleString();
+            const date = formatLocalDateTime(backup.created_at);
             const size = backup.file_size ? `${(backup.file_size / 1024).toFixed(0)} KB` : '-';
             const type = backup.backup_type.padEnd(9);
             const status = backup.status.padEnd(7);

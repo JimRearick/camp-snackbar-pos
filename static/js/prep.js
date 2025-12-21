@@ -5,7 +5,7 @@
 
 import { API_URL } from './utils/constants.js';
 import { socket } from './utils/socket.js';
-import { escapeHtml } from './utils/escape.js';
+import { escapeHtml, parseLocalDateTime } from './utils/escape.js';
 import { fetchPost } from './utils/csrf.js';
 
 // State
@@ -208,7 +208,7 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
     }
 
     // Sort by oldest first
-    ordersToDisplay.sort((a, b) => new Date(a.ordered_at) - new Date(b.ordered_at));
+    ordersToDisplay.sort((a, b) => parseLocalDateTime(a.ordered_at) - parseLocalDateTime(b.ordered_at));
 
     // Render each order
     ordersToDisplay.forEach(order => {
@@ -223,7 +223,7 @@ function createPrepCard(item) {
     card.id = `prep-item-${item.id}`;
 
     // Calculate time waiting
-    const orderedAt = new Date(item.ordered_at);
+    const orderedAt = parseLocalDateTime(item.ordered_at);
     const now = new Date();
     const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
 
@@ -355,7 +355,7 @@ function createOrderCard(order) {
     card.id = `prep-order-${order.transaction_id}`;
 
     // Calculate time waiting
-    const orderedAt = new Date(order.ordered_at);
+    const orderedAt = parseLocalDateTime(order.ordered_at);
     const now = new Date();
     const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
 

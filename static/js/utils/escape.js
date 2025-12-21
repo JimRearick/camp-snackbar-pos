@@ -117,39 +117,65 @@ export function escapeRegex(text) {
 }
 
 /**
- * Formats a UTC timestamp string to local date and time
- * SQLite CURRENT_TIMESTAMP returns UTC, this converts to local timezone
+ * Parses a local timestamp string into a Date object
+ * The backend returns timestamps already in local time via SQLite's localtime function
  *
- * @param {string} utcTimestamp - UTC timestamp from database (e.g., "2025-12-17 15:30:00")
- * @returns {string} - Formatted local date and time (e.g., "12/17/2025 10:30:00 AM")
+ * @param {string} localTimestamp - Local timestamp from database (e.g., "2025-12-17 15:30:00")
+ * @returns {Date} - Date object in local timezone
  *
  * @example
- * const localTime = formatLocalDateTime("2025-12-17 15:30:00");
- * // Returns: "12/17/2025 10:30:00 AM" (if timezone is EST)
+ * const date = parseLocalDateTime("2025-12-17 15:30:00");
  */
-export function formatLocalDateTime(utcTimestamp) {
-    if (!utcTimestamp) return '';
+export function parseLocalDateTime(localTimestamp) {
+    if (!localTimestamp) return null;
 
-    // SQLite timestamps are in UTC but don't have 'Z' suffix
-    // Add 'Z' to indicate UTC timezone
-    const utcString = utcTimestamp.includes('Z') ? utcTimestamp : utcTimestamp + 'Z';
-    const date = new Date(utcString);
+    // Backend returns local time strings like "2025-12-20 17:37:21"
+    // Parse as local time by constructing Date from components (avoids timezone conversion)
+    const [datePart, timePart] = localTimestamp.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hour, minute, second] = (timePart || '00:00:00').split(':').map(Number);
+
+    // Create date in local timezone (month is 0-indexed)
+    return new Date(year, month - 1, day, hour, minute, second);
+}
+
+/**
+ * Formats a local timestamp string to formatted date and time
+ * The backend now returns timestamps already converted to local time via SQLite's localtime function
+ *
+ * @param {string} localTimestamp - Local timestamp from database (e.g., "2025-12-17 15:30:00")
+ * @returns {string} - Formatted local date and time (e.g., "12/17/2025 3:30:00 PM")
+ *
+ * @example
+ * const formatted = formatLocalDateTime("2025-12-17 15:30:00");
+ * // Returns: "12/17/2025 3:30:00 PM"
+ */
+export function formatLocalDateTime(localTimestamp) {
+    if (!localTimestamp) return '';
+
+    const date = parseLocalDateTime(localTimestamp);
+    if (!date) return '';
 
     // Format to local date and time
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 }
 
 /**
- * Formats a UTC timestamp string to local date only
+ * Formats a local timestamp string to date only
  *
- * @param {string} utcTimestamp - UTC timestamp from database
+ * @param {string} localTimestamp - Local timestamp from database
  * @returns {string} - Formatted local date (e.g., "12/17/2025")
  */
-export function formatLocalDate(utcTimestamp) {
-    if (!utcTimestamp) return '';
+export function formatLocalDate(localTimestamp) {
+    if (!localTimestamp) return '';
 
-    const utcString = utcTimestamp.includes('Z') ? utcTimestamp : utcTimestamp + 'Z';
-    const date = new Date(utcString);
+    // Backend returns local time strings like "2025-12-20 17:37:21"
+    // Parse as local time by constructing Date from components
+    const [datePart] = localTimestamp.split(' ');
+    const [year, month, day] = datePart.split('-').map(Number);
+
+    // Create date in local timezone (month is 0-indexed)
+    const date = new Date(year, month - 1, day);
 
     return date.toLocaleDateString();
 }
@@ -159,5 +185,6 @@ window.escapeHtml = escapeHtml;
 window.escapeAttribute = escapeAttribute;
 window.createSafeElement = createSafeElement;
 window.sanitizeUrl = sanitizeUrl;
+window.parseLocalDateTime = parseLocalDateTime;
 window.formatLocalDateTime = formatLocalDateTime;
 window.formatLocalDate = formatLocalDate;

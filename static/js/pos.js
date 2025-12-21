@@ -1,5 +1,5 @@
 // Import security utilities
-import { escapeHtml } from './utils/escape.js';
+import { escapeHtml, parseLocalDateTime } from './utils/escape.js';
 import { fetchPost } from './utils/csrf.js';
 import { socket } from './utils/socket.js';
 
@@ -617,13 +617,13 @@ async function loadPrepQueueList() {
             // Show one line per product per account
             // Sort by ordered_at timestamp (FIFO - oldest first)
             const sortedItems = [...data.items].sort((a, b) => {
-                const dateA = new Date(a.ordered_at);
-                const dateB = new Date(b.ordered_at);
+                const dateA = parseLocalDateTime(a.ordered_at);
+                const dateB = parseLocalDateTime(b.ordered_at);
                 return dateA - dateB; // Oldest first (FIFO)
             });
 
             sortedItems.forEach(item => {
-                const orderedAt = new Date(item.ordered_at);
+                const orderedAt = parseLocalDateTime(item.ordered_at);
                 const now = new Date();
                 const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
 
@@ -666,7 +666,7 @@ async function loadPrepQueueList() {
 
             // Render grouped by order
             Object.values(grouped).forEach(order => {
-                const orderedAt = new Date(order.ordered_at);
+                const orderedAt = parseLocalDateTime(order.ordered_at);
                 const now = new Date();
                 const minutesWaiting = Math.floor((now - orderedAt) / 1000 / 60);
 

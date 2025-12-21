@@ -4,7 +4,7 @@
 
 import { API_URL } from './utils/constants.js';
 import { apiGet } from './utils/api.js';
-import { escapeHtml } from './utils/escape.js';
+import { escapeHtml, formatLocalDateTime } from './utils/escape.js';
 
 // ============================================================================
 // Initialization
@@ -1109,8 +1109,7 @@ window.loadAccountTransactionDetails = async function() {
         `;
 
         transactions.forEach(t => {
-            const date = new Date(t.created_at);
-            const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            const dateStr = formatLocalDateTime(t.created_at);
             const amountClass = t.transaction_type === 'purchase' ? 'negative' : 'positive';
             const notes = t.notes || '';
 
@@ -1164,8 +1163,7 @@ window.exportAccountDetailsToCSV = function() {
     ];
 
     const rows = transactions.map(t => {
-        const date = new Date(t.created_at);
-        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        const dateStr = formatLocalDateTime(t.created_at);
         return [
             t.id,
             dateStr,
