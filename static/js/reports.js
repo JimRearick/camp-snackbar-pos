@@ -476,10 +476,12 @@ function drawDailySalesChart(data) {
         });
 
         // Draw date label with day of week
-        const date = new Date(day.date);
+        // Parse date string as local date (avoid timezone conversion)
+        const [year, month, dayNum] = day.date.split('-').map(Number);
+        const date = new Date(year, month - 1, dayNum); // month is 0-indexed
         const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const dayOfWeek = dayNames[date.getDay()];
-        const dateLabel = (date.getMonth() + 1) + '/' + date.getDate();
+        const dateLabel = month + '/' + dayNum;
 
         ctx.save();
         ctx.translate(x + barWidth / 2, padding.top + chartHeight + 15);
@@ -546,7 +548,9 @@ function createDailySalesTable(data) {
     // Add rows for each day (reverse to show most recent first)
     const reversedData = [...data.daily_data].reverse();
     reversedData.forEach(day => {
-        const date = new Date(day.date);
+        // Parse date string as local date (avoid timezone conversion)
+        const [year, month, dayNum] = day.date.split('-').map(Number);
+        const date = new Date(year, month - 1, dayNum); // month is 0-indexed
         const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -591,7 +595,9 @@ window.exportDailySalesToCSV = function() {
     const headers = ['Date', ...dailySalesData.categories, 'Total'];
 
     const rows = [...dailySalesData.daily_data].reverse().map(day => {
-        const date = new Date(day.date);
+        // Parse date string as local date (avoid timezone conversion)
+        const [year, month, dayNum] = day.date.split('-').map(Number);
+        const date = new Date(year, month - 1, dayNum); // month is 0-indexed
         const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'short' });
         const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
