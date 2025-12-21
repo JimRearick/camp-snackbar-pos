@@ -24,9 +24,11 @@ RUN pip install --no-cache-dir gunicorn==21.2.0
 # Stage 2: Runtime stage
 FROM python:3.11-slim
 
-# Install runtime dependencies for healthcheck
+# Install runtime dependencies (healthcheck, backup tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
+    rsync \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Create directories for data persistence

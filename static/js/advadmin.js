@@ -292,6 +292,92 @@ function showError(message) {
 }
 
 // ============================================================================
+// Backup Management
+// ============================================================================
+
+async function createManualBackup(includeInternet) {
+    const buttonText = includeInternet ? '☁️ Backup to Remote Server' : '💾 Create Local Backup';
+
+    if (!confirm(`Create a ${includeInternet ? 'local and remote' : 'local'} backup now?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetchPost(`${API_URL}/backup/create`, {
+            include_internet: includeInternet
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Backup failed');
+        }
+
+        const result = await response.json();
+
+        let message = `Local backup created: ${result.backup_file} (${(result.file_size / 1024).toFixed(1)} KB)`;
+
+        if (includeInternet && result.internet_backup) {
+            if (result.internet_backup.success) {
+                message += `\n\nRemote backup: ${result.internet_backup.message}`;
+                showSuccess(message);
+            } else {
+                message += `\n\nRemote backup failed: ${result.internet_backup.error}`;
+                showError(message);
+            }
+        } else {
+            showSuccess(message);
+        }
+
+    } catch (error) {
+        console.error('Backup error:', error);
+        showError('Backup failed: ' + error.message);
+    }
+}
+
+async function viewBackupLog() {
+    try {
+        const response = await fetch(`${API_URL}/backup/list`, {
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load backup log');
+        }
+
+        const data = await response.json();
+        const backups = data.backups || [];
+
+        if (backups.length === 0) {
+            alert('No backup records found.');
+            return;
+        }
+
+        // Create modal/table to display backup log
+        let html = '=== BACKUP LOG (Last 50) ===\n\n';
+        html += `Type      | Status  | Size    | Date                 | Path/Error\n`;
+        html += `----------|---------|---------|----------------------|---------------------------\n`;
+
+        backups.forEach(backup => {
+            const date = new Date(backup.created_at).toLocaleString();
+            const size = backup.file_size ? `${(backup.file_size / 1024).toFixed(0)} KB` : '-';
+            const type = backup.backup_type.padEnd(9);
+            const status = backup.status.padEnd(7);
+            const sizeStr = size.padEnd(7);
+            const path = backup.error_message || backup.backup_path.split('/').pop() || '-';
+
+            html += `${type} | ${status} | ${sizeStr} | ${date} | ${path}\n`;
+        });
+
+        // Show in alert (simple approach)
+        alert(html);
+
+    } catch (error) {
+        console.error('Error loading backup log:', error);
+        showError('Failed to load backup log: ' + error.message);
+    }
+}
+
+// ============================================================================
 // Expose functions to window
 // ============================================================================
 
@@ -302,3 +388,5 @@ window.deleteTestData = deleteTestData;
 window.loadSettings = loadSettings;
 window.saveSettings = saveSettings;
 window.updateBackupTimeVisibility = updateBackupTimeVisibility;
+window.createManualBackup = createManualBackup;
+window.viewBackupLog = viewBackupLog;

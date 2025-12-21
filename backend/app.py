@@ -1492,18 +1492,18 @@ ORDER BY sale_date DESC, c.name
 @app.route('/api/backup/create', methods=['POST'])
 @admin_required
 def create_backup():
-    """Create manual backup"""
-    data = request.get_json()
-    
+    """Create manual backup with optional remote upload"""
+    data = request.get_json() or {}
+
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup_filename = f'backup_{timestamp}.db'
     backup_path = os.path.join(BACKUP_DIR, backup_filename)
-    
+
     try:
+        # Create local backup
         shutil.copy2(DB_PATH, backup_path)
         file_size = os.path.getsize(backup_path)
-        
-        # Log backup
+
         conn = get_db()
         conn.execute(
             """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
@@ -1511,20 +1511,49 @@ def create_backup():
             ('local', backup_path, 'success', file_size)
         )
         conn.commit()
-        conn.close()
-        
-        # Internet backup if requested
-        if data.get('include_internet'):
-            # TODO: Implement cloud backup (S3, SFTP, etc.)
-            pass
-        
-        return jsonify({
+
+        result = {
             'success': True,
             'backup_file': backup_filename,
             'file_size': file_size,
-            'backup_path': BACKUP_DIR
-        })
-    
+            'backup_path': BACKUP_DIR,
+            'internet_backup': None
+        }
+
+        # Remote backup if requested
+        if data.get('include_internet'):
+            cursor = conn.execute("SELECT value FROM settings WHERE key = 'internet_backup_url'")
+            config_result = cursor.fetchone()
+            remote_config = config_result[0] if config_result else ''
+
+            if remote_config and remote_config.strip():
+                if check_internet_connectivity():
+                    success, message = rsync_backup_to_remote(backup_path, remote_config)
+
+                    if success:
+                        conn.execute(
+                            """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
+                               VALUES (?, ?, ?, ?)""",
+                            ('internet', remote_config + backup_filename, 'success', file_size)
+                        )
+                        result['internet_backup'] = {'success': True, 'message': message}
+                    else:
+                        conn.execute(
+                            """INSERT INTO backup_log (backup_type, backup_path, status, file_size, error_message)
+                               VALUES (?, ?, ?, ?, ?)""",
+                            ('internet', remote_config + backup_filename, 'failed', file_size, message)
+                        )
+                        result['internet_backup'] = {'success': False, 'error': message}
+
+                    conn.commit()
+                else:
+                    result['internet_backup'] = {'success': False, 'error': 'No internet connectivity'}
+            else:
+                result['internet_backup'] = {'success': False, 'error': 'Remote backup not configured'}
+
+        conn.close()
+        return jsonify(result)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1607,16 +1636,90 @@ def serve_static(path):
 # Scheduled Tasks
 # ============================================================================
 
+def check_internet_connectivity(host='8.8.8.8', timeout=3):
+    """Check if internet is available by pinging a reliable host"""
+    import subprocess
+    try:
+        # Ping Google DNS (works on both Linux and Windows)
+        result = subprocess.run(
+            ['ping', '-c', '1', '-W', str(timeout), host],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout + 1
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
+
+def rsync_backup_to_remote(local_path, remote_config, max_retries=3):
+    """
+    Upload backup file to remote server using rsync over SSH
+
+    remote_config format: user@host:/path/to/backups/
+    Example: backupuser@backup.example.com:/var/backups/camp-snackbar/
+    """
+    import subprocess
+
+    if not remote_config or remote_config.strip() == '':
+        return False, "No remote backup configuration"
+
+    for attempt in range(max_retries):
+        try:
+            # rsync options:
+            # -a: archive mode (preserves permissions, timestamps)
+            # -z: compress during transfer
+            # -v: verbose
+            # --timeout=30: network timeout
+            result = subprocess.run(
+                [
+                    'rsync',
+                    '-azv',
+                    '--timeout=30',
+                    local_path,
+                    remote_config
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=60,
+                text=True
+            )
+
+            if result.returncode == 0:
+                return True, f"Successfully uploaded to {remote_config}"
+            else:
+                error_msg = result.stderr.strip() if result.stderr else "Unknown rsync error"
+                if attempt < max_retries - 1:
+                    print(f"Rsync attempt {attempt + 1} failed: {error_msg}. Retrying...")
+                    time.sleep(2 ** attempt)  # Exponential backoff: 1s, 2s, 4s
+                else:
+                    return False, f"Rsync failed after {max_retries} attempts: {error_msg}"
+
+        except subprocess.TimeoutExpired:
+            if attempt < max_retries - 1:
+                print(f"Rsync attempt {attempt + 1} timed out. Retrying...")
+                time.sleep(2 ** attempt)
+            else:
+                return False, f"Rsync timed out after {max_retries} attempts"
+
+        except FileNotFoundError:
+            return False, "rsync command not found - please install rsync"
+
+        except Exception as e:
+            return False, f"Rsync error: {str(e)}"
+
+    return False, "Upload failed"
+
 def scheduled_backup():
-    """Perform automated daily backup"""
+    """Perform automated daily backup (local + optional remote)"""
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     backup_filename = f'backup_auto_{timestamp}.db'
     backup_path = os.path.join(BACKUP_DIR, backup_filename)
-    
+
+    # Step 1: Create local backup
     try:
         shutil.copy2(DB_PATH, backup_path)
         file_size = os.path.getsize(backup_path)
-        
+
         conn = get_db()
         conn.execute(
             """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
@@ -1624,11 +1727,64 @@ def scheduled_backup():
             ('local', backup_path, 'success', file_size)
         )
         conn.commit()
+
+        print(f"✓ Local backup created: {backup_filename} ({file_size:,} bytes)")
+
+        # Step 2: Check if internet backup is enabled
+        cursor = conn.execute("SELECT value FROM settings WHERE key = 'internet_backup_url'")
+        result = cursor.fetchone()
+        remote_config = result[0] if result else ''
+
+        # Step 3: Attempt remote backup if configured
+        if remote_config and remote_config.strip():
+            print("Checking internet connectivity for remote backup...")
+
+            if check_internet_connectivity():
+                print("✓ Internet connection available")
+                print(f"Uploading to remote: {remote_config}")
+
+                success, message = rsync_backup_to_remote(backup_path, remote_config)
+
+                if success:
+                    print(f"✓ {message}")
+                    conn.execute(
+                        """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
+                           VALUES (?, ?, ?, ?)""",
+                        ('internet', remote_config + backup_filename, 'success', file_size)
+                    )
+                else:
+                    print(f"✗ Remote backup failed: {message}")
+                    conn.execute(
+                        """INSERT INTO backup_log (backup_type, backup_path, status, file_size, error_message)
+                           VALUES (?, ?, ?, ?, ?)""",
+                        ('internet', remote_config + backup_filename, 'failed', file_size, message)
+                    )
+
+                conn.commit()
+            else:
+                print("✗ No internet connection - skipping remote backup")
+                conn.execute(
+                    """INSERT INTO backup_log (backup_type, backup_path, status, error_message)
+                       VALUES (?, ?, ?, ?)""",
+                    ('internet', remote_config + backup_filename, 'failed', 'No internet connectivity')
+                )
+                conn.commit()
+
         conn.close()
-        
-        print(f"Automated backup created: {backup_filename}")
+
     except Exception as e:
-        print(f"Backup failed: {e}")
+        print(f"✗ Backup failed: {e}")
+        try:
+            conn = get_db()
+            conn.execute(
+                """INSERT INTO backup_log (backup_type, backup_path, status, error_message)
+                   VALUES (?, ?, ?, ?)""",
+                ('local', backup_path, 'failed', str(e))
+            )
+            conn.commit()
+            conn.close()
+        except:
+            pass
 
 def run_scheduler():
     """Run scheduled tasks"""

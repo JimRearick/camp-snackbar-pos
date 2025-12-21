@@ -16,7 +16,9 @@ services:
     volumes:
       # Persist database and backups
       - ./data:/app/data
-      - ./backups:/app/backups
+      - ./backups:/app/backend/backups
+      # Mount SSH keys for remote backup (read-only for security)
+      - ${HOME}/.ssh:/root/.ssh:ro
       # Sync timezone with host
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
