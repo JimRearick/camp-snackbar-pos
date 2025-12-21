@@ -129,9 +129,17 @@ export function escapeRegex(text) {
 export function parseLocalDateTime(localTimestamp) {
     if (!localTimestamp) return null;
 
-    // Backend returns local time strings like "2025-12-20 17:37:21"
+    // Backend returns local time strings in two formats:
+    // 1. Space-separated: "2025-12-20 17:37:21" (transactions)
+    // 2. ISO format: "2025-12-20T17:37:21" (prep queue)
     // Parse as local time by constructing Date from components (avoids timezone conversion)
-    const parts = String(localTimestamp).split(' ');
+
+    const str = String(localTimestamp);
+
+    // Replace 'T' with space to normalize both formats
+    const normalized = str.replace('T', ' ');
+    const parts = normalized.split(' ');
+
     if (parts.length < 1) return null;
 
     const datePart = parts[0];
