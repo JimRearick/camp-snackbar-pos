@@ -2,6 +2,7 @@ import { confirmDialog } from './utils/dialog.js';
 import { escapeHtml, formatLocalDateTime, formatLocalDate } from './utils/escape.js';
 import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
 import { socket } from './utils/socket.js';
+import { updatePageHeader } from './utils/settings.js';
 
 // Global state
 let authToken = localStorage.getItem('adminToken');
@@ -1553,18 +1554,8 @@ async function loadAdminSettings() {
         if (response.ok) {
             const settings = await response.json();
 
-            // Update camp name in header if provided
-            if (settings.camp_name) {
-                const headerTitle = document.querySelector('.header h1');
-                if (headerTitle) {
-                    // Keep the logo, just update the text
-                    const logo = headerTitle.querySelector('img');
-                    headerTitle.textContent = settings.camp_name;
-                    if (logo) {
-                        headerTitle.insertBefore(logo, headerTitle.firstChild);
-                    }
-                }
-            }
+            // Update page header with POS name
+            updatePageHeader(settings, 'Admin');
         }
     } catch (error) {
         console.error('Error loading settings:', error);

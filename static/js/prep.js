@@ -7,6 +7,7 @@ import { API_URL } from './utils/constants.js';
 import { socket } from './utils/socket.js';
 import { escapeHtml, parseLocalDateTime } from './utils/escape.js';
 import { fetchPost } from './utils/csrf.js';
+import { updatePageHeader } from './utils/settings.js';
 
 // State
 let prepQueue = [];
@@ -30,18 +31,8 @@ async function loadSettings() {
             warningThresholdMinutes = parseInt(settings.prep_queue_warning_time || '2');
             urgentThresholdMinutes = parseInt(settings.prep_queue_urgent_time || '5');
 
-            // Update camp name in header if provided
-            if (settings.camp_name) {
-                const headerTitle = document.querySelector('.header h1');
-                if (headerTitle) {
-                    // Keep the logo, just update the text
-                    const logo = headerTitle.querySelector('img');
-                    headerTitle.textContent = settings.camp_name;
-                    if (logo) {
-                        headerTitle.insertBefore(logo, headerTitle.firstChild);
-                    }
-                }
-            }
+            // Update page header with POS name
+            updatePageHeader(settings, 'Prep');
 
             console.log(`Prep queue thresholds: yellow=${warningThresholdMinutes}min, red=${urgentThresholdMinutes}min`);
         }

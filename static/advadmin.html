@@ -18,6 +18,7 @@
                 Settings
             </h1>
             <div class="cross-page-nav">
+                <div id="userInfo" class="user-info-container" style="display: none;"></div>
                 <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
                 <a href="/admin.html"><span class="icon">📋</span> Admin</a>
                 <a href="/reports.html"><span class="icon">📈</span> Reports</a>
@@ -43,9 +44,9 @@
                 </div>
                 <div class="admin-form" style="max-width: 600px;">
                     <div class="form-group">
-                        <label for="campName">Camp Name</label>
+                        <label for="campName">POS Name</label>
                         <input type="text" id="campName" class="form-input" placeholder="Summer Camp Snack Bar">
-                        <small style="color: #666;">Display name for your camp or organization</small>
+                        <small style="color: #666;">Display name for your POS system</small>
                     </div>
 
                     <div class="form-group">
@@ -64,46 +65,127 @@
             <!-- Backups Tab -->
             <div id="backupsTab" class="tab-content">
                 <div class="tab-header">
-                    <h2>💾 Backup Settings</h2>
+                    <h2>💾 Backup Management</h2>
                 </div>
-                <div class="admin-form" style="max-width: 600px;">
-                    <div class="form-group">
-                        <label>Automatic Backups</label>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                            <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;" onchange="updateBackupTimeVisibility()">
-                            <span>Enable automatic database backups</span>
-                        </label>
-                        <small style="color: #666;">Automatically backup the database daily</small>
-                    </div>
 
-                    <div class="form-group" id="backupTimeGroup">
-                        <label for="backupTime">Backup Time</label>
-                        <input type="time" id="backupTime" class="form-input" value="00:00">
-                        <small style="color: #666;">Time of day to perform automatic backup (24-hour format)</small>
-                    </div>
+                <!-- Two-column layout for tablet optimization -->
+                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; max-width: 1400px;">
 
-                    <div class="form-group">
-                        <label for="internetBackupUrl">Remote Backup Server (Optional)</label>
-                        <input type="text" id="internetBackupUrl" class="form-input" placeholder="user@backup-server.com:/var/backups/camp-snackbar/">
-                        <small style="color: #666;">
-                            rsync destination for remote backups (format: <code>user@host:/path/</code>)<br>
-                            Requires SSH key authentication. See <a href="/static/BACKUP_SETUP.md" target="_blank" style="color: #667eea;">backup documentation</a> for setup.
-                        </small>
-                    </div>
+                    <!-- Left Column: Settings & Actions -->
+                    <div class="admin-form">
+                        <h3 style="margin-top: 0; font-size: 1.2rem; color: #2d3748;">⚙️ Configuration</h3>
 
-                    <div class="form-group">
-                        <label>Backup Actions</label>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <button class="btn-secondary" onclick="createManualBackup(false)">💾 Create Local Backup</button>
-                            <button class="btn-secondary" onclick="createManualBackup(true)">☁️ Backup to Remote Server</button>
-                            <button class="btn-secondary" onclick="viewBackupLog()">📋 View Backup Log</button>
+                        <div class="form-group">
+                            <label>Automatic Backups</label>
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;" onchange="updateBackupTimeVisibility()">
+                                <span>Enable scheduled backups</span>
+                            </label>
+                            <small style="color: #666;">Automatically backup the database daily</small>
                         </div>
-                        <small style="color: #666;">Manually trigger backups or view backup history</small>
+
+                        <div class="form-group" id="backupTimeGroup">
+                            <label for="backupTime">Backup Time (Local)</label>
+                            <input type="time" id="backupTime" class="form-input" value="00:00">
+                            <small style="color: #666;">Daily backup time in server's local timezone (24-hour format). <strong>Requires app restart to take effect.</strong></small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="internetBackupUrl">Remote Backup Server (Optional)</label>
+                            <input type="text" id="internetBackupUrl" class="form-input" placeholder="user@backup-server.com:/var/backups/">
+                            <small style="color: #666;">
+                                Format: <code>user@host:/path/</code><br>
+                                <a href="/static/BACKUP_SETUP.md" target="_blank" style="color: #667eea;">Setup guide</a>
+                            </small>
+                        </div>
+
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                            <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
+                        </div>
+
+                        <!-- Restart Warning -->
+                        <div style="margin-top: 1.5rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
+                            <strong>⚠️ Important:</strong> Changes to backup time or enable/disable settings require an <strong>app restart</strong> to take effect.
+                            <br>
+                            <small style="margin-top: 0.5rem; display: block;">Run: <code style="background: #fff; padding: 0.2rem 0.4rem; border-radius: 3px; border: 1px solid #ddd;">docker compose restart</code></small>
+                        </div>
+
+                        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e2e8f0;">
+
+                        <h3 style="font-size: 1.2rem; color: #2d3748; margin-bottom: 1rem;">🔧 Manual Actions</h3>
+
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <button class="btn-secondary" onclick="createManualBackup(false)" style="justify-content: flex-start;">
+                                💾 Create Local Backup Now
+                            </button>
+                            <button class="btn-secondary" onclick="createManualBackup(true)" style="justify-content: flex-start;">
+                                ☁️ Backup to Remote Server Now
+                            </button>
+                            <button class="btn-secondary" onclick="refreshBackupLog()" style="justify-content: flex-start;">
+                                🔄 Refresh Backup Log
+                            </button>
+                        </div>
                     </div>
 
-                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                        <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
-                        <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
+                    <!-- Right Column: Backup Log -->
+                    <div style="display: flex; flex-direction: column; max-height: calc(100vh - 200px); min-height: 500px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-shrink: 0;">
+                            <h3 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📋 Backup History</h3>
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #666;">
+                                    <input type="checkbox" id="autoRefreshLog" checked onchange="toggleAutoRefresh()" style="cursor: pointer;">
+                                    Auto-refresh
+                                </label>
+                                <select id="logFilter" class="form-input" style="width: auto; padding: 0.4rem;" onchange="refreshBackupLog()">
+                                    <option value="all">All Backups</option>
+                                    <option value="auto">Automatic Only</option>
+                                    <option value="manual">Manual Only</option>
+                                    <option value="failed">Failed Only</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Backup Log Table -->
+                        <div id="backupLogContainer" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                            <table id="backupLogTable" style="width: 100%; border-collapse: collapse; font-size: 0.9rem; display: flex; flex-direction: column; height: 100%;">
+                                <thead style="flex-shrink: 0; background: #f7fafc; border-bottom: 2px solid #e2e8f0; display: table; width: 100%; table-layout: fixed;">
+                                    <tr>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Type</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Source</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Status</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 10%;">Size</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 18%;">Date/Time</th>
+                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 36%;">Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="backupLogBody" style="flex: 1; overflow-y: auto; display: block;">
+                                    <tr style="display: table; width: 100%; table-layout: fixed;">
+                                        <td colspan="6" style="padding: 2rem; text-align: center; color: #a0aec0;">
+                                            Loading backup history...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Backup Statistics -->
+                        <div id="backupStats" style="margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 8px; font-size: 0.9rem; color: #4a5568; flex-shrink: 0;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                                <div>
+                                    <strong>Total Backups:</strong> <span id="statTotal">-</span>
+                                </div>
+                                <div>
+                                    <strong>Automatic:</strong> <span id="statAuto">-</span>
+                                </div>
+                                <div>
+                                    <strong>Manual:</strong> <span id="statManual">-</span>
+                                </div>
+                                <div>
+                                    <strong>Success Rate:</strong> <span id="statSuccessRate">-</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -140,20 +222,19 @@
             <!-- Test Data Tab -->
             <div id="testdataTab" class="tab-content">
                 <div class="tab-header">
-                    <h2>🧪 Test Data Management</h2>
+                    <h2>🧪 Data Management</h2>
                 </div>
-                <div style="max-width: 600px;">
-                    <div style="padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap; max-width: 1200px;">
+                    <!-- Test Data Section -->
+                    <div style="flex: 1; min-width: 300px; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem;">Test Data</h3>
                         <p style="color: #666; margin-bottom: 1.5rem;">
-                            Load or delete sample test data for development and demo purposes.
+                            Load sample test data for development and demo purposes.
                             Test data includes 30 accounts (families, individuals, cabins) and 14 days of transaction history.
                         </p>
                         <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                             <button class="btn-primary" onclick="loadTestData()" style="background: #28a745; border-color: #28a745;">
                                 📥 Load Test Data
-                            </button>
-                            <button class="btn-secondary" onclick="deleteTestData()" style="background: #dc3545; border-color: #dc3545; color: white;">
-                                🗑️ Delete Test Data
                             </button>
                         </div>
                         <div id="testDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
@@ -164,15 +245,66 @@
                             <pre id="testDataOutput" style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; display: none;"></pre>
                         </div>
                     </div>
+
+                    <!-- Danger Zone Section -->
+                    <div style="flex: 1; min-width: 300px; padding: 1.5rem; background: #fff5f5; border-radius: 8px; border-left: 4px solid #dc3545;">
+                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: #dc3545;">⚠️ Danger Zone</h3>
+                        <p style="color: #666; margin-bottom: 1.5rem;">
+                            <strong>Warning:</strong> The following action will permanently delete all account and transaction data from the system. This operation cannot be undone.
+                        </p>
+                        <button class="btn-secondary" onclick="deleteAllData()" style="background: #dc3545; border-color: #dc3545; color: white;">
+                            🗑️ Delete All Accounts & Transactions
+                        </button>
+                        <div id="deleteDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="spinner" id="deleteDataSpinner" style="display: none;"></div>
+                                <span id="deleteDataMessage"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
     </div>
 
     <!-- Toast Messages -->
     <div id="successMessage" class="toast hidden"></div>
     <div id="errorMessage" class="toast toast-error hidden"></div>
 
+    <!-- Confirmation Modal -->
+    <div id="deleteConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; max-width: 500px; width: 90%; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+                <h2 style="margin: 0 0 1rem 0; color: #dc3545;">Delete All Data?</h2>
+            </div>
+
+            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <p style="margin: 0 0 0.75rem 0; font-weight: bold; color: #856404;">This action will permanently delete:</p>
+                <ul style="margin: 0; padding-left: 1.5rem; color: #856404;">
+                    <li>All customer accounts</li>
+                    <li>All transaction history</li>
+                    <li>All prep queue items</li>
+                </ul>
+                <p style="margin: 0.75rem 0 0 0; font-weight: bold; color: #dc3545;">This operation CANNOT be undone!</p>
+            </div>
+
+            <p style="margin-bottom: 1.5rem; color: #666; text-align: center;">Type <strong>DELETE</strong> below to confirm:</p>
+
+            <input type="text" id="deleteConfirmInput" placeholder="Type DELETE to confirm"
+                   style="width: 100%; padding: 0.75rem; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; margin-bottom: 1.5rem; text-align: center; font-weight: bold;"
+                   autocomplete="off">
+
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="cancelDeleteAll()"
+                        style="flex: 1; padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold;">
+                    Cancel
+                </button>
+                <button id="confirmDeleteBtn" onclick="confirmDeleteAll()" disabled
+                        style="flex: 1; padding: 0.75rem 1.5rem; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; opacity: 0.5;">
+                    Delete Everything
+                </button>
             </div>
         </div>
     </div>
@@ -180,15 +312,14 @@
     <!-- Authentication Check -->
     <script type="module">
         import { safeInitAuth } from './js/utils/auth.js';
+        import { initNavigation } from './js/utils/navigation.js';
 
         // Require Admin role only
-        safeInitAuth('admin', (user) => {
+        safeInitAuth('admin', async (user) => {
             console.log('Advanced Admin authenticated:', user.username);
 
-            // Show POS navigation button for admin users
-            if (user.role === 'admin') {
-                document.getElementById('posNavBtn').style.display = 'flex';
-            }
+            // Initialize shared navigation with user info and role-based buttons
+            await initNavigation(user, 'Settings');
 
             // Initialize dashboard data
             if (window.initAdvAdmin) {

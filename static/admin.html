@@ -18,6 +18,7 @@
                 Admin Dashboard
             </h1>
             <div class="cross-page-nav">
+                <div id="userInfo" class="user-info-container" style="display: none;"></div>
                 <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
                 <a href="/reports.html"><span class="icon">📈</span> Reports</a>
                 <button onclick="logout()"><span class="icon">🚪</span> Logout</button>
@@ -462,15 +463,14 @@
     <!-- Authentication Check -->
     <script type="module">
         import { safeInitAuth } from './js/utils/auth.js';
+        import { initNavigation } from './js/utils/navigation.js';
 
         // Require Admin role only
-        safeInitAuth('admin', (user) => {
+        safeInitAuth('admin', async (user) => {
             console.log('Admin authenticated:', user.username);
 
-            // Show POS navigation button for admin users
-            if (user.role === 'admin') {
-                document.getElementById('posNavBtn').style.display = 'flex';
-            }
+            // Initialize shared navigation with user info and role-based buttons
+            await initNavigation(user, 'Admin');
 
             // Initialize admin dashboard data
             if (window.initAdminDashboard) {

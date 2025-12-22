@@ -10,9 +10,11 @@
 <body>
     <div class="container">
         <!-- Header -->
-        <header class="header">
+        <header class="page-header">
             <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
             <div class="header-nav">
+                <!-- User Info -->
+                <div id="userInfo" class="user-info-container" style="display: none;"></div>
                 <!-- Admin-only navigation -->
                 <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
                 <a href="/reports.html" id="reportsNavBtn" style="display: none;"><span class="icon">📊</span> Reports</a>
@@ -199,17 +201,15 @@
 
     <!-- Authentication Check -->
     <script type="module">
-        import { safeInitAuth, displayUserInfo } from './js/utils/auth.js';
+        import { safeInitAuth } from './js/utils/auth.js';
+        import { initNavigation } from './js/utils/navigation.js';
 
         // Require POS or Admin role
-        safeInitAuth(['pos', 'admin'], (user) => {
+        safeInitAuth(['pos', 'admin'], async (user) => {
             console.log('POS authenticated:', user.username, '(', user.role, ')');
 
-            // Show admin navigation if user is admin
-            if (user.role === 'admin') {
-                document.getElementById('adminNavBtn').style.display = 'flex';
-                document.getElementById('reportsNavBtn').style.display = 'flex';
-            }
+            // Initialize shared navigation with user info and role-based buttons
+            await initNavigation(user, 'POS');
         });
     </script>
 

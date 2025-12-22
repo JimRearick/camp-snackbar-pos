@@ -323,6 +323,7 @@
                 Reports
             </h1>
             <div class="cross-page-nav">
+                <div id="userInfo" class="user-info-container" style="display: none;"></div>
                 <a href="/index.html"><span class="icon">🛒</span> POS</a>
                 <a href="/admin.html"><span class="icon">⚙️</span> Admin</a>
                 <button onclick="logout()"><span class="icon">🚪</span> Logout</button>
@@ -484,10 +485,14 @@
     <!-- Authentication Check -->
     <script type="module">
         import { safeInitAuth } from './js/utils/auth.js';
+        import { initNavigation } from './js/utils/navigation.js';
 
         // Require Admin role only
-        safeInitAuth('admin', (user) => {
+        safeInitAuth('admin', async (user) => {
             console.log('Reports authenticated:', user.username);
+
+            // Initialize shared navigation with user info and role-based buttons
+            await initNavigation(user, 'Reports');
         });
     </script>
 

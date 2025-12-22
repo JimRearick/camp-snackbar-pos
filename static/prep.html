@@ -21,19 +21,20 @@
             flex-direction: column;
         }
 
-        .prep-header {
+        .page-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 1rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            flex-shrink: 0;
+            height: 60px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            flex-shrink: 0;
+            padding: 0.75rem 1.5rem;
         }
 
-        .prep-header h1 {
-            font-size: 2rem;
+        .page-header h1 {
+            font-size: 1.5rem;
             font-weight: 700;
         }
 
@@ -69,6 +70,27 @@
 
         .prep-nav .icon {
             font-size: 1.1rem;
+        }
+
+        /* User Info Display */
+        .user-info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.9);
+            margin-right: 0.75rem;
+        }
+
+        .user-info-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .app-version {
+            opacity: 0.7;
+            font-size: 0.7rem;
         }
 
         .queue-count {
@@ -321,7 +343,7 @@
                 gap: 1rem;
             }
 
-            .prep-header h1 {
+            .page-header h1 {
                 font-size: 1.5rem;
             }
 
@@ -446,7 +468,7 @@
     </style>
 </head>
 <body>
-    <header class="prep-header">
+    <header class="page-header">
         <div style="display: flex; align-items: center; gap: 1rem;">
             <h1>🍔 Prep Station</h1>
             <!-- View Mode Toggle -->
@@ -456,6 +478,8 @@
             </div>
         </div>
         <div class="prep-nav">
+            <!-- User Info -->
+            <div id="userInfo" class="user-info-container" style="display: none;"></div>
             <!-- Navigation buttons -->
             <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
             <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
@@ -491,17 +515,14 @@
     <!-- Authentication Check -->
     <script type="module">
         import { safeInitAuth } from './js/utils/auth.js';
+        import { initNavigation } from './js/utils/navigation.js';
 
         // Require Prep or Admin role
-        safeInitAuth(['prep', 'admin'], (user) => {
+        safeInitAuth(['prep', 'admin'], async (user) => {
             console.log('Prep station authenticated:', user.username, '(', user.role, ')');
 
-            // Show admin navigation if user is admin
-            if (user.role === 'admin') {
-                document.getElementById('adminNavBtn').style.display = 'flex';
-                document.getElementById('reportsNavBtn').style.display = 'flex';
-                document.getElementById('posNavBtn').style.display = 'flex';
-            }
+            // Initialize shared navigation with user info and role-based buttons
+            await initNavigation(user, 'Prep Station');
         });
     </script>
 

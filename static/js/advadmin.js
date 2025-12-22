@@ -1,6 +1,7 @@
 // Advanced Admin JavaScript
 import { escapeHtml, formatLocalDateTime } from './utils/escape.js';
 import { fetchPost, fetchPut, fetchDelete } from './utils/csrf.js';
+import { updatePageHeader } from './utils/settings.js';
 
 const API_URL = '/api';
 
@@ -26,18 +27,8 @@ async function updateHeaderCampName() {
 
         const settings = await response.json();
 
-        // Update camp name in header if provided
-        if (settings.camp_name) {
-            const headerTitle = document.querySelector('.header h1');
-            if (headerTitle) {
-                // Keep the logo, just update the text
-                const logo = headerTitle.querySelector('img');
-                headerTitle.textContent = settings.camp_name;
-                if (logo) {
-                    headerTitle.insertBefore(logo, headerTitle.firstChild);
-                }
-            }
-        }
+        // Update page header with POS name
+        updatePageHeader(settings, 'Settings');
     } catch (error) {
         console.error('Error loading camp name:', error);
     }
@@ -71,6 +62,16 @@ function switchTab(tabName) {
             btn.classList.add('active');
         }
     });
+
+    // Load backup log when switching to backups tab
+    if (tabName === 'backups' && typeof refreshBackupLog === 'function') {
+        refreshBackupLog();
+        // Start auto-refresh if enabled
+        const autoRefreshCheckbox = document.getElementById('autoRefreshLog');
+        if (autoRefreshCheckbox && autoRefreshCheckbox.checked) {
+            toggleAutoRefresh();
+        }
+    }
 }
 
 // ============================================================================
@@ -125,29 +126,69 @@ async function loadTestData() {
     }
 }
 
-async function deleteTestData() {
-    if (!confirm('Delete all test data? This will remove all accounts with FAM*, IND*, or CAB* account numbers and their associated transactions. This cannot be undone.')) {
-        return;
-    }
+// Show the delete all data confirmation modal
+function deleteAllData() {
+    const modal = document.getElementById('deleteConfirmModal');
+    const input = document.getElementById('deleteConfirmInput');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
 
-    const statusDiv = document.getElementById('testDataStatus');
-    const spinner = document.getElementById('testDataSpinner');
-    const message = document.getElementById('testDataMessage');
-    const output = document.getElementById('testDataOutput');
+    // Reset modal state
+    input.value = '';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.5';
+
+    // Show modal
+    modal.style.display = 'flex';
+
+    // Focus the input
+    setTimeout(() => input.focus(), 100);
+
+    // Enable confirm button when "DELETE" is typed
+    input.oninput = function() {
+        if (input.value.trim().toUpperCase() === 'DELETE') {
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+        }
+    };
+
+    // Allow Enter key to confirm if button is enabled
+    input.onkeypress = function(e) {
+        if (e.key === 'Enter' && !confirmBtn.disabled) {
+            confirmDeleteAll();
+        }
+    };
+}
+
+// Cancel the delete operation
+function cancelDeleteAll() {
+    const modal = document.getElementById('deleteConfirmModal');
+    modal.style.display = 'none';
+}
+
+// Confirm and execute the delete all data operation
+async function confirmDeleteAll() {
+    const modal = document.getElementById('deleteConfirmModal');
+    const statusDiv = document.getElementById('deleteDataStatus');
+    const spinner = document.getElementById('deleteDataSpinner');
+    const message = document.getElementById('deleteDataMessage');
+
+    // Close modal
+    modal.style.display = 'none';
 
     // Show status and spinner
     statusDiv.style.display = 'block';
     spinner.style.display = 'block';
-    message.textContent = 'Deleting test data...';
-    output.style.display = 'none';
-    output.textContent = '';
+    message.textContent = 'Deleting all data...';
 
     try {
-        const response = await fetchDelete(`${API_URL}/admin/test-data`);
+        const response = await fetchDelete(`${API_URL}/admin/all-data`);
 
         if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error || 'Failed to delete test data');
+            throw new Error(error.error || 'Failed to delete all data');
         }
 
         const result = await response.json();
@@ -156,14 +197,20 @@ async function deleteTestData() {
         spinner.style.display = 'none';
 
         // Show success message
-        message.innerHTML = `<span style="color: #28a745;">✓ ${result.message}</span>`;
+        message.innerHTML = `<span style="color: #28a745;">✓ ${escapeHtml(result.message || 'All accounts and transactions have been deleted')}</span>`;
 
-        showSuccess('Test data deleted successfully!');
+        showSuccess(result.message || 'All accounts and transactions have been deleted');
+
     } catch (error) {
-        console.error('Error deleting test data:', error);
+        console.error('Error deleting all data:', error);
+
+        // Hide spinner
         spinner.style.display = 'none';
+
+        // Show error message
         message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
-        showError('Failed to delete test data: ' + error.message);
+
+        showError('Failed to delete all data: ' + error.message);
     }
 }
 
@@ -328,15 +375,23 @@ async function createManualBackup(includeInternet) {
             showSuccess(message);
         }
 
+        // Refresh the backup log to show the new backup
+        if (typeof refreshBackupLog === 'function') {
+            setTimeout(refreshBackupLog, 1000);
+        }
+
     } catch (error) {
         console.error('Backup error:', error);
         showError('Backup failed: ' + error.message);
     }
 }
 
-async function viewBackupLog() {
+// Backup log auto-refresh interval
+let backupLogRefreshInterval = null;
+
+async function refreshBackupLog() {
     try {
-        const response = await fetch(`${API_URL}/backup/list`, {
+        const response = await fetch(`${API_URL}/backup/list?limit=100`, {
             credentials: 'include'
         });
 
@@ -347,34 +402,119 @@ async function viewBackupLog() {
         const data = await response.json();
         const backups = data.backups || [];
 
-        if (backups.length === 0) {
-            alert('No backup records found.');
-            return;
-        }
-
-        // Create modal/table to display backup log
-        let html = '=== BACKUP LOG (Last 50) ===\n\n';
-        html += `Type      | Status  | Size    | Date                 | Path/Error\n`;
-        html += `----------|---------|---------|----------------------|---------------------------\n`;
-
-        backups.forEach(backup => {
-            const date = formatLocalDateTime(backup.created_at);
-            const size = backup.file_size ? `${(backup.file_size / 1024).toFixed(0)} KB` : '-';
-            const type = backup.backup_type.padEnd(9);
-            const status = backup.status.padEnd(7);
-            const sizeStr = size.padEnd(7);
-            const path = backup.error_message || backup.backup_path.split('/').pop() || '-';
-
-            html += `${type} | ${status} | ${sizeStr} | ${date} | ${path}\n`;
+        // Apply filter
+        const filter = document.getElementById('logFilter').value;
+        const filteredBackups = backups.filter(backup => {
+            if (filter === 'all') return true;
+            if (filter === 'auto') return backup.backup_source === 'auto';
+            if (filter === 'manual') return backup.backup_source === 'manual';
+            if (filter === 'failed') return backup.status === 'failed';
+            return true;
         });
 
-        // Show in alert (simple approach)
-        alert(html);
+        // Update table
+        const tbody = document.getElementById('backupLogBody');
+
+        if (filteredBackups.length === 0) {
+            tbody.innerHTML = `
+                <tr style="display: table; width: 100%; table-layout: fixed;">
+                    <td colspan="6" style="padding: 2rem; text-align: center; color: #a0aec0;">
+                        No backup records found.
+                    </td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = filteredBackups.map(backup => {
+                const date = formatLocalDateTime(backup.created_at);
+                const size = backup.file_size ? `${(backup.file_size / 1024).toFixed(0)} KB` : '-';
+                const filename = backup.backup_path.split('/').pop() || '-';
+
+                // Status badge styling
+                const statusColor = backup.status === 'success' ? '#48bb78' : '#f56565';
+                const statusBg = backup.status === 'success' ? '#f0fff4' : '#fff5f5';
+
+                // Source badge
+                const sourceIcon = backup.backup_source === 'auto' ? '🤖' : '👤';
+                const sourceLabel = backup.backup_source === 'auto' ? 'Auto' : 'Manual';
+
+                // Type badge
+                const typeIcon = backup.backup_type === 'local' ? '💾' : '☁️';
+
+                return `
+                    <tr style="display: table; width: 100%; table-layout: fixed; border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 0.75rem; width: 12%;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                                ${typeIcon} ${backup.backup_type}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem; width: 12%;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.85rem;">
+                                ${sourceIcon} ${sourceLabel}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem; width: 12%;">
+                            <span style="display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 500; background: ${statusBg}; color: ${statusColor};">
+                                ${backup.status}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem; width: 10%; color: #4a5568;">${size}</td>
+                        <td style="padding: 0.75rem; width: 18%; color: #4a5568; font-size: 0.85rem;">${date}</td>
+                        <td style="padding: 0.75rem; width: 36%; color: #718096; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${backup.error_message || filename}">
+                            ${backup.error_message || filename}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Update statistics
+        updateBackupStats(backups);
 
     } catch (error) {
         console.error('Error loading backup log:', error);
-        showError('Failed to load backup log: ' + error.message);
+        const tbody = document.getElementById('backupLogBody');
+        tbody.innerHTML = `
+            <tr style="display: table; width: 100%; table-layout: fixed;">
+                <td colspan="6" style="padding: 2rem; text-align: center; color: #f56565;">
+                    Error loading backup log: ${error.message}
+                </td>
+            </tr>
+        `;
     }
+}
+
+function updateBackupStats(backups) {
+    const total = backups.length;
+    const autoCount = backups.filter(b => b.backup_source === 'auto').length;
+    const manualCount = backups.filter(b => b.backup_source === 'manual').length;
+    const successCount = backups.filter(b => b.status === 'success').length;
+    const successRate = total > 0 ? ((successCount / total) * 100).toFixed(1) : '0';
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statAuto').textContent = autoCount;
+    document.getElementById('statManual').textContent = manualCount;
+    document.getElementById('statSuccessRate').textContent = `${successRate}%`;
+}
+
+function toggleAutoRefresh() {
+    const checkbox = document.getElementById('autoRefreshLog');
+
+    if (checkbox.checked) {
+        // Start auto-refresh every 30 seconds
+        backupLogRefreshInterval = setInterval(refreshBackupLog, 30000);
+    } else {
+        // Stop auto-refresh
+        if (backupLogRefreshInterval) {
+            clearInterval(backupLogRefreshInterval);
+            backupLogRefreshInterval = null;
+        }
+    }
+}
+
+// Legacy function - kept for compatibility
+async function viewBackupLog() {
+    // Just refresh the inline log
+    await refreshBackupLog();
 }
 
 // ============================================================================
@@ -384,9 +524,13 @@ async function viewBackupLog() {
 window.initAdvAdmin = initAdvAdmin;
 window.switchTab = switchTab;
 window.loadTestData = loadTestData;
-window.deleteTestData = deleteTestData;
+window.deleteAllData = deleteAllData;
+window.cancelDeleteAll = cancelDeleteAll;
+window.confirmDeleteAll = confirmDeleteAll;
 window.loadSettings = loadSettings;
 window.saveSettings = saveSettings;
 window.updateBackupTimeVisibility = updateBackupTimeVisibility;
 window.createManualBackup = createManualBackup;
 window.viewBackupLog = viewBackupLog;
+window.refreshBackupLog = refreshBackupLog;
+window.toggleAutoRefresh = toggleAutoRefresh;

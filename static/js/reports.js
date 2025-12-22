@@ -5,6 +5,7 @@
 import { API_URL } from './utils/constants.js';
 import { apiGet } from './utils/api.js';
 import { escapeHtml, formatLocalDateTime } from './utils/escape.js';
+import { updatePageHeader } from './utils/settings.js';
 
 // ============================================================================
 // Initialization
@@ -15,19 +16,8 @@ async function loadCampName() {
         const response = await fetch(`${API_URL}/settings`);
         if (response.ok) {
             const settings = await response.json();
-
-            // Update camp name in header if provided
-            if (settings.camp_name) {
-                const headerTitle = document.querySelector('.header h1');
-                if (headerTitle) {
-                    // Keep the logo, just update the text
-                    const logo = headerTitle.querySelector('img');
-                    headerTitle.textContent = settings.camp_name;
-                    if (logo) {
-                        headerTitle.insertBefore(logo, headerTitle.firstChild);
-                    }
-                }
-            }
+            // Update page header with POS name
+            updatePageHeader(settings, 'Reports');
         }
     } catch (error) {
         console.error('Error loading camp name:', error);
