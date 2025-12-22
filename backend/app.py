@@ -184,6 +184,15 @@ def validate_session():
     """Validate the current session"""
     return jsonify({'valid': True, 'user': current_user.to_dict()})
 
+@app.route('/api/version', methods=['GET'])
+def get_version():
+    """Get application version info - update VERSION on each release"""
+    VERSION = "1.8.0"
+    return jsonify({
+        'version': VERSION,
+        'app_name': 'Camp Snackbar POS'
+    })
+
 def get_redirect_for_role(role):
     """Determine where to redirect user based on role"""
     if role == 'admin':
@@ -201,23 +210,42 @@ def get_redirect_for_role(role):
 @app.route('/api/accounts', methods=['GET'])
 @login_required
 def get_accounts():
-    """Get all accounts with optional search/filter (All authenticated users)"""
+    """Get accounts with optional search/filter and pagination (All authenticated users)"""
     search = request.args.get('search', '')
     account_type = request.args.get('type', '')
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+
+    # Validate pagination parameters
+    if limit < 1 or limit > 1000:
+        limit = 50
+    if offset < 0:
+        offset = 0
 
     conn = get_db()
-    query = "SELECT * FROM accounts WHERE 1=1"
+
+    # Build WHERE clause
+    where_conditions = ["1=1"]
     params = []
 
     if search:
-        query += " AND (account_name LIKE ? OR account_number LIKE ?)"
+        where_conditions.append("(account_name LIKE ? OR account_number LIKE ?)")
         params.extend([f'%{search}%', f'%{search}%'])
 
     if account_type:
-        query += " AND account_type = ?"
+        where_conditions.append("account_type = ?")
         params.append(account_type)
 
-    query += " ORDER BY account_name"
+    where_clause = " AND ".join(where_conditions)
+
+    # Get total count for pagination metadata
+    count_query = f"SELECT COUNT(*) as total FROM accounts WHERE {where_clause}"
+    cursor = conn.execute(count_query, params)
+    total_count = cursor.fetchone()['total']
+
+    # Get paginated accounts
+    query = f"SELECT * FROM accounts WHERE {where_clause} ORDER BY account_name LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
 
     cursor = conn.execute(query, params)
     accounts = []
@@ -239,7 +267,15 @@ def get_accounts():
         })
 
     conn.close()
-    return jsonify({'accounts': accounts})
+    return jsonify({
+        'accounts': accounts,
+        'pagination': {
+            'total': total_count,
+            'limit': limit,
+            'offset': offset,
+            'has_more': (offset + limit) < total_count
+        }
+    })
 
 @app.route('/api/accounts/<int:account_id>', methods=['GET'])
 def get_account(account_id):
@@ -611,48 +647,71 @@ def delete_category(category_id):
 
 @app.route('/api/transactions', methods=['GET'])
 def get_transactions():
-    """Get transactions with optional filters"""
+    """Get transactions with optional filters and pagination"""
     account_id = request.args.get('account_id')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-    limit = request.args.get('limit', 100)
-    
+    limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
+
+    # Validate pagination parameters
+    if limit < 1 or limit > 1000:
+        limit = 100
+    if offset < 0:
+        offset = 0
+
     conn = get_db()
-    query = """
+
+    # Build WHERE clause
+    where_conditions = ["1=1"]
+    params = []
+
+    if account_id:
+        where_conditions.append("t.account_id = ?")
+        params.append(account_id)
+
+    if start_date:
+        where_conditions.append("DATE(t.created_at, 'localtime') >= ?")
+        params.append(start_date)
+
+    if end_date:
+        where_conditions.append("DATE(t.created_at, 'localtime') <= ?")
+        params.append(end_date)
+
+    where_clause = " AND ".join(where_conditions)
+
+    # Get total count for pagination metadata
+    count_query = f"""
+        SELECT COUNT(*) as total
+        FROM transactions t
+        JOIN accounts a ON t.account_id = a.id
+        WHERE {where_clause}
+    """
+    cursor = conn.execute(count_query, params)
+    total_count = cursor.fetchone()['total']
+
+    # Get paginated transactions
+    query = f"""
         SELECT t.id, t.account_id, a.account_name, t.transaction_type,
                t.total_amount, t.operator_name, t.notes,
                datetime(t.created_at, 'localtime') as created_at
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
-        WHERE 1=1
+        WHERE {where_clause}
+        ORDER BY t.created_at DESC LIMIT ? OFFSET ?
     """
-    params = []
-
-    if account_id:
-        query += " AND t.account_id = ?"
-        params.append(account_id)
-
-    if start_date:
-        query += " AND DATE(t.created_at, 'localtime') >= ?"
-        params.append(start_date)
-
-    if end_date:
-        query += " AND DATE(t.created_at, 'localtime') <= ?"
-        params.append(end_date)
-
-    query += " ORDER BY t.created_at DESC LIMIT ?"
-    params.append(limit)
+    params.extend([limit, offset])
     
     cursor = conn.execute(query, params)
     transactions = []
-    
+
     for row in cursor.fetchall():
         # Get line items
         items_cursor = conn.execute(
             "SELECT * FROM transaction_items WHERE transaction_id = ?",
             (row['id'],)
         )
-        
+
         items = []
         for item_row in items_cursor.fetchall():
             items.append({
@@ -661,7 +720,7 @@ def get_transactions():
                 'unit_price': item_row['unit_price'],
                 'line_total': item_row['line_total']
             })
-        
+
         transactions.append({
             'id': row['id'],
             'account_id': row['account_id'],
@@ -673,9 +732,17 @@ def get_transactions():
             'created_at': row['created_at'],
             'items': items
         })
-    
+
     conn.close()
-    return jsonify({'transactions': transactions})
+    return jsonify({
+        'transactions': transactions,
+        'pagination': {
+            'total': total_count,
+            'limit': limit,
+            'offset': offset,
+            'has_more': (offset + limit) < total_count
+        }
+    })
 
 @app.route('/api/transactions/<int:transaction_id>', methods=['GET'])
 @admin_required
@@ -954,19 +1021,33 @@ def complete_prep_item(item_id):
 
 @app.route('/api/prep-queue/history', methods=['GET'])
 def get_prep_queue_history():
-    """Get completed prep queue items for history/reports"""
+    """Get completed prep queue items for history/reports with pagination"""
     limit = request.args.get('limit', 100, type=int)
+    offset = request.args.get('offset', 0, type=int)
+
+    # Validate pagination parameters
+    if limit < 1 or limit > 1000:
+        limit = 100
+    if offset < 0:
+        offset = 0
 
     conn = get_db()
 
+    # Get total count
+    cursor = conn.execute("""
+        SELECT COUNT(*) as total FROM prep_queue WHERE status = 'completed'
+    """)
+    total_count = cursor.fetchone()['total']
+
+    # Get paginated items
     cursor = conn.execute("""
         SELECT id, transaction_id, transaction_item_id, product_name, quantity,
                account_name, status, ordered_at, completed_at, completed_by
         FROM prep_queue
         WHERE status = 'completed'
         ORDER BY completed_at DESC
-        LIMIT ?
-    """, (limit,))
+        LIMIT ? OFFSET ?
+    """, (limit, offset))
 
     items = []
     for row in cursor.fetchall():
@@ -1001,7 +1082,15 @@ def get_prep_queue_history():
         })
 
     conn.close()
-    return jsonify({'items': items})
+    return jsonify({
+        'items': items,
+        'pagination': {
+            'total': total_count,
+            'limit': limit,
+            'offset': offset,
+            'has_more': (offset + limit) < total_count
+        }
+    })
 
 # ============================================================================
 # User Management Routes (Advanced Admin)
@@ -1283,6 +1372,54 @@ def delete_test_data():
         conn.close()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/all-data', methods=['DELETE'])
+@admin_required
+def delete_all_data():
+    """Delete ALL accounts and transactions (Admin only)"""
+    conn = get_db()
+
+    try:
+        # Count existing records before deletion
+        cursor = conn.execute("SELECT COUNT(*) as count FROM accounts")
+        account_count = cursor.fetchone()['count']
+
+        cursor = conn.execute("SELECT COUNT(*) as count FROM transactions")
+        transaction_count = cursor.fetchone()['count']
+
+        if account_count == 0 and transaction_count == 0:
+            conn.close()
+            return jsonify({'message': 'No data to delete'})
+
+        # Delete all prep queue items
+        conn.execute("DELETE FROM prep_queue")
+
+        # Delete all transaction items
+        conn.execute("DELETE FROM transaction_items")
+
+        # Delete all transactions
+        conn.execute("DELETE FROM transactions")
+
+        # Delete all accounts
+        conn.execute("DELETE FROM accounts")
+
+        conn.commit()
+        conn.close()
+
+        # Notify all clients that data has been cleared
+        socketio.emit('data_cleared', {
+            'accounts_deleted': account_count,
+            'transactions_deleted': transaction_count
+        })
+
+        return jsonify({
+            'success': True,
+            'message': f'Deleted all data: {account_count} accounts and {transaction_count} transactions'
+        })
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return jsonify({'error': str(e)}), 500
+
 # ============================================================================
 # Report Routes
 # ============================================================================
@@ -1513,9 +1650,9 @@ def create_backup():
 
         conn = get_db()
         conn.execute(
-            """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
-               VALUES (?, ?, ?, ?)""",
-            ('local', backup_path, 'success', file_size)
+            """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, file_size)
+               VALUES (?, ?, ?, ?, ?)""",
+            ('local', 'manual', backup_path, 'success', file_size)
         )
         conn.commit()
 
@@ -1539,16 +1676,16 @@ def create_backup():
 
                     if success:
                         conn.execute(
-                            """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
-                               VALUES (?, ?, ?, ?)""",
-                            ('internet', remote_config + backup_filename, 'success', file_size)
+                            """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, file_size)
+                               VALUES (?, ?, ?, ?, ?)""",
+                            ('internet', 'manual', remote_config + backup_filename, 'success', file_size)
                         )
                         result['internet_backup'] = {'success': True, 'message': message}
                     else:
                         conn.execute(
-                            """INSERT INTO backup_log (backup_type, backup_path, status, file_size, error_message)
-                               VALUES (?, ?, ?, ?, ?)""",
-                            ('internet', remote_config + backup_filename, 'failed', file_size, message)
+                            """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, file_size, error_message)
+                               VALUES (?, ?, ?, ?, ?, ?)""",
+                            ('internet', 'manual', remote_config + backup_filename, 'failed', file_size, message)
                         )
                         result['internet_backup'] = {'success': False, 'error': message}
 
@@ -1567,25 +1704,50 @@ def create_backup():
 @app.route('/api/backup/list', methods=['GET'])
 @admin_required
 def list_backups():
-    """List all backups"""
+    """List backups with pagination"""
+    limit = request.args.get('limit', 50, type=int)
+    offset = request.args.get('offset', 0, type=int)
+
+    # Validate pagination parameters
+    if limit < 1 or limit > 500:
+        limit = 50
+    if offset < 0:
+        offset = 0
+
     conn = get_db()
+
+    # Get total count
+    cursor = conn.execute("SELECT COUNT(*) as total FROM backup_log")
+    total_count = cursor.fetchone()['total']
+
+    # Get paginated backups
     cursor = conn.execute(
-        "SELECT * FROM backup_log ORDER BY created_at DESC LIMIT 50"
+        "SELECT * FROM backup_log ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        (limit, offset)
     )
-    
+
     backups = []
     for row in cursor.fetchall():
         backups.append({
             'id': row['id'],
             'backup_type': row['backup_type'],
+            'backup_source': row['backup_source'] if 'backup_source' in row.keys() else 'manual',
             'backup_path': row['backup_path'],
             'status': row['status'],
             'file_size': row['file_size'],
             'created_at': row['created_at']
         })
-    
+
     conn.close()
-    return jsonify({'backups': backups})
+    return jsonify({
+        'backups': backups,
+        'pagination': {
+            'total': total_count,
+            'limit': limit,
+            'offset': offset,
+            'has_more': (offset + limit) < total_count
+        }
+    })
 
 # ============================================================================
 # Settings Routes
@@ -1728,9 +1890,9 @@ def scheduled_backup():
 
         conn = get_db()
         conn.execute(
-            """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
-               VALUES (?, ?, ?, ?)""",
-            ('local', backup_path, 'success', file_size)
+            """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, file_size)
+               VALUES (?, ?, ?, ?, ?)""",
+            ('local', 'auto', backup_path, 'success', file_size)
         )
         conn.commit()
 
@@ -1754,25 +1916,25 @@ def scheduled_backup():
                 if success:
                     print(f"✓ {message}")
                     conn.execute(
-                        """INSERT INTO backup_log (backup_type, backup_path, status, file_size)
-                           VALUES (?, ?, ?, ?)""",
-                        ('internet', remote_config + backup_filename, 'success', file_size)
+                        """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, file_size)
+                           VALUES (?, ?, ?, ?, ?)""",
+                        ('internet', 'auto', remote_config + backup_filename, 'success', file_size)
                     )
                 else:
                     print(f"✗ Remote backup failed: {message}")
                     conn.execute(
-                        """INSERT INTO backup_log (backup_type, backup_path, status, file_size, error_message)
-                           VALUES (?, ?, ?, ?, ?)""",
-                        ('internet', remote_config + backup_filename, 'failed', file_size, message)
+                        """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, file_size, error_message)
+                           VALUES (?, ?, ?, ?, ?, ?)""",
+                        ('internet', 'auto', remote_config + backup_filename, 'failed', file_size, message)
                     )
 
                 conn.commit()
             else:
                 print("✗ No internet connection - skipping remote backup")
                 conn.execute(
-                    """INSERT INTO backup_log (backup_type, backup_path, status, error_message)
-                       VALUES (?, ?, ?, ?)""",
-                    ('internet', remote_config + backup_filename, 'failed', 'No internet connectivity')
+                    """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, error_message)
+                       VALUES (?, ?, ?, ?, ?)""",
+                    ('internet', 'auto', remote_config + backup_filename, 'failed', 'No internet connectivity')
                 )
                 conn.commit()
 
@@ -1783,9 +1945,9 @@ def scheduled_backup():
         try:
             conn = get_db()
             conn.execute(
-                """INSERT INTO backup_log (backup_type, backup_path, status, error_message)
-                   VALUES (?, ?, ?, ?)""",
-                ('local', backup_path, 'failed', str(e))
+                """INSERT INTO backup_log (backup_type, backup_source, backup_path, status, error_message)
+                   VALUES (?, ?, ?, ?, ?)""",
+                ('local', 'auto', backup_path, 'failed', str(e))
             )
             conn.commit()
             conn.close()
@@ -1793,9 +1955,28 @@ def scheduled_backup():
             pass
 
 def run_scheduler():
-    """Run scheduled tasks"""
-    schedule.every().day.at("00:00").do(scheduled_backup)
-    
+    """Run scheduled tasks with configurable backup time"""
+    # Get backup settings from database
+    conn = get_db()
+    cursor = conn.execute("""
+        SELECT key, value FROM settings
+        WHERE key IN ('backup_enabled', 'backup_time')
+    """)
+    settings = {row['key']: row['value'] for row in cursor.fetchall()}
+    conn.close()
+
+    # Check if backups are enabled
+    backup_enabled = settings.get('backup_enabled', 'true').lower() == 'true'
+    backup_time = settings.get('backup_time', '00:00')
+
+    if backup_enabled:
+        # Schedule daily backup at configured time
+        schedule.every().day.at(backup_time).do(scheduled_backup)
+        print(f"✓ Automatic backups enabled: Daily at {backup_time} (local time)")
+    else:
+        print("ℹ Automatic backups disabled")
+
+    # Run scheduler loop
     while True:
         schedule.run_pending()
         time.sleep(60)
@@ -1804,14 +1985,14 @@ def run_scheduler():
 # Application Entry Point
 # ============================================================================
 
+# Initialize database if it doesn't exist
+if not os.path.exists(DB_PATH):
+    init_db()
+
+# Start scheduler in background thread (runs under both direct and Gunicorn)
+scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+scheduler_thread.start()
+
 if __name__ == '__main__':
-    # Initialize database if it doesn't exist
-    if not os.path.exists(DB_PATH):
-        init_db()
-    
-    # Start scheduler in background thread
-    scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-    scheduler_thread.start()
-    
-    # Run server (allow_unsafe_werkzeug for development/testing)
+    # Run server directly (development mode)
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
