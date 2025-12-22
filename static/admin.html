@@ -313,8 +313,8 @@
                     <div class="form-group">
                         <label for="accountType">Account Type *</label>
                         <select id="accountType" class="form-input" required onchange="toggleFamilyMembersField()">
-                            <option value="individual">Individual</option>
                             <option value="family">Family</option>
+                            <option value="individual">Individual</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -323,16 +323,16 @@
                             Active
                         </label>
                     </div>
-                    <div class="form-group">
-                        <label for="accountNotes">Notes</label>
-                        <textarea id="accountNotes" class="form-input" rows="3"
-                                  style="min-height: auto; resize: vertical;"></textarea>
-                    </div>
                     <div class="form-group" id="familyMembersGroup" style="display: none;">
                         <label for="familyMembers">Family Members (one per line)</label>
                         <textarea id="familyMembers" class="form-input" rows="4"
                                   style="min-height: auto; resize: vertical;"
                                   placeholder="Enter family member names, one per line"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="accountNotes">Notes</label>
+                        <textarea id="accountNotes" class="form-input" rows="3"
+                                  style="min-height: auto; resize: vertical;"></textarea>
                     </div>
                 </form>
             </div>

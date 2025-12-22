@@ -111,16 +111,16 @@
                         </select>
                     </div>
 
-                    <div class="form-group">
-                        <label for="notes">Notes (Optional)</label>
-                        <textarea id="notes" class="form-input form-textarea"
-                                  placeholder="Additional information..." rows="3"></textarea>
-                    </div>
-
                     <div class="form-group" id="familyMembersGroup" style="display: flex;">
                         <label for="familyMembers">Family Members (one per line)</label>
                         <textarea id="familyMembers" class="form-input form-textarea"
                                   placeholder="Enter family member names, one per line" rows="4"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">Notes (Optional)</label>
+                        <textarea id="notes" class="form-input form-textarea"
+                                  placeholder="Additional information..." rows="3"></textarea>
                     </div>
                 </form>
             </div>
@@ -158,6 +158,13 @@
             <div class="modal-body">
                 <div id="checkoutOrderDetails">
                     <!-- Order details populated dynamically -->
+                </div>
+                <div class="rush-order-toggle-container">
+                    <label class="rush-order-toggle">
+                        <input type="checkbox" id="rushOrderToggle">
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">🔥 Rush Order</span>
+                    </label>
                 </div>
             </div>
             <div class="modal-actions">
