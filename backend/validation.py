@@ -57,8 +57,16 @@ class ProductSchema(Schema):
 class CategorySchema(Schema):
     """Schema for category creation and updates"""
     name = fields.Str(
-        required=True,
-        validate=validate.Length(min=1, max=50, error="Category name must be between 1 and 50 characters")
+        validate=validate.Length(min=1, max=50, error="Category name must be between 1 and 50 characters"),
+        allow_none=True
+    )
+    button_color = fields.Str(
+        validate=validate.Length(min=4, max=20, error="Button color must be a valid color code"),
+        allow_none=True
+    )
+    display_order = fields.Int(
+        validate=validate.Range(min=0, max=1000, error="Display order must be between 0 and 1000"),
+        allow_none=True
     )
 
     class Meta:

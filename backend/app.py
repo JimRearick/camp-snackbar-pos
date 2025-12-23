@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.8.3"
+    VERSION = "1.8.4"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -459,9 +459,9 @@ def get_products():
     """Get all products grouped by category (All authenticated users)"""
     conn = get_db()
     
-    cursor = conn.execute("SELECT * FROM categories WHERE active = 1 ORDER BY name")
+    cursor = conn.execute("SELECT * FROM categories WHERE active = 1 ORDER BY display_order, name")
     categories = []
-    
+
     for cat_row in cursor.fetchall():
         products_cursor = conn.execute(
             "SELECT * FROM products WHERE category_id = ? ORDER BY display_order",
@@ -484,6 +484,7 @@ def get_products():
             'id': cat_row['id'],
             'name': cat_row['name'],
             'button_color': cat_row['button_color'],
+            'display_order': cat_row['display_order'],
             'products': products
         })
     
@@ -604,10 +605,31 @@ def update_category(category_id):
     data = request.get_json()
 
     conn = get_db()
-    conn.execute(
-        "UPDATE categories SET name = ?, button_color = ? WHERE id = ?",
-        (data['name'], data.get('button_color', '#667eea'), category_id)
-    )
+
+    # Build dynamic update query based on provided fields
+    updates = []
+    params = []
+
+    if 'name' in data:
+        updates.append("name = ?")
+        params.append(data['name'])
+
+    if 'button_color' in data:
+        updates.append("button_color = ?")
+        params.append(data['button_color'])
+
+    if 'display_order' in data:
+        updates.append("display_order = ?")
+        params.append(data['display_order'])
+
+    if not updates:
+        conn.close()
+        return jsonify({'error': 'No fields to update'}), 400
+
+    params.append(category_id)
+    query = f"UPDATE categories SET {', '.join(updates)} WHERE id = ?"
+
+    conn.execute(query, params)
     conn.commit()
     conn.close()
 

@@ -451,12 +451,24 @@ async function loadCategories() {
         tbody.innerHTML = '';
 
         if (data.categories && Array.isArray(data.categories)) {
-            data.categories.forEach(category => {
+            data.categories.forEach((category, index) => {
                 const row = document.createElement('tr');
                 const productCount = category.products ? category.products.length : 0;
                 const buttonColor = category.button_color || '#667eea';
+                const displayOrder = category.display_order || 0;
+
+                row.dataset.categoryId = category.id;
+                row.dataset.displayOrder = displayOrder;
+                row.draggable = true;
+                row.style.cursor = 'move';
 
                 row.innerHTML = `
+                    <td style="text-align: center;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: center;">
+                            <span style="color: #666; font-size: 1.2rem;">☰</span>
+                            <span style="font-weight: 600;">${displayOrder}</span>
+                        </div>
+                    </td>
                     <td>${escapeHtml(category.name)}</td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -469,12 +481,102 @@ async function loadCategories() {
                         <button class="btn-edit" onclick="editCategory(${category.id})">Edit</button>
                     </td>
                 `;
+
+                // Add drag-and-drop event listeners
+                row.addEventListener('dragstart', handleCategoryDragStart);
+                row.addEventListener('dragover', handleCategoryDragOver);
+                row.addEventListener('drop', handleCategoryDrop);
+                row.addEventListener('dragend', handleCategoryDragEnd);
+
                 tbody.appendChild(row);
             });
         }
     } catch (error) {
         showError('Failed to load categories');
         console.error('Error loading categories:', error);
+    }
+}
+
+// Category drag-and-drop handlers
+let draggedCategoryRow = null;
+
+function handleCategoryDragStart(e) {
+    draggedCategoryRow = this;
+    this.style.opacity = '0.4';
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleCategoryDragOver(e) {
+    if (e.preventDefault) {
+        e.preventDefault();
+    }
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleCategoryDrop(e) {
+    if (e.stopPropagation) {
+        e.stopPropagation();
+    }
+
+    if (draggedCategoryRow !== this) {
+        const tbody = document.getElementById('categoriesTableBody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const draggedIndex = rows.indexOf(draggedCategoryRow);
+        const targetIndex = rows.indexOf(this);
+
+        if (draggedIndex < targetIndex) {
+            this.parentNode.insertBefore(draggedCategoryRow, this.nextSibling);
+        } else {
+            this.parentNode.insertBefore(draggedCategoryRow, this);
+        }
+
+        // Update display order for all categories
+        updateCategoryOrder();
+    }
+
+    return false;
+}
+
+function handleCategoryDragEnd(e) {
+    this.style.opacity = '1';
+}
+
+async function updateCategoryOrder() {
+    const tbody = document.getElementById('categoriesTableBody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    // Update display order based on current position
+    const updates = rows.map((row, index) => {
+        const categoryId = parseInt(row.dataset.categoryId);
+        const newOrder = index;
+
+        // Update visual display
+        const orderCell = row.querySelector('td:first-child span:last-child');
+        if (orderCell) {
+            orderCell.textContent = newOrder;
+        }
+        row.dataset.displayOrder = newOrder;
+
+        return { categoryId, displayOrder: newOrder };
+    });
+
+    // Send updates to server
+    try {
+        const updatePromises = updates.map(({ categoryId, displayOrder }) =>
+            fetchPut(`${API_URL}/categories/${categoryId}`, { display_order: displayOrder })
+        );
+
+        await Promise.all(updatePromises);
+        showSuccess('Category order updated');
+
+        // Reload products to reflect new order
+        loadProducts();
+    } catch (error) {
+        showError('Failed to update category order');
+        console.error('Error updating category order:', error);
+        // Reload to reset to server state
+        loadCategories();
     }
 }
 
