@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.8.0"
+    VERSION = "1.8.1"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
