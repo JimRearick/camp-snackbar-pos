@@ -102,6 +102,7 @@ CREATE TABLE prep_queue (
     quantity INTEGER NOT NULL,
     account_name TEXT NOT NULL,
     status TEXT NOT NULL CHECK(status IN ('pending', 'completed')) DEFAULT 'pending',
+    priority INTEGER DEFAULT 2 CHECK(priority IN (1, 2)),
     ordered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP,
     completed_by TEXT,
@@ -120,6 +121,7 @@ CREATE TABLE settings (
 CREATE TABLE backup_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     backup_type TEXT NOT NULL CHECK(backup_type IN ('local', 'internet')),
+    backup_source TEXT NOT NULL DEFAULT 'manual' CHECK(backup_source IN ('manual', 'auto')),
     backup_path TEXT NOT NULL,
     status TEXT NOT NULL CHECK(status IN ('success', 'failed')),
     file_size INTEGER,
@@ -136,7 +138,7 @@ CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_transaction_items_transaction ON transaction_items(transaction_id);
 CREATE INDEX idx_sessions_token ON user_sessions(session_token);
 CREATE INDEX idx_sessions_user ON user_sessions(user_id);
-CREATE INDEX idx_prep_queue_status ON prep_queue(status, ordered_at);
+CREATE INDEX idx_prep_queue_status ON prep_queue(status, priority, ordered_at);
 
 -- Default data: Users
 -- All passwords: camp2026

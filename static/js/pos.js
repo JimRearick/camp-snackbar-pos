@@ -406,6 +406,10 @@ function hideCheckoutConfirm() {
 }
 
 async function confirmCheckout() {
+    // Get rush order status
+    const rushOrderToggle = document.getElementById('rushOrderToggle');
+    const isRushOrder = rushOrderToggle ? rushOrderToggle.checked : false;
+
     // Hide confirmation modal
     hideCheckoutConfirm();
 
@@ -413,6 +417,7 @@ async function confirmCheckout() {
     const transactionData = {
         account_id: selectedAccount.id,
         transaction_type: 'purchase',
+        rush_order: isRushOrder,
         items: cart.map(item => ({
             product_id: item.id,
             quantity: item.quantity,
@@ -606,8 +611,13 @@ async function loadPrepQueueList() {
 
         if (prepQueueViewMode === 'product') {
             // Show one line per product per account
-            // Sort by ordered_at timestamp (FIFO - oldest first)
+            // Sort by priority first, then by ordered_at timestamp (FIFO - oldest first)
             const sortedItems = [...data.items].sort((a, b) => {
+                // Priority first (1 = rush, 2 = normal)
+                if (a.priority !== b.priority) {
+                    return a.priority - b.priority; // Lower priority value = higher priority
+                }
+                // Then by time (oldest first)
                 const dateA = parseLocalDateTime(a.ordered_at);
                 const dateB = parseLocalDateTime(b.ordered_at);
                 return dateA - dateB; // Oldest first (FIFO)
@@ -621,18 +631,24 @@ async function loadPrepQueueList() {
                 let urgencyClass = '';
                 let timeText = `${minutesWaiting} min ago`;
 
+                // Check if rush order
+                const isRush = item.priority === 1;
+                if (isRush) {
+                    urgencyClass = 'rush';
+                }
+
                 if (minutesWaiting >= urgentThresholdMinutes) {
                     urgencyClass = 'urgent';
                     timeText = `⚠️ ${timeText}`;
                 } else if (minutesWaiting >= warningThresholdMinutes) {
-                    urgencyClass = 'warning';
+                    urgencyClass = urgencyClass || 'warning';
                 }
 
                 const itemDiv = document.createElement('div');
                 itemDiv.className = `prep-item ${urgencyClass}`;
                 itemDiv.innerHTML = `
                     <div class="prep-item-info">
-                        <div class="prep-item-product">${escapeHtml(item.product_name)}</div>
+                        <div class="prep-item-product">${isRush ? '🔥 ' : ''}${escapeHtml(item.product_name)}</div>
                         <div class="prep-item-details">
                             For: ${escapeHtml(item.account_name)} • ${escapeHtml(timeText)}
                         </div>
@@ -649,14 +665,27 @@ async function loadPrepQueueList() {
                     grouped[item.transaction_id] = {
                         account_name: item.account_name,
                         ordered_at: item.ordered_at,
+                        priority: item.priority,
                         items: []
                     };
                 }
                 grouped[item.transaction_id].items.push(item);
             });
 
-            // Render grouped by order
-            Object.values(grouped).forEach(order => {
+            // Sort orders by priority first, then by time
+            const sortedOrders = Object.values(grouped).sort((a, b) => {
+                // Priority first (1 = rush, 2 = normal)
+                if (a.priority !== b.priority) {
+                    return a.priority - b.priority;
+                }
+                // Then by time (oldest first)
+                const dateA = parseLocalDateTime(a.ordered_at);
+                const dateB = parseLocalDateTime(b.ordered_at);
+                return dateA - dateB;
+            });
+
+            // Render sorted orders
+            sortedOrders.forEach(order => {
                 const orderedAt = parseLocalDateTime(order.ordered_at);
                 const now = new Date();
                 const minutesWaiting = orderedAt ? Math.floor((now - orderedAt) / 1000 / 60) : 0;
@@ -664,11 +693,17 @@ async function loadPrepQueueList() {
                 let urgencyClass = '';
                 let timeText = `${minutesWaiting} min ago`;
 
+                // Check if rush order
+                const isRush = order.priority === 1;
+                if (isRush) {
+                    urgencyClass = 'rush';
+                }
+
                 if (minutesWaiting >= urgentThresholdMinutes) {
                     urgencyClass = 'urgent';
                     timeText = `⚠️ ${timeText}`;
                 } else if (minutesWaiting >= warningThresholdMinutes) {
-                    urgencyClass = 'warning';
+                    urgencyClass = urgencyClass || 'warning';
                 }
 
                 const itemDiv = document.createElement('div');
@@ -680,7 +715,7 @@ async function loadPrepQueueList() {
 
                 itemDiv.innerHTML = `
                     <div class="prep-item-info" style="flex: 1;">
-                        <div class="prep-item-product">${escapeHtml(order.account_name)}</div>
+                        <div class="prep-item-product">${isRush ? '🔥 ' : ''}${escapeHtml(order.account_name)}</div>
                         <div class="prep-item-details">${escapeHtml(timeText)}</div>
                         ${itemsList}
                     </div>

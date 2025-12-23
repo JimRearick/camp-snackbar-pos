@@ -25,6 +25,7 @@ A Point of Sale system for summer camps to manage snack bar purchases, account b
 - **Database**: SQLite (single-file, no separate database server needed)
 - **Authentication**: Session-based with role-based access control (admin, pos, prep)
 - **API Style**: RESTful endpoints under `/api/`
+- **Update Version**: Update /api/get_version function to match the git version tag when updated.
 
 ### Frontend
 - **JavaScript**: ES6 modules (no framework - vanilla JS)
@@ -32,8 +33,22 @@ A Point of Sale system for summer camps to manage snack bar purchases, account b
 - **Real-time**: Socket.IO for live prep queue updates
 - **Security**: CSRF protection via token-based requests
 
+
 ### Deployment
 - **Container**: Docker with docker-compose
 - **Data Persistence**: Volume-mounted SQLite database
 - **Build**: GitHub Actions workflow triggered by git tags
 - **Registry**: GitHub Container Registry (ghcr.io)
+
+## Date and Time Handling
+
+### Critical Principle: Local Time Throughout
+The application **ALWAYS** works in local time. SQLite stores timestamps in UTC, but we convert to/from local time at the database boundary to avoid timezone confusion in the application layer.
+
+### Common Mistakes to Avoid
+
+1. **Never** return raw UTC timestamps from the backend
+2. **Never** use `new Date(dbTimestamp)` on database strings
+3. **Never** filter dates without `'localtime'` modifier
+4. **Never** forget both SELECT and WHERE need `'localtime'`
+5. **Never** assume JavaScript will parse SQLite timestamps correctly

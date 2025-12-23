@@ -390,9 +390,7 @@ def main():
         print(f"Average per transaction: ${revenue/num_trans:.2f}" if num_trans > 0 else "N/A")
         print("=" * 60)
         print("✓ Test data loaded successfully!")
-        print("\nDefault login credentials:")
-        print("  Username: admin")
-        print("  Password: admin")
+      
         print("=" * 60)
 
     except Exception as e:

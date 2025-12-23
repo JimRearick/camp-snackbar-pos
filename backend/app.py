@@ -809,6 +809,7 @@ def create_transaction():
     try:
         account_id = data['account_id']
         transaction_type = data['transaction_type']
+        rush_order = data.get('rush_order', False)  # Default to normal priority
 
         # Add audit trail
         created_by = current_user.id
@@ -898,10 +899,11 @@ def create_transaction():
 
                 # Add to prep queue if product requires preparation
                 if product['requires_prep']:
+                    priority = 1 if rush_order else 2  # 1 = rush, 2 = normal
                     conn.execute(
-                        """INSERT INTO prep_queue (transaction_id, transaction_item_id, product_name, quantity, account_name, status, ordered_at)
-                           VALUES (?, ?, ?, ?, ?, 'pending', datetime('now', 'localtime'))""",
-                        (transaction_id, transaction_item_id, product['name'], item['quantity'], account_name)
+                        """INSERT INTO prep_queue (transaction_id, transaction_item_id, product_name, quantity, account_name, status, priority, ordered_at)
+                           VALUES (?, ?, ?, ?, ?, 'pending', ?, datetime('now', 'localtime'))""",
+                        (transaction_id, transaction_item_id, product['name'], item['quantity'], account_name, priority)
                     )
 
                 # Update inventory if tracked
@@ -954,10 +956,10 @@ def get_prep_queue():
 
     cursor = conn.execute("""
         SELECT id, transaction_id, transaction_item_id, product_name, quantity,
-               account_name, status, ordered_at, completed_at, completed_by
+               account_name, status, priority, ordered_at, completed_at, completed_by
         FROM prep_queue
         WHERE status = 'pending'
-        ORDER BY ordered_at ASC
+        ORDER BY priority ASC, ordered_at ASC
     """)
 
     items = []
@@ -987,6 +989,7 @@ def get_prep_queue():
             'quantity': row['quantity'],
             'account_name': row['account_name'],
             'status': row['status'],
+            'priority': row['priority'],
             'ordered_at': ordered_at,
             'completed_at': completed_at,
             'completed_by': row['completed_by']

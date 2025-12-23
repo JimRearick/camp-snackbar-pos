@@ -115,11 +115,22 @@ Permissions: `chmod +x setup-remote-backup.sh`
 
 ### Settings Table
 
-The `internet_backup_url` setting controls remote backup:
+> **⚠️ RESTART REQUIRED:** After changing `backup_enabled` or `backup_time`, you MUST restart the app with `docker compose restart` for changes to take effect. The scheduler only reads these settings on startup.
+
+Backup behavior is controlled by three settings:
 
 ```sql
--- View current setting
-SELECT * FROM settings WHERE key = 'internet_backup_url';
+-- View all backup settings
+SELECT * FROM settings WHERE key IN ('backup_enabled', 'backup_time', 'internet_backup_url');
+
+-- Enable/disable automatic backups
+UPDATE settings SET value = 'true' WHERE key = 'backup_enabled';   -- Enable
+UPDATE settings SET value = 'false' WHERE key = 'backup_enabled';  -- Disable
+
+-- Set backup time (24-hour format, LOCAL TIMEZONE)
+UPDATE settings SET value = '00:00' WHERE key = 'backup_time';  -- Midnight
+UPDATE settings SET value = '02:30' WHERE key = 'backup_time';  -- 2:30 AM
+UPDATE settings SET value = '14:00' WHERE key = 'backup_time';  -- 2:00 PM
 
 -- Set remote server (format: user@host:/path/)
 UPDATE settings
@@ -132,13 +143,22 @@ SET value = ''
 WHERE key = 'internet_backup_url';
 ```
 
+**Important Notes:**
+- `backup_time` uses **server's local timezone** (not UTC)
+- Time format is 24-hour: "HH:MM" (e.g., "00:00", "14:30")
+- ⚠️ **CRITICAL:** Changes to `backup_time` or `backup_enabled` **REQUIRE APP RESTART** to take effect
+  - Run: `docker compose restart` after changing these settings
+  - The scheduler only reads these settings on startup
+- `internet_backup_url` is read on each backup (no restart needed)
+
 ### Backup Log Table
 
-Schema (already existed):
+Schema:
 ```sql
 CREATE TABLE backup_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     backup_type TEXT NOT NULL CHECK(backup_type IN ('local', 'internet')),
+    backup_source TEXT NOT NULL DEFAULT 'manual' CHECK(backup_source IN ('manual', 'auto')),
     backup_path TEXT NOT NULL,
     status TEXT NOT NULL CHECK(status IN ('success', 'failed')),
     file_size INTEGER,
@@ -147,26 +167,45 @@ CREATE TABLE backup_log (
 );
 ```
 
+**Field Descriptions:**
+- `backup_type`: 'local' or 'internet' - where the backup is stored
+- `backup_source`: 'manual' or 'auto' - how the backup was triggered
+- `status`: 'success' or 'failed' - outcome of the backup operation
+
 **Query Examples:**
 
 ```sql
--- Recent backups
-SELECT * FROM backup_log ORDER BY created_at DESC LIMIT 10;
+-- Recent backups with source information
+SELECT backup_type, backup_source, status, datetime(created_at, 'localtime') as created
+FROM backup_log
+ORDER BY created_at DESC
+LIMIT 10;
 
 -- Failed backups
-SELECT created_at, backup_type, error_message
+SELECT created_at, backup_type, backup_source, error_message
 FROM backup_log
 WHERE status = 'failed'
 ORDER BY created_at DESC;
 
--- Backup statistics
+-- Backup statistics by type and source
 SELECT
     backup_type,
+    backup_source,
     status,
     COUNT(*) as count,
     SUM(file_size) as total_bytes
 FROM backup_log
-GROUP BY backup_type, status;
+GROUP BY backup_type, backup_source, status
+ORDER BY backup_source, backup_type;
+
+-- Manual vs automatic backup success rate
+SELECT
+    backup_source,
+    COUNT(CASE WHEN status = 'success' THEN 1 END) as successful,
+    COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed,
+    ROUND(100.0 * COUNT(CASE WHEN status = 'success' THEN 1 END) / COUNT(*), 2) as success_rate
+FROM backup_log
+GROUP BY backup_source;
 ```
 
 ## How It Works

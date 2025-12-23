@@ -770,6 +770,12 @@ body {
     background: #fffbeb;
 }
 
+.prep-item.rush {
+    border-left-color: #ef4444;
+    border-left-width: 6px;
+    background: linear-gradient(to right, #fef2f2 0%, white 10%);
+}
+
 .prep-item-info {
     flex: 1;
 }
@@ -910,4 +916,62 @@ body {
 .app-version {
     opacity: 0.7;
     font-size: 0.7rem;
+}
+
+/* Rush Order Toggle */
+.rush-order-toggle-container {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+}
+
+.rush-order-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.rush-order-toggle input[type="checkbox"] {
+    display: none;
+}
+
+.toggle-slider {
+    position: relative;
+    width: 60px;
+    height: 34px;
+    background: #cbd5e1;
+    border-radius: 34px;
+    transition: all 0.3s;
+    flex-shrink: 0;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    left: 4px;
+    top: 4px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.rush-order-toggle input:checked + .toggle-slider {
+    background: #ef4444;
+}
+
+.rush-order-toggle input:checked + .toggle-slider::before {
+    transform: translateX(26px);
+}
+
+.toggle-label {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #b45309;
 }

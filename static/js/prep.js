@@ -151,6 +151,7 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
                 transaction_id: item.transaction_id,
                 account_name: item.account_name,
                 ordered_at: item.ordered_at,
+                priority: item.priority,
                 items: []
             };
         }
@@ -198,8 +199,15 @@ function renderByOrder(container, summaryContainer, summaryGrid) {
         ordersToDisplay = ordersToDisplay.filter(order => order.account_name === currentFilter);
     }
 
-    // Sort by oldest first
-    ordersToDisplay.sort((a, b) => parseLocalDateTime(a.ordered_at) - parseLocalDateTime(b.ordered_at));
+    // Sort by priority first, then by oldest first
+    ordersToDisplay.sort((a, b) => {
+        // Priority first (1 = rush, 2 = normal)
+        if (a.priority !== b.priority) {
+            return a.priority - b.priority;
+        }
+        // Then by time (oldest first)
+        return parseLocalDateTime(a.ordered_at) - parseLocalDateTime(b.ordered_at);
+    });
 
     // Render each order
     ordersToDisplay.forEach(order => {
@@ -212,6 +220,12 @@ function createPrepCard(item) {
     const card = document.createElement('div');
     card.className = 'prep-card';
     card.id = `prep-item-${item.id}`;
+
+    // Check if this is a rush order
+    const isRush = item.priority === 1;
+    if (isRush) {
+        card.classList.add('rush-order');
+    }
 
     // Calculate time waiting
     const orderedAt = parseLocalDateTime(item.ordered_at);
@@ -235,7 +249,7 @@ function createPrepCard(item) {
 
     card.innerHTML = `
         <div class="prep-card-header">
-            <div class="product-name">${escapeHtml(item.product_name)}</div>
+            <div class="product-name">${isRush ? '🔥 ' : ''}${escapeHtml(item.product_name)}</div>
             <div class="quantity-badge">${item.quantity}</div>
         </div>
         <div class="account-info">
@@ -345,6 +359,12 @@ function createOrderCard(order) {
     card.className = 'prep-card';
     card.id = `prep-order-${order.transaction_id}`;
 
+    // Check if rush order
+    const isRush = order.priority === 1;
+    if (isRush) {
+        card.classList.add('rush-order');
+    }
+
     // Calculate time waiting
     const orderedAt = parseLocalDateTime(order.ordered_at);
     const now = new Date();
@@ -378,7 +398,7 @@ function createOrderCard(order) {
 
     card.innerHTML = `
         <div class="prep-card-header">
-            <div class="product-name">${escapeHtml(order.account_name)}</div>
+            <div class="product-name">${isRush ? '🔥 ' : ''}${escapeHtml(order.account_name)}</div>
             <div class="quantity-badge">${totalItems}</div>
         </div>
         <div class="order-items-list">
