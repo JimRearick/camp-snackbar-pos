@@ -397,6 +397,20 @@ function showCheckoutConfirm() {
     `;
 
     detailsContainer.innerHTML = html;
+
+    // Show/hide rush order toggle based on whether any items require prep
+    const hasPrep = cart.some(item => item.requires_prep);
+    const rushOrderContainer = document.querySelector('.rush-order-toggle-container');
+    if (rushOrderContainer) {
+        rushOrderContainer.style.display = hasPrep ? 'flex' : 'none';
+    }
+
+    // Reset toggle to unchecked when opening modal
+    const rushOrderToggle = document.getElementById('rushOrderToggle');
+    if (rushOrderToggle) {
+        rushOrderToggle.checked = false;
+    }
+
     modal.classList.remove('hidden');
 }
 
