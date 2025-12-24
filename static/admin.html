@@ -302,7 +302,10 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="accountModalTitle">Add Account</h2>
-                <button class="btn-close" onclick="hideAccountModal()">✕</button>
+                <div class="header-actions">
+                    <button class="btn-delete-icon" id="deleteAccountBtn" onclick="deleteAccountFromModal()" style="display: none;" title="Delete Account">🗑️</button>
+                    <button class="btn-close" onclick="hideAccountModal()">✕</button>
+                </div>
             </div>
             <div class="modal-body">
                 <form id="accountForm" class="admin-form">

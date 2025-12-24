@@ -439,15 +439,35 @@ def update_account(account_id):
 @app.route('/api/accounts/<int:account_id>', methods=['DELETE'])
 @admin_required
 def delete_account(account_id):
-    """Delete account"""
+    """Delete account (only if no transactions exist)"""
     conn = get_db()
-    conn.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
-    conn.commit()
-    conn.close()
-    
-    socketio.emit('account_deleted', {'account_id': account_id})
-    
-    return jsonify({'success': True})
+
+    try:
+        # Check if account has any transactions
+        cursor = conn.execute(
+            "SELECT COUNT(*) as count FROM transactions WHERE account_id = ?",
+            (account_id,)
+        )
+        transaction_count = cursor.fetchone()['count']
+
+        if transaction_count > 0:
+            conn.close()
+            return jsonify({
+                'error': f'Cannot delete account - it has {transaction_count} transaction(s). Accounts with transactions cannot be deleted.'
+            }), 400
+
+        # No transactions, safe to delete
+        conn.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
+        conn.commit()
+
+        socketio.emit('account_deleted', {'account_id': account_id})
+
+        return jsonify({'success': True})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
 
 # ============================================================================
 # Product & Category Routes

@@ -780,6 +780,10 @@ function showAddAccountForm() {
     document.getElementById('accountModalTitle').textContent = 'Add Account';
     document.getElementById('accountForm').reset();
     document.getElementById('accountId').value = '';
+
+    // Hide delete button for new accounts
+    document.getElementById('deleteAccountBtn').style.display = 'none';
+
     document.getElementById('accountModal').classList.remove('hidden');
 
     // Set initial visibility of family members field
@@ -801,6 +805,12 @@ async function editAccount(accountId) {
         // Load family members (one per line)
         const familyMembers = account.family_members || [];
         document.getElementById('familyMembers').value = familyMembers.join('\n');
+
+        // Show delete button for existing accounts
+        const deleteBtn = document.getElementById('deleteAccountBtn');
+        deleteBtn.style.display = 'inline-block';
+        deleteBtn.setAttribute('data-account-name', account.account_name);
+        deleteBtn.setAttribute('data-transaction-count', account.transaction_count || 0);
 
         document.getElementById('accountModal').classList.remove('hidden');
 
@@ -864,6 +874,43 @@ async function saveAccount() {
 
 function hideAccountModal() {
     document.getElementById('accountModal').classList.add('hidden');
+}
+
+async function deleteAccountFromModal() {
+    const accountId = document.getElementById('accountId').value;
+    const deleteBtn = document.getElementById('deleteAccountBtn');
+    const accountName = deleteBtn.getAttribute('data-account-name');
+    const transactionCount = parseInt(deleteBtn.getAttribute('data-transaction-count'));
+
+    if (transactionCount > 0) {
+        showError(`Cannot delete account "${accountName}" - it has ${transactionCount} transaction(s)`);
+        return;
+    }
+
+    const confirmed = await confirmDialog(
+        `Are you sure you want to delete the account "${accountName}"?`,
+        'Delete Account'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        const response = await fetchDelete(`${API_URL}/accounts/${accountId}`);
+
+        if (response.ok) {
+            showSuccess('Account deleted');
+            hideAccountModal();
+            loadAccounts();
+        } else {
+            const errorData = await response.json();
+            showError(errorData.error || 'Failed to delete account');
+        }
+    } catch (error) {
+        showError('Failed to delete account: ' + error.message);
+        console.error('Error:', error);
+    }
 }
 
 async function viewAccountDetailsModal(accountId) {
@@ -1684,6 +1731,7 @@ window.deleteCategoryFromModal = deleteCategoryFromModal;
 window.hideTransactionModal = hideTransactionModal;
 window.hideAccountModal = hideAccountModal;
 window.saveAccount = saveAccount;
+window.deleteAccountFromModal = deleteAccountFromModal;
 window.hideAccountDetailsModal = hideAccountDetailsModal;
 window.showAddFundsModal = showAddFundsModal;
 window.hideAddFundsModal = hideAddFundsModal;

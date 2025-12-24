@@ -567,14 +567,18 @@ async function createNewAccount() {
         // Reload accounts
         await loadAccounts();
 
-        // Hide form and show success
-        hideNewAccountForm();
-        showSuccess('Account created successfully!');
+        // Hide both modals directly (don't re-show account selector)
+        document.getElementById('newAccountModal').classList.add('hidden');
+        document.getElementById('accountModal').classList.add('hidden');
 
         // Auto-select the new account if we can find it
-        const newAccount = accounts.find(acc => acc.account_number === result.account_number);
+        const newAccount = accounts.find(acc => acc.account_number === result.account.account_number);
         if (newAccount) {
             selectAccount(newAccount);
+            showSuccess('Account created successfully!');
+        } else {
+            console.error('Could not find newly created account:', result.account.account_number);
+            showSuccess('Account created successfully!');
         }
 
     } catch (error) {
