@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.8.4"
+    VERSION = "1.9.0"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -1747,7 +1747,10 @@ def list_backups():
 
     # Get paginated backups
     cursor = conn.execute(
-        "SELECT * FROM backup_log ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        """SELECT id, backup_type, backup_source, backup_path, status, file_size,
+           datetime(created_at, 'localtime') as created_at,
+           error_message
+           FROM backup_log ORDER BY created_at DESC LIMIT ? OFFSET ?""",
         (limit, offset)
     )
 
@@ -1760,7 +1763,8 @@ def list_backups():
             'backup_path': row['backup_path'],
             'status': row['status'],
             'file_size': row['file_size'],
-            'created_at': row['created_at']
+            'created_at': row['created_at'],
+            'error_message': row['error_message'] if 'error_message' in row.keys() else None
         })
 
     conn.close()

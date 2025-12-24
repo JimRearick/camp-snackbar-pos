@@ -25,7 +25,7 @@ A Point of Sale system for summer camps to manage snack bar purchases, account b
 - **Database**: SQLite (single-file, no separate database server needed)
 - **Authentication**: Session-based with role-based access control (admin, pos, prep)
 - **API Style**: RESTful endpoints under `/api/`
-- **Update Version**: Update /api/get_version function to match the git version tag when updated.
+- **Update Version**: Update /api/get_version function to match the git version tag when updated.  
 
 ### Frontend
 - **JavaScript**: ES6 modules (no framework - vanilla JS)

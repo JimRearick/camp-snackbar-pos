@@ -1091,6 +1091,7 @@ window.loadAccountTransactionDetails = async function() {
                         <th>Transaction ID</th>
                         <th>Date/Time</th>
                         <th>Type</th>
+                        <th>Items</th>
                         <th style="text-align: right;">Amount</th>
                         <th>Notes</th>
                     </tr>
@@ -1103,11 +1104,22 @@ window.loadAccountTransactionDetails = async function() {
             const amountClass = t.transaction_type === 'purchase' ? 'negative' : 'positive';
             const notes = t.notes || '';
 
+            // Format items list
+            let itemsHtml = '';
+            if (t.items && t.items.length > 0) {
+                itemsHtml = t.items.map(item => {
+                    return `${escapeHtml(item.product_name)} (${item.quantity})`;
+                }).join('<br>');
+            } else {
+                itemsHtml = '-';
+            }
+
             html += `
                 <tr>
                     <td>#${t.id}</td>
                     <td>${escapeHtml(dateStr)}</td>
                     <td><span class="type-badge">${escapeHtml(t.transaction_type)}</span></td>
+                    <td style="max-width: 250px;">${itemsHtml}</td>
                     <td class="currency ${amountClass}">$${Math.abs(t.total_amount).toFixed(2)}</td>
                     <td style="white-space: pre-wrap; max-width: 300px;">${escapeHtml(notes)}</td>
                 </tr>
@@ -1118,7 +1130,7 @@ window.loadAccountTransactionDetails = async function() {
         const balanceClass = account.current_balance < 0 ? 'negative' : 'positive';
         html += `
                 <tr style="border-top: 3px solid #333; background: #f8f9fa; font-weight: 600;">
-                    <td colspan="3" style="text-align: right; padding-right: 1rem;">${escapeHtml(account.account_name)} - Current Balance:</td>
+                    <td colspan="4" style="text-align: right; padding-right: 1rem;">${escapeHtml(account.account_name)} - Current Balance:</td>
                     <td class="currency ${balanceClass}" style="font-size: 1.1rem;">$${account.current_balance.toFixed(2)}</td>
                     <td></td>
                 </tr>
@@ -1148,16 +1160,27 @@ window.exportAccountDetailsToCSV = function() {
         'Transaction ID',
         'Date/Time',
         'Type',
+        'Items',
         'Amount',
         'Notes'
     ];
 
     const rows = transactions.map(t => {
         const dateStr = formatLocalDateTime(t.created_at);
+
+        // Format items list for CSV
+        let itemsStr = '';
+        if (t.items && t.items.length > 0) {
+            itemsStr = t.items.map(item => {
+                return `${item.product_name} (${item.quantity})`;
+            }).join('; ');
+        }
+
         return [
             t.id,
             dateStr,
             t.transaction_type,
+            itemsStr,
             Math.abs(t.total_amount).toFixed(2),
             t.notes || ''
         ];
@@ -1168,6 +1191,7 @@ window.exportAccountDetailsToCSV = function() {
         '',
         '',
         `${account.account_name} - Current Balance`,
+        '',
         account.current_balance.toFixed(2),
         ''
     ]);
