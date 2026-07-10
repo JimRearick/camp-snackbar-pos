@@ -185,6 +185,10 @@ INSERT INTO products (category_id, name, price, display_order, requires_prep) VA
     (5, 'Fritos', 2.00, 2, 0),
     (5, 'Cheetos', 2.00, 2, 0);
 
+-- Default data: Accounts (system accounts)
+INSERT INTO accounts (account_number, account_name, account_type, active, notes) VALUES
+    ('CASH001', 'Cash Sales', 'individual', 1, 'System account for walk-up cash transactions');
+
 -- Default data: Settings
 INSERT INTO settings (key, value) VALUES
     ('currency_symbol', '$'),
