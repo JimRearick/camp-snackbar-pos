@@ -69,6 +69,7 @@ CREATE TABLE transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_id INTEGER NOT NULL,
     transaction_type TEXT NOT NULL CHECK(transaction_type IN ('purchase', 'payment', 'adjustment')),
+    payment_method TEXT DEFAULT 'account' CHECK(payment_method IN ('account', 'cash', 'card')),
     total_amount REAL NOT NULL,
     operator_name TEXT,
     notes TEXT,

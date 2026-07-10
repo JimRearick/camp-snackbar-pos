@@ -983,3 +983,102 @@ body {
     color: #b45309;
     white-space: nowrap;
 }
+
+/* Unified Control Bar */
+.unified-control-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: white;
+    border-bottom: 2px solid #e5e7eb;
+    gap: 1rem;
+}
+
+.payment-method-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.payment-method-main-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.5rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #6b7280;
+    min-width: 110px;
+}
+
+.payment-method-main-btn span:first-child {
+    font-size: 1.25rem;
+}
+
+.payment-method-main-btn:hover {
+    border-color: #667eea;
+    background: #f9fafb;
+}
+
+.payment-method-main-btn.active {
+    border-color: #667eea;
+    background: #ede9fe;
+    color: #667eea;
+}
+
+.payment-method-main-btn:active {
+    transform: scale(0.98);
+}
+
+/* Account Button - Dynamic Width for Account Names */
+.payment-method-main-btn.account-btn {
+    min-width: 140px;
+    max-width: 250px;
+}
+
+.payment-method-main-btn.account-btn .payment-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+/* Control Divider */
+.control-divider {
+    width: 2px;
+    height: 40px;
+    background: #e5e7eb;
+}
+
+/* Account Selection Section */
+.account-selection-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+/* Payment Prompt Section */
+.payment-prompt-section {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+}
+
+/* Cash Mode Section */
+.cash-mode-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 0.5rem;
+    font-size: 0.95rem;
+}

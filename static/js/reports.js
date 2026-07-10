@@ -115,6 +115,12 @@ async function loadSummary() {
         // Total Sales (total spent)
         document.getElementById('totalSales').textContent = `$${summaryData.total_spent.toFixed(2)}`;
 
+        // Cash Sales
+        document.getElementById('cashSales').textContent = `$${summaryData.cash_sales.toFixed(2)}`;
+
+        // Account Sales
+        document.getElementById('accountSales').textContent = `$${summaryData.account_sales.toFixed(2)}`;
+
         // Total Balance Due (negative balances - money owed to camp)
         const balanceDue = accountsData.accounts
             .filter(acc => acc.current_balance < 0)

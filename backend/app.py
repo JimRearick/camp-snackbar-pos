@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.9.0"
+    VERSION = "1.10.0"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -735,7 +735,7 @@ def get_transactions():
     # Get paginated transactions
     query = f"""
         SELECT t.id, t.account_id, a.account_name, t.transaction_type,
-               t.total_amount, t.operator_name, t.notes,
+               t.payment_method, t.total_amount, t.operator_name, t.notes,
                datetime(t.created_at, 'localtime') as created_at
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
@@ -768,6 +768,7 @@ def get_transactions():
             'account_id': row['account_id'],
             'account_name': row['account_name'],
             'transaction_type': row['transaction_type'],
+            'payment_method': row['payment_method'],
             'total_amount': row['total_amount'],
             'operator_name': row['operator_name'],
             'notes': row['notes'],
@@ -794,7 +795,7 @@ def get_transaction(transaction_id):
 
     cursor = conn.execute("""
         SELECT t.id, t.account_id, a.account_name, t.transaction_type,
-               t.total_amount, t.operator_name, t.notes, t.has_been_adjusted,
+               t.payment_method, t.total_amount, t.operator_name, t.notes, t.has_been_adjusted,
                datetime(t.created_at, 'localtime') as created_at
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
@@ -827,6 +828,7 @@ def get_transaction(transaction_id):
         'account_id': row['account_id'],
         'account_name': row['account_name'],
         'transaction_type': row['transaction_type'],
+        'payment_method': row['payment_method'],
         'total_amount': row['total_amount'],
         'operator_name': row['operator_name'],
         'notes': row['notes'],
@@ -851,6 +853,7 @@ def create_transaction():
     try:
         account_id = data['account_id']
         transaction_type = data['transaction_type']
+        payment_method = data.get('payment_method', 'account')  # Default to 'account'
         rush_order = data.get('rush_order', False)  # Default to normal priority
 
         # Add audit trail
@@ -890,9 +893,9 @@ def create_transaction():
 
         # Create transaction with audit trail
         cursor = conn.execute(
-            """INSERT INTO transactions (account_id, transaction_type, total_amount, operator_name, notes, created_by, created_by_username)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (account_id, transaction_type, total_amount, data.get('operator_name', ''), data.get('notes', ''), created_by, created_by_username)
+            """INSERT INTO transactions (account_id, transaction_type, payment_method, total_amount, operator_name, notes, created_by, created_by_username)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (account_id, transaction_type, payment_method, total_amount, data.get('operator_name', ''), data.get('notes', ''), created_by, created_by_username)
         )
 
         transaction_id = cursor.lastrowid
@@ -1499,6 +1502,26 @@ def get_summary_report():
     purchase_stats = cursor.fetchone()
     total_spent = purchase_stats['total_purchases'] or 0
 
+    # Get cash sales breakdown
+    cursor = conn.execute("""
+        SELECT SUM(ABS(total_amount)) as cash_sales
+        FROM transactions
+        WHERE transaction_type = 'purchase' AND payment_method = 'cash'
+    """)
+
+    cash_stats = cursor.fetchone()
+    cash_sales = cash_stats['cash_sales'] or 0
+
+    # Get account sales breakdown
+    cursor = conn.execute("""
+        SELECT SUM(ABS(total_amount)) as account_sales
+        FROM transactions
+        WHERE transaction_type = 'purchase' AND payment_method = 'account'
+    """)
+
+    account_stats = cursor.fetchone()
+    account_sales = account_stats['account_sales'] or 0
+
     # Calculate total remaining by summing all transactions
     cursor = conn.execute("""
         SELECT SUM(total_amount) as total_remaining
@@ -1532,6 +1555,8 @@ def get_summary_report():
         'total_accounts': total_accounts,
         'total_prepaid': total_prepaid,
         'total_spent': total_spent,
+        'cash_sales': cash_sales,
+        'account_sales': account_sales,
         'total_remaining': total_remaining,
         'accounts_with_negative_balance': negative_count,
         'total_negative_amount': total_negative_amount,

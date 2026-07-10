@@ -7,6 +7,8 @@ import { updatePageHeader } from './utils/settings.js';
 // Global state
 let cart = [];
 let selectedAccount = null;
+let selectedPaymentMethod = null; // 'account' or 'cash' - null until selected
+let cashSalesAccount = null; // Cash Sales account object
 let products = [];
 let accounts = [];
 let prepQueueViewMode = 'product'; // 'product' or 'order'
@@ -48,7 +50,42 @@ document.addEventListener('DOMContentLoaded', function() {
     loadPrepQueueCount();
     // Refresh prep queue count every 30 seconds
     setInterval(loadPrepQueueCount, 30000);
+
+    // Initialize - no payment method selected yet
+    // Products will be disabled until payment method is chosen
 });
+
+// Select main payment method (at the start)
+function selectMainPaymentMethod(method) {
+    if (method === 'account') {
+        // For account mode, open the account selector
+        showAccountSelector();
+    } else if (method === 'cash') {
+        // Set cash mode
+        selectedPaymentMethod = 'cash';
+        selectedAccount = null;
+
+        // Update button states
+        const accountBtn = document.getElementById('mainPaymentMethodAccount');
+        const cashBtn = document.getElementById('mainPaymentMethodCash');
+
+        if (accountBtn && cashBtn) {
+            accountBtn.classList.remove('active');
+            cashBtn.classList.add('active');
+        }
+
+        // Reset account button text
+        const accountButtonText = document.getElementById('accountButtonText');
+        if (accountButtonText) {
+            accountButtonText.textContent = 'Account';
+        }
+
+        // Don't clear cart - allow switching payment methods without losing items
+
+        // Enable products for cash mode
+        enableProducts();
+    }
+}
 
 // Load products from API
 async function loadProducts() {
@@ -90,7 +127,8 @@ function displayProducts(categories) {
                 const card = document.createElement('button');
                 card.className = 'product-card';
                 card.onclick = () => addToCart(product);
-                card.disabled = !selectedAccount;
+                // Disable if no payment method selected, or if account mode without account selected
+                card.disabled = !selectedPaymentMethod || (selectedPaymentMethod === 'account' && !selectedAccount);
 
                 // Apply category button color
                 if (category.button_color) {
@@ -117,6 +155,12 @@ async function loadAccounts() {
         if (data.accounts && Array.isArray(data.accounts)) {
             // Filter to only show active accounts in POS
             accounts = data.accounts.filter(acc => acc.active !== false);
+
+            // Find and store the Cash Sales account
+            cashSalesAccount = accounts.find(acc => acc.account_number === 'CASH001');
+            if (cashSalesAccount) {
+                console.log('Cash Sales account found:', cashSalesAccount.account_name);
+            }
         }
     } catch (error) {
         console.error('Error loading accounts:', error);
@@ -191,45 +235,55 @@ function filterAccounts() {
 // Select an account
 function selectAccount(account) {
     selectedAccount = account;
-    updateAccountDisplay();
+    selectedPaymentMethod = 'account';
+
+    // Update the Account button to show the selected account name
+    const accountBtn = document.getElementById('mainPaymentMethodAccount');
+    const accountButtonText = document.getElementById('accountButtonText');
+    const cashBtn = document.getElementById('mainPaymentMethodCash');
+
+    if (accountBtn && cashBtn) {
+        accountBtn.classList.add('active');
+        cashBtn.classList.remove('active');
+    }
+
+    if (accountButtonText) {
+        // Show account name in button (truncate if too long)
+        const displayName = account.account_name.length > 20
+            ? account.account_name.substring(0, 17) + '...'
+            : account.account_name;
+        accountButtonText.textContent = displayName;
+    }
+
     hideAccountSelector();
     enableProducts();
 }
 
 // Update account display in header
 function updateAccountDisplay() {
-    const infoBox = document.getElementById('selectedAccountInfo');
-    const selectBtn = document.getElementById('btnSelectAccount');
-
-    if (selectedAccount) {
-        // Show compact account info with just the name
-        infoBox.innerHTML = `
-            <div class="account-name">${escapeHtml(selectedAccount.account_name)}</div>
-        `;
-        infoBox.style.display = 'flex';
-
-        // Update button text
-        selectBtn.textContent = 'Change Account';
-    } else {
-        infoBox.style.display = 'none';
-        infoBox.innerHTML = '';
-
-        // Reset button text
-        selectBtn.textContent = 'Select Account';
-    }
+    // Account display is now handled by the Account button itself
+    // This function is kept for backward compatibility but does nothing
 }
 
 // Enable product buttons when account is selected
 function enableProducts() {
     const productButtons = document.querySelectorAll('.product-card');
     productButtons.forEach(btn => {
-        btn.disabled = !selectedAccount;
+        // Disable if no payment method selected, or if account mode without account selected
+        btn.disabled = !selectedPaymentMethod || (selectedPaymentMethod === 'account' && !selectedAccount);
     });
 }
 
 // Add product to cart
 function addToCart(product) {
-    if (!selectedAccount) {
+    // Check if payment method is selected
+    if (!selectedPaymentMethod) {
+        showError('Please select a payment method first');
+        return;
+    }
+
+    // If account mode, check if account is selected
+    if (selectedPaymentMethod === 'account' && !selectedAccount) {
         showError('Please select an account first');
         return;
     }
@@ -336,8 +390,19 @@ function confirmClear() {
     cart = [];
     updateCartDisplay();
 
-    // Clear selected account
+    // Clear selected account and payment method
     selectedAccount = null;
+    selectedPaymentMethod = null;
+
+    // Reset UI - clear button states
+    const accountBtn = document.getElementById('mainPaymentMethodAccount');
+    const cashBtn = document.getElementById('mainPaymentMethodCash');
+    const accountButtonText = document.getElementById('accountButtonText');
+
+    if (accountBtn) accountBtn.classList.remove('active');
+    if (cashBtn) cashBtn.classList.remove('active');
+    if (accountButtonText) accountButtonText.textContent = 'Account';
+
     updateAccountDisplay();
     enableProducts();
 
@@ -347,31 +412,34 @@ function confirmClear() {
 
 // Checkout
 function checkout() {
-    if (!selectedAccount) {
-        showError('Please select an account first');
-        return;
-    }
-
     if (cart.length === 0) {
         showError('Cart is empty');
         return;
     }
 
+    // No need to check for selected account here - will check based on payment method in modal
+
     // Show confirmation modal with order details
     showCheckoutConfirm();
 }
 
-function showCheckoutConfirm() {
-    const modal = document.getElementById('checkoutConfirmModal');
+function updateCheckoutDetails() {
     const detailsContainer = document.getElementById('checkoutOrderDetails');
-
-    // Calculate total
     const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    let accountName;
+
+    // Determine account display based on payment method
+    if (selectedPaymentMethod === 'cash') {
+        accountName = 'Cash Sale (Walk-up customer)';
+    } else {
+        accountName = selectedAccount ? selectedAccount.account_name : 'No account selected';
+    }
 
     // Build order details HTML
     let html = `
         <div class="checkout-account">
-            <strong>Account:</strong> ${escapeHtml(selectedAccount.account_name)}
+            <strong>Account:</strong> ${escapeHtml(accountName)}
         </div>
         <div class="checkout-items-list">
     `;
@@ -397,6 +465,10 @@ function showCheckoutConfirm() {
     `;
 
     detailsContainer.innerHTML = html;
+}
+
+function showCheckoutConfirm() {
+    const modal = document.getElementById('checkoutConfirmModal');
 
     // Show/hide rush order toggle based on whether any items require prep
     const hasPrep = cart.some(item => item.requires_prep);
@@ -411,6 +483,9 @@ function showCheckoutConfirm() {
         rushOrderToggle.checked = false;
     }
 
+    // Update checkout details with current payment method
+    updateCheckoutDetails();
+
     modal.classList.remove('hidden');
 }
 
@@ -424,13 +499,30 @@ async function confirmCheckout() {
     const rushOrderToggle = document.getElementById('rushOrderToggle');
     const isRushOrder = rushOrderToggle ? rushOrderToggle.checked : false;
 
+    // Validate account selection based on payment method
+    if (selectedPaymentMethod === 'account' && !selectedAccount) {
+        showError('Please select an account for account-based payment');
+        return;
+    }
+
     // Hide confirmation modal
     hideCheckoutConfirm();
 
+    // Determine which account to use based on payment method
+    let accountToCharge = selectedAccount;
+    if (selectedPaymentMethod === 'cash') {
+        if (!cashSalesAccount) {
+            showError('Cash Sales account not found. Please contact administrator.');
+            return;
+        }
+        accountToCharge = cashSalesAccount;
+    }
+
     // Prepare transaction data
     const transactionData = {
-        account_id: selectedAccount.id,
+        account_id: accountToCharge.id,
         transaction_type: 'purchase',
+        payment_method: selectedPaymentMethod,
         rush_order: isRushOrder,
         items: cart.map(item => ({
             product_id: item.id,
@@ -443,7 +535,9 @@ async function confirmCheckout() {
         const response = await fetchPost(`${API_URL}/transactions`, transactionData);
 
         if (!response.ok) {
-            throw new Error('Transaction failed');
+            // Get the actual error message from the server
+            const errorData = await response.json().catch(() => ({ error: 'Transaction failed' }));
+            throw new Error(errorData.error || errorData.message || 'Transaction failed');
         }
 
         const result = await response.json();
@@ -452,8 +546,19 @@ async function confirmCheckout() {
         cart = [];
         updateCartDisplay();
 
-        // Clear selected account
+        // Clear selected account and payment method
         selectedAccount = null;
+        selectedPaymentMethod = null;
+
+        // Reset UI - clear button states
+        const accountBtn = document.getElementById('mainPaymentMethodAccount');
+        const cashBtn = document.getElementById('mainPaymentMethodCash');
+        const accountButtonText = document.getElementById('accountButtonText');
+
+        if (accountBtn) accountBtn.classList.remove('active');
+        if (cashBtn) cashBtn.classList.remove('active');
+        if (accountButtonText) accountButtonText.textContent = 'Account';
+
         updateAccountDisplay();
         enableProducts();
 
@@ -816,6 +921,7 @@ window.clearCart = clearCart;
 window.hideConfirmClear = hideConfirmClear;
 window.confirmClear = confirmClear;
 window.checkout = checkout;
+window.selectMainPaymentMethod = selectMainPaymentMethod;
 window.hideCheckoutConfirm = hideCheckoutConfirm;
 window.confirmCheckout = confirmCheckout;
 window.showPrepQueueModal = showPrepQueueModal;

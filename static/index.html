@@ -29,13 +29,19 @@
         <div class="main-content">
             <!-- Left Column: Products -->
             <div class="products-column">
-                <!-- Account Selection Bar -->
-                <div class="account-bar">
-                    <button class="btn-select-account" id="btnSelectAccount" onclick="showAccountSelector()">
-                        Select Account
-                    </button>
-                    <div id="selectedAccountInfo" class="account-info-compact" style="display: none;">
-                        <!-- Account info will be populated here -->
+                <!-- Combined Payment & Account Selection Bar -->
+                <div class="unified-control-bar">
+                    <!-- Payment Method Buttons -->
+                    <div class="payment-method-section">
+                        <label style="font-weight: 600; margin-right: 0.5rem;">Payment:</label>
+                        <button type="button" class="payment-method-main-btn account-btn" id="mainPaymentMethodAccount" onclick="selectMainPaymentMethod('account')">
+                            <span class="payment-icon">💳</span>
+                            <span class="payment-text" id="accountButtonText">Account</span>
+                        </button>
+                        <button type="button" class="payment-method-main-btn" id="mainPaymentMethodCash" onclick="selectMainPaymentMethod('cash')">
+                            <span>💵</span>
+                            <span>Cash</span>
+                        </button>
                     </div>
                 </div>
 

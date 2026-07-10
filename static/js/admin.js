@@ -963,6 +963,7 @@ async function viewAccountDetailsModal(accountId) {
                                 <tr>
                                     <th>Date/Time</th>
                                     <th>Type</th>
+                                    <th>Payment</th>
                                     <th>Amount</th>
                                     <th>Actions</th>
                                 </tr>
@@ -970,10 +971,13 @@ async function viewAccountDetailsModal(accountId) {
                             <tbody>
                                 ${transactions.map(t => {
                                     const dateStr = formatLocalDateTime(t.created_at);
+                                    const paymentMethod = t.payment_method || 'account';
+                                    const paymentIcon = paymentMethod === 'cash' ? '💵' : '💳';
                                     return `
                                         <tr>
                                             <td>${escapeHtml(dateStr)}</td>
                                             <td><span class="type-badge">${escapeHtml(t.transaction_type)}</span></td>
+                                            <td>${paymentIcon} ${escapeHtml(paymentMethod)}</td>
                                             <td style="color: ${t.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                                                 $${Math.abs(t.total_amount).toFixed(2)}
                                             </td>
@@ -1150,11 +1154,23 @@ function displayTransactionsTable(transactionsList) {
         const row = document.createElement('tr');
         const dateStr = formatLocalDateTime(transaction.created_at);
 
+        // Format payment method display
+        let paymentMethodDisplay = transaction.payment_method || 'account';
+        let paymentIcon = '';
+        if (paymentMethodDisplay === 'cash') {
+            paymentIcon = '💵';
+        } else if (paymentMethodDisplay === 'account') {
+            paymentIcon = '💳';
+        } else if (paymentMethodDisplay === 'card') {
+            paymentIcon = '💳';
+        }
+
         row.innerHTML = `
             <td>#${transaction.id}</td>
             <td>${escapeHtml(dateStr)}</td>
             <td>${escapeHtml(transaction.account_name || 'N/A')}</td>
             <td><span class="type-badge">${escapeHtml(transaction.transaction_type)}</span></td>
+            <td>${paymentIcon} ${escapeHtml(paymentMethodDisplay)}</td>
             <td style="color: ${transaction.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                 $${Math.abs(transaction.total_amount).toFixed(2)}
             </td>
@@ -1255,6 +1271,10 @@ async function viewTransactionDetails(transactionId) {
             <div class="detail-row">
                 <span class="detail-label">Type:</span>
                 <span class="detail-value">${escapeHtml(data.transaction_type)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Payment Method:</span>
+                <span class="detail-value">${data.payment_method === 'cash' ? '💵' : '💳'} ${escapeHtml(data.payment_method || 'account')}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Amount:</span>

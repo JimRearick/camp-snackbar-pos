@@ -83,6 +83,15 @@ class TransactionSchema(Schema):
         required=True,
         validate=validate.OneOf(['purchase', 'payment', 'adjustment'], error="Invalid transaction type")
     )
+    payment_method = fields.Str(
+        validate=validate.OneOf(['account', 'cash', 'card'], error="Invalid payment method"),
+        allow_none=True,
+        load_default='account'
+    )
+    rush_order = fields.Boolean(
+        allow_none=True,
+        load_default=False
+    )
     items = fields.List(
         fields.Dict(),
         allow_none=True
@@ -93,6 +102,14 @@ class TransactionSchema(Schema):
     )
     amount = fields.Float(
         validate=validate.Range(min=-10000, max=10000, error="Amount must be between -10000 and 10000"),
+        allow_none=True
+    )
+    original_transaction_id = fields.Int(
+        validate=validate.Range(min=1, error="Original transaction ID must be a positive integer"),
+        allow_none=True
+    )
+    operator_name = fields.Str(
+        validate=validate.Length(max=100, error="Operator name must not exceed 100 characters"),
         allow_none=True
     )
 
