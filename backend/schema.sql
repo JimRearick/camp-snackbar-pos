@@ -151,39 +151,27 @@ INSERT INTO users (username, password_hash, role, full_name, is_active) VALUES
 -- Default data: Categories
 INSERT INTO categories (name, display_order) VALUES
     ('Candy', 1),
-    ('Soda', 2),
+    ('Snacks', 2),
     ('Drinks', 3),
-    ('Grill', 4),
-    ('Chips', 5);
+    ('Grill', 4);
 
 -- Default data: Products
 INSERT INTO products (category_id, name, price, display_order, requires_prep) VALUES
-    (1, 'Snickers', 1.50, 1, 0),
-    (1, 'Twix', 1.50, 1, 0),
-    (1, 'Crunch', 1.50, 1, 0),
-    (1, 'Kit Kat', 1.50, 1, 0),
-    (1, 'M&Ms', 1.50, 1, 0),
-    (1, 'Gummy Bears', 1.25, 2, 0),
-    (1, 'Skittles', 1.25, 3, 0),
-    (2, 'Coca-Cola', 2.00, 1, 0),
-    (2, 'Diet Coke', 2.00, 1, 0),
-    (2, 'Sprite', 2.00, 2, 0),
-    (2, 'Root Beer', 2.00, 3, 0),
-    (2, 'Seltzer', 2.00, 3, 0),
-    (3, 'Bottled Water', 1.50, 1, 0),
-    (3, 'Gatorade', 2.50, 2, 0),
-    (3, 'Juice Box', 1.75, 3, 0),
-    (4, 'Hamburger', 5.00, 1, 1),
-    (4, 'Hamburger with Onions', 5.00, 1, 1),
-    (4, 'Naked Hamburger', 5.00, 1, 1),
-    (4, 'Cheeseburger', 5.00, 1, 1),
-    (4, 'Cheeseburger with Onions', 5.00, 1, 1),
-    (4, 'Naked Cheeseburger', 5.00, 1, 1),
-    (4, 'Hot Dog', 3.50, 2, 1),
-    (5, 'Ruffles', 2.00, 2, 0),
-    (5, 'Doritos', 2.00, 2, 0),
-    (5, 'Fritos', 2.00, 2, 0),
-    (5, 'Cheetos', 2.00, 2, 0);
+    (1, 'Large Candy', 1.50, 1, 0),
+    (1, 'Small Candy', .50, 1, 0),
+    (1, 'Lollipop', .75, 1, 0),
+    (2, 'Chips', 2.00, 2, 0),
+    (2, 'Ice Cream', 2.00, 2, 0),
+    (3, 'Soda', 2.00, 3, 0),
+    (3, 'Generic Soda', 1.50, 1, 0),
+    (4, 'Bottled Water', 1.00, 1, 0),
+    (4, 'Hamburger', 3.00, 1, 1),
+    (4, 'Hamburger with Onions', 3.00, 1, 1),
+    (4, 'Naked Hamburger', 3.00, 1, 1),
+    (4, 'Cheeseburger', 3.00, 1, 1),
+    (4, 'Cheeseburger with Onions', 3.00, 1, 1),
+    (4, 'Naked Cheeseburger', 3.00, 1, 1),
+    (4, 'Hot Dog', 2.00, 2, 1);
 
 -- Default data: Accounts (system accounts)
 INSERT INTO accounts (account_number, account_name, account_type, active, notes) VALUES
