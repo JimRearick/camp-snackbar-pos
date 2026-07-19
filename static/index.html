@@ -11,7 +11,7 @@
     <div class="container">
         <!-- Header -->
         <header class="page-header">
-            <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo"> Camp Snackbar</h1>
+            <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo" onclick="window.toggleFullscreen()" title="Toggle Fullscreen"> Camp Snackbar</h1>
             <div class="header-nav">
                 <!-- User Info -->
                 <div id="userInfo" class="user-info-container" style="display: none;"></div>
@@ -79,7 +79,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Select Account</h2>
-                <button class="btn-close" onclick="hideAccountSelector()">✕</button>
+                <button id="accountModalCloseBtn" class="btn-close" onclick="hideAccountSelector()">✕</button>
             </div>
             <div class="modal-body">
                 <input type="text" id="accountSearch" class="search-input"

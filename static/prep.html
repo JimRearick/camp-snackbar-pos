@@ -36,6 +36,16 @@
         .page-header h1 {
             font-size: 1.5rem;
             font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .header-logo {
+            height: 2.5rem;
+            width: auto;
+            vertical-align: middle;
+            cursor: pointer;
         }
 
         /* Prep Navigation */
@@ -501,7 +511,7 @@
 <body>
     <header class="page-header">
         <div style="display: flex; align-items: center; gap: 1rem;">
-            <h1>🍔 Prep Station</h1>
+            <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo" onclick="window.toggleFullscreen()" title="Toggle Fullscreen"> Prep</h1>
             <!-- View Mode Toggle -->
             <div class="view-toggle">
                 <button class="view-toggle-btn active" id="viewByProductBtn" onclick="window.setViewMode('product')">By Product</button>
@@ -534,11 +544,6 @@
     <div class="prep-container" id="prepContainer">
         <div class="loading">Loading prep queue...</div>
     </div>
-
-    <!-- Hidden audio element for notifications -->
-    <audio id="notificationSound" preload="auto">
-        <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBjiF0fPTgjMGHm7A7+OZTA0OVqzn8LJkHgQ7ltzzxnksBSN0wvDekj8KE1y65eplUhENRJzd8sFtIgU5iNPzzIUyBRxsvOnhmU0ODlSq5O+vYB4EO5XY8sFuJQQjcr/v3Y9BCRN="/>
-    </audio>
 
     <!-- Socket.IO client library (local for offline operation) -->
     <script src="js/socket.io.min.js"></script>

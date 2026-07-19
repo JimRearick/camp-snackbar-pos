@@ -116,6 +116,7 @@ body {
 .header-logo {
     height: 50px;
     width: auto;
+    cursor: pointer;
 }
 
 .admin-header h1 {

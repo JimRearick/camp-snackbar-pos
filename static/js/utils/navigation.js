@@ -170,6 +170,21 @@ export async function renderNavigationHeader({ containerSelector, user, pageName
 }
 
 /**
+ * Toggles the browser between fullscreen and normal display
+ */
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+            console.error(`Error attempting to enable fullscreen: ${err.message}`);
+        });
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+window.toggleFullscreen = toggleFullscreen;
+
+/**
  * Displays user information and app version in the navigation
  *
  * @param {Object} user - User object with role, username, full_name

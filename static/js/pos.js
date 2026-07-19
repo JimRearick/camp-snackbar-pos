@@ -172,7 +172,9 @@ function showAccountSelector() {
     loadAccounts().then(() => {
         displayAccounts(accounts);
         document.getElementById('accountModal').classList.remove('hidden');
-        document.getElementById('accountSearch').focus();
+        // Focus the close button instead of the search field so tapping
+        // the account button doesn't pop up the on-screen keyboard on tablets
+        document.getElementById('accountModalCloseBtn').focus();
     });
 }
 

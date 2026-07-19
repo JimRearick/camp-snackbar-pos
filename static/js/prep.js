@@ -16,6 +16,11 @@ let currentFilter = null; // null means show all, otherwise filter by product na
 let viewMode = 'product'; // 'product' or 'order'
 let urgentThresholdMinutes = 5; // Default: red after 5 minutes
 let warningThresholdMinutes = 2; // Default: yellow after 2 minutes
+let audioCtx = null;
+
+// Browsers block audio until a user gesture happens on the page,
+// so grab/resume the shared AudioContext on the first tap.
+document.addEventListener('click', () => getAudioContext(), { once: true });
 
 // ============================================================================
 // Settings Management
@@ -299,13 +304,53 @@ async function completeItem(itemId) {
 // Notifications
 // ============================================================================
 
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// Synthesizes one strike of a service bell (fundamental + a couple of
+// higher partials, each with a fast attack and exponential decay).
+function playBellStrike(ctx, startTime, frequency, duration) {
+    const partials = [
+        { ratio: 1, gain: 0.35 },
+        { ratio: 2.4, gain: 0.12 },
+        { ratio: 3.8, gain: 0.06 }
+    ];
+
+    partials.forEach(({ ratio, gain: peakGain }) => {
+        const osc = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(frequency * ratio, startTime);
+
+        gainNode.gain.setValueAtTime(0.0001, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(peakGain, startTime + 0.005);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+        osc.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration + 0.05);
+    });
+}
+
 function playNotification() {
-    const audio = document.getElementById('notificationSound');
-    if (audio) {
-        audio.play().catch(e => {
-            // Ignore autoplay errors (browser might block autoplay)
-            console.log('Could not play notification sound:', e);
-        });
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        // Classic two-strike counter bell: "ding-ding"
+        playBellStrike(ctx, now, 1568, 0.6);
+        playBellStrike(ctx, now + 0.3, 1568, 0.6);
+    } catch (e) {
+        // Ignore autoplay errors (browser might block audio before a user gesture)
+        console.log('Could not play notification sound:', e);
     }
 }
 
@@ -408,7 +453,7 @@ function createOrderCard(order) {
             ${escapeHtml(timeText)}
         </div>
         <button class="complete-btn" onclick="window.completeOrder(${order.transaction_id})">
-            ✓ Complete Order
+            ✓ Order Ready
         </button>
     `;
 
