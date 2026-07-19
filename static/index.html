@@ -16,12 +16,12 @@
                 <!-- User Info -->
                 <div id="userInfo" class="user-info-container" style="display: none;"></div>
                 <!-- Admin-only navigation -->
-                <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
-                <a href="/reports.html" id="reportsNavBtn" style="display: none;"><span class="icon">📊</span> Reports</a>
-                <button onclick="showPrepQueueModal()" title="View Prep Queue">
-                    <span class="icon">🍔</span> Prep Queue <span id="prepQueueCount" style="display: none;"></span>
+                <a href="/admin.html" id="adminNavBtn" style="display: none;" title="Admin"><span class="icon">⚙️</span></a>
+                <a href="/reports.html" id="reportsNavBtn" style="display: none;" title="Reports"><span class="icon">📊</span></a>
+                <button onclick="showPrepQueueModal()" title="Prep Queue">
+                    <span class="icon">🍔</span><span id="prepQueueCount" style="display: none;"></span>
                 </button>
-                <button onclick="window.authLogout()"><span class="icon">🚪</span> Logout</button>
+                <button onclick="window.authLogout()" title="Logout"><span class="icon">🚪</span></button>
             </div>
         </header>
 

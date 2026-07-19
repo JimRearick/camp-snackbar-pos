@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.11.0"
+    VERSION = "1.12.0"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -957,6 +957,17 @@ def create_transaction():
                        SET inventory_quantity = inventory_quantity - ?
                        WHERE id = ? AND track_inventory = 1""",
                     (item['quantity'], item['product_id'])
+                )
+
+            # Cash sales are settled immediately, so offset the purchase with
+            # a matching payment - the account shouldn't carry a balance for
+            # money that was already handed over at the register
+            if payment_method == 'cash':
+                conn.execute(
+                    """INSERT INTO transactions (account_id, transaction_type, payment_method, total_amount, operator_name, notes, created_by, created_by_username)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (account_id, 'payment', 'cash', abs(total_amount), data.get('operator_name', ''),
+                     f'Cash payment received for transaction #{transaction_id}', created_by, created_by_username)
                 )
 
         conn.commit()

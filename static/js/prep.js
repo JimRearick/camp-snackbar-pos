@@ -13,7 +13,7 @@ import { updatePageHeader } from './utils/settings.js';
 let prepQueue = [];
 let previousQueueLength = 0;
 let currentFilter = null; // null means show all, otherwise filter by product name
-let viewMode = 'product'; // 'product' or 'order'
+let viewMode = 'order'; // 'product' or 'order'
 let urgentThresholdMinutes = 5; // Default: red after 5 minutes
 let warningThresholdMinutes = 2; // Default: yellow after 2 minutes
 let audioCtx = null;

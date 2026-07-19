@@ -514,18 +514,18 @@
             <h1><img src="/static/images/IF_logo.png" alt="Camp Logo" class="header-logo" onclick="window.toggleFullscreen()" title="Toggle Fullscreen"> Prep</h1>
             <!-- View Mode Toggle -->
             <div class="view-toggle">
-                <button class="view-toggle-btn active" id="viewByProductBtn" onclick="window.setViewMode('product')">By Product</button>
-                <button class="view-toggle-btn" id="viewByOrderBtn" onclick="window.setViewMode('order')">By Order</button>
+                <button class="view-toggle-btn" id="viewByProductBtn" onclick="window.setViewMode('product')">By Product</button>
+                <button class="view-toggle-btn active" id="viewByOrderBtn" onclick="window.setViewMode('order')">By Order</button>
             </div>
         </div>
         <div class="prep-nav">
             <!-- User Info -->
             <div id="userInfo" class="user-info-container" style="display: none;"></div>
             <!-- Navigation buttons -->
-            <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
-            <a href="/admin.html" id="adminNavBtn" style="display: none;"><span class="icon">⚙️</span> Admin</a>
-            <a href="/reports.html" id="reportsNavBtn" style="display: none;"><span class="icon">📊</span> Reports</a>
-            <button onclick="window.authLogout()"><span class="icon">🚪</span> Logout</button>
+            <a href="/index.html" id="posNavBtn" style="display: none;" title="POS"><span class="icon">🛒</span></a>
+            <a href="/admin.html" id="adminNavBtn" style="display: none;" title="Admin"><span class="icon">⚙️</span></a>
+            <a href="/reports.html" id="reportsNavBtn" style="display: none;" title="Reports"><span class="icon">📊</span></a>
+            <button onclick="window.authLogout()" title="Logout"><span class="icon">🚪</span></button>
         </div>
     </header>
 

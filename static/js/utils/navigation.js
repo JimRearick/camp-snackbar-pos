@@ -110,7 +110,7 @@ export async function renderNavigationHeader({ containerSelector, user, pageName
             const countBadge = button.hasCount ? '<span id="prepQueueCount" style="display: none;"></span>' : '';
             navButtons.push(`
                 <button onclick="${button.onclick}" title="${button.label}">
-                    <span class="icon">${button.icon}</span> ${button.label} ${countBadge}
+                    <span class="icon">${button.icon}</span>${countBadge}
                 </button>
             `);
         }
@@ -137,16 +137,16 @@ export async function renderNavigationHeader({ containerSelector, user, pageName
         }
 
         navButtons.push(`
-            <a href="${button.href}" id="${button.id}">
-                <span class="icon">${button.icon}</span> ${button.label}
+            <a href="${button.href}" id="${button.id}" title="${button.label}">
+                <span class="icon">${button.icon}</span>
             </a>
         `);
     });
 
     // Always add logout button
     navButtons.push(`
-        <button onclick="window.authLogout()">
-            <span class="icon">🚪</span> Logout
+        <button onclick="window.authLogout()" title="Logout">
+            <span class="icon">🚪</span>
         </button>
     `);
 

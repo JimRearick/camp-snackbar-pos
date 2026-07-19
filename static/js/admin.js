@@ -201,8 +201,10 @@ function displayProductsTable() {
                     <td><span class="status-badge ${product.active ? 'status-active' : 'status-inactive'}">
                         ${product.active ? 'Active' : 'Inactive'}
                     </span></td>
-                    <td style="text-align: right;">
-                        <button class="btn-edit" onclick="editProduct(${product.id})">Edit</button>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-icon-action btn-icon-edit" onclick="editProduct(${product.id})" title="Edit">✏️</button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -477,8 +479,10 @@ async function loadCategories() {
                         </div>
                     </td>
                     <td>${productCount}</td>
-                    <td style="text-align: right;">
-                        <button class="btn-edit" onclick="editCategory(${category.id})">Edit</button>
+                    <td>
+                        <div class="row-actions">
+                            <button class="btn-icon-action btn-icon-edit" onclick="editCategory(${category.id})" title="Edit">✏️</button>
+                        </div>
                     </td>
                 `;
 
@@ -734,9 +738,11 @@ function displayAccountsTable(accountsList) {
                 $${account.current_balance.toFixed(2)}
             </td>
             <td>${escapeHtml(createdDate)}</td>
-            <td style="text-align: right;">
-                <button class="btn-edit" onclick="editAccount(${account.id})">Edit</button>
-                <button class="btn-view" onclick="viewAccountDetailsModal(${account.id})">Details</button>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-icon-action btn-icon-edit" onclick="editAccount(${account.id})" title="Edit">✏️</button>
+                    <button class="btn-icon-action btn-icon-view" onclick="viewAccountDetailsModal(${account.id})" title="Details">🔍</button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -784,6 +790,9 @@ function showAddAccountForm() {
     // Hide delete button for new accounts
     document.getElementById('deleteAccountBtn').style.display = 'none';
 
+    // Initial balance only makes sense when creating a new account
+    document.getElementById('initialBalanceGroup').style.display = 'flex';
+
     document.getElementById('accountModal').classList.remove('hidden');
 
     // Set initial visibility of family members field
@@ -812,6 +821,9 @@ async function editAccount(accountId) {
         deleteBtn.setAttribute('data-account-name', account.account_name);
         deleteBtn.setAttribute('data-transaction-count', account.transaction_count || 0);
 
+        // Initial balance only applies when creating a new account
+        document.getElementById('initialBalanceGroup').style.display = 'none';
+
         document.getElementById('accountModal').classList.remove('hidden');
 
         // Toggle family members field based on account type
@@ -829,9 +841,15 @@ async function saveAccount() {
     const active = document.getElementById('accountActive').checked;
     const notes = document.getElementById('accountNotes').value.trim();
     const familyMembersText = document.getElementById('familyMembers').value.trim();
+    const initialBalance = parseFloat(document.getElementById('initialBalance').value) || 0;
 
     if (!accountName) {
         showError('Please enter an account name');
+        return;
+    }
+
+    if (initialBalance < 0) {
+        showError('Initial balance cannot be negative');
         return;
     }
 
@@ -859,6 +877,18 @@ async function saveAccount() {
             : await fetchPost(url, accountData);
 
         if (response.ok) {
+            // New accounts can start with an initial balance, added the same
+            // way "Add Funds" does - as a payment transaction on the account
+            if (!accountId && initialBalance > 0) {
+                const result = await response.json();
+                const newAccountId = result.account.id;
+
+                const fundsResponse = await addPaymentTransaction(newAccountId, initialBalance, 'Initial balance');
+                if (!fundsResponse.ok) {
+                    showError('Account created, but failed to add initial balance');
+                }
+            }
+
             showSuccess(accountId ? 'Account updated' : 'Account created');
             hideAccountModal();
             loadAccounts();
@@ -982,7 +1012,9 @@ async function viewAccountDetailsModal(accountId) {
                                                 $${Math.abs(t.total_amount).toFixed(2)}
                                             </td>
                                             <td>
-                                                <button class="btn-view" onclick="viewTransactionDetails(${t.id})">Details</button>
+                                                <div class="row-actions">
+                                                    <button class="btn-icon-action btn-icon-view" onclick="viewTransactionDetails(${t.id})" title="Details">🔍</button>
+                                                </div>
                                             </td>
                                         </tr>
                                     `;
@@ -1075,6 +1107,19 @@ function hideAddFundsModal() {
     document.getElementById('addFundsModal').classList.add('hidden');
 }
 
+// Creates a 'payment' transaction that adds funds to an account's balance.
+// Shared by both the Add Funds modal and new-account initial balance.
+async function addPaymentTransaction(accountId, amount, notes) {
+    const paymentData = {
+        account_id: parseInt(accountId),
+        transaction_type: 'payment',
+        total_amount: amount,
+        notes: notes || 'Funds added to account'
+    };
+
+    return await fetchPost(`${API_URL}/transactions`, paymentData);
+}
+
 async function addFundsToAccount() {
     const accountId = document.getElementById('fundsAccountId').value;
     const amount = parseFloat(document.getElementById('fundsAmount').value);
@@ -1087,14 +1132,7 @@ async function addFundsToAccount() {
     }
 
     try {
-        const paymentData = {
-            account_id: parseInt(accountId),
-            transaction_type: 'payment',
-            total_amount: amount,
-            notes: notes || 'Funds added to account'
-        };
-
-        const response = await fetchPost(`${API_URL}/transactions`, paymentData);
+        const response = await addPaymentTransaction(accountId, amount, notes);
 
         if (response.ok) {
             showSuccess(`$${amount.toFixed(2)} added successfully`);
@@ -1146,6 +1184,53 @@ async function loadTransactions() {
     }
 }
 
+function csvField(value) {
+    const str = String(value ?? '');
+    return `"${str.replace(/"/g, '""')}"`;
+}
+
+function exportTransactionsCSV() {
+    const typeFilter = document.getElementById('transactionTypeFilter')?.value || '';
+
+    // Match whatever filter is currently applied to the visible table
+    let transactionsList = allTransactions;
+    if (typeFilter) {
+        transactionsList = allTransactions.filter(t => t.transaction_type === typeFilter);
+    }
+
+    if (transactionsList.length === 0) {
+        showError('No transactions to export');
+        return;
+    }
+
+    const headers = ['Transaction #', 'Date/Time', 'Account', 'Type', 'Payment Method', 'Amount', 'Notes'];
+    const rows = transactionsList.map(t => [
+        t.id,
+        formatLocalDateTime(t.created_at),
+        t.account_name || 'N/A',
+        t.transaction_type,
+        t.payment_method || 'account',
+        t.total_amount.toFixed(2),
+        t.notes || ''
+    ]);
+
+    const csvContent = [headers, ...rows]
+        .map(row => row.map(csvField).join(','))
+        .join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const dateStamp = new Date().toISOString().split('T')[0];
+
+    link.href = url;
+    link.download = `transactions_${dateStamp}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
 function displayTransactionsTable(transactionsList) {
     const tbody = document.getElementById('transactionsTableBody');
     tbody.innerHTML = '';
@@ -1174,8 +1259,10 @@ function displayTransactionsTable(transactionsList) {
             <td style="color: ${transaction.transaction_type === 'purchase' ? '#dc3545' : '#28a745'}; font-weight: 600;">
                 $${Math.abs(transaction.total_amount).toFixed(2)}
             </td>
-            <td style="text-align: right;">
-                <button class="btn-view" onclick="viewTransactionDetails(${transaction.id})">Details</button>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-icon-action btn-icon-view" onclick="viewTransactionDetails(${transaction.id})" title="Details">🔍</button>
+                </div>
             </td>
         `;
         tbody.appendChild(row);
@@ -1403,8 +1490,10 @@ function displayUsers() {
             <td><span class="type-badge">${escapeHtml(user.role)}</span></td>
             <td>${statusBadge}</td>
             <td>${escapeHtml(formatLocalDate(user.created_at))}</td>
-            <td style="text-align: right;">
-                <button class="btn-edit" onclick="editUser(${user.id})">Edit</button>
+            <td>
+                <div class="row-actions">
+                    <button class="btn-icon-action btn-icon-edit" onclick="editUser(${user.id})" title="Edit">✏️</button>
+                </div>
             </td>
         </tr>
         `;
@@ -1770,6 +1859,7 @@ window.toggleAdjustMode = toggleAdjustMode;
 window.processAdjustment = processAdjustment;
 window.loadAccounts = loadAccounts;
 window.loadTransactions = loadTransactions;
+window.exportTransactionsCSV = exportTransactionsCSV;
 window.showAddUserModal = showAddUserModal;
 window.editUser = editUser;
 window.hideUserModal = hideUserModal;

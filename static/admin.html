@@ -19,9 +19,9 @@
             </h1>
             <div class="cross-page-nav">
                 <div id="userInfo" class="user-info-container" style="display: none;"></div>
-                <a href="/index.html" id="posNavBtn" style="display: none;"><span class="icon">🛒</span> POS</a>
-                <a href="/reports.html"><span class="icon">📈</span> Reports</a>
-                <button onclick="logout()"><span class="icon">🚪</span> Logout</button>
+                <a href="/index.html" id="posNavBtn" style="display: none;" title="POS"><span class="icon">🛒</span></a>
+                <a href="/reports.html" title="Reports"><span class="icon">📈</span></a>
+                <button onclick="logout()" title="Logout"><span class="icon">🚪</span></button>
             </div>
         </header>
 
@@ -148,6 +148,7 @@
                             <option value="payment">Payment</option>
                             <option value="adjustment">Adjustment</option>
                         </select>
+                        <button class="btn-secondary" onclick="exportTransactionsCSV()">Export CSV</button>
                     </div>
                 </div>
 
@@ -327,6 +328,10 @@
                             <input type="checkbox" id="accountActive" checked>
                             Active
                         </label>
+                    </div>
+                    <div class="form-group" id="initialBalanceGroup">
+                        <label for="initialBalance">Initial Balance</label>
+                        <input type="number" id="initialBalance" class="form-input" step="0.01" min="0" placeholder="0.00">
                     </div>
                     <div class="form-group" id="familyMembersGroup" style="display: none;">
                         <label for="familyMembers">Family Members (one per line)</label>

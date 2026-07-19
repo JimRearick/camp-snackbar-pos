@@ -164,7 +164,7 @@ INSERT INTO products (category_id, name, price, display_order, requires_prep) VA
     (2, 'Ice Cream', 2.00, 2, 0),
     (3, 'Soda', 2.00, 3, 0),
     (3, 'Generic Soda', 1.50, 1, 0),
-    (4, 'Bottled Water', 1.00, 1, 0),
+    (3, 'Bottled Water', 1.00, 1, 0),
     (4, 'Hamburger', 3.00, 1, 1),
     (4, 'Hamburger with Onions', 3.00, 1, 1),
     (4, 'Naked Hamburger', 3.00, 1, 1),
@@ -180,7 +180,7 @@ INSERT INTO accounts (account_number, account_name, account_type, active, notes)
 -- Default data: Settings
 INSERT INTO settings (key, value) VALUES
     ('currency_symbol', '$'),
-    ('camp_name', 'Summer Camp Snack Bar'),
+    ('camp_name', 'Snack Bar'),
     ('backup_enabled', 'true'),
     ('backup_time', '00:00'),
     ('internet_backup_url', ''),
