@@ -213,12 +213,12 @@ def get_accounts():
     """Get accounts with optional search/filter and pagination (All authenticated users)"""
     search = request.args.get('search', '')
     account_type = request.args.get('type', '')
-    limit = request.args.get('limit', 50, type=int)
+    limit = request.args.get('limit', 1000, type=int)
     offset = request.args.get('offset', 0, type=int)
 
     # Validate pagination parameters
     if limit < 1 or limit > 1000:
-        limit = 300
+        limit = 1000
     if offset < 0:
         offset = 0
 
