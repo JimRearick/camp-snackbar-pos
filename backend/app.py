@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.12.0"
+    VERSION = "1.12.1"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -218,7 +218,7 @@ def get_accounts():
 
     # Validate pagination parameters
     if limit < 1 or limit > 1000:
-        limit = 50
+        limit = 300
     if offset < 0:
         offset = 0
 
