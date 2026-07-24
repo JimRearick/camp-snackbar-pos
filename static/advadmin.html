@@ -249,6 +249,28 @@
                     <!-- Danger Zone Section -->
                     <div style="flex: 1; min-width: 300px; padding: 1.5rem; background: #fff5f5; border-radius: 8px; border-left: 4px solid #dc3545;">
                         <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: #dc3545;">⚠️ Danger Zone</h3>
+
+                        <p style="color: #666; margin-bottom: 0.75rem;">
+                            <strong>Warning:</strong> Permanently delete a single account and all of its transaction history. This operation cannot be undone.
+                            Only <strong>inactive</strong> accounts can be deleted — deactivate an account on the Admin page first.
+                        </p>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+                            <select id="deleteAccountSelect" class="form-input" style="flex: 1; min-width: 200px;">
+                                <option value="">Select an inactive account…</option>
+                            </select>
+                            <button class="btn-secondary" onclick="deleteSelectedAccount()" style="background: #dc3545; border-color: #dc3545; color: white;">
+                                🗑️ Delete Account
+                            </button>
+                        </div>
+                        <div id="deleteAccountStatus" style="margin-bottom: 1.5rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="spinner" id="deleteAccountSpinner" style="display: none;"></div>
+                                <span id="deleteAccountMessage"></span>
+                            </div>
+                        </div>
+
+                        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #f5c6cb;">
+
                         <p style="color: #666; margin-bottom: 1.5rem;">
                             <strong>Warning:</strong> The following action will permanently delete all account and transaction data from the system. This operation cannot be undone.
                         </p>
@@ -304,6 +326,40 @@
                 <button id="confirmDeleteBtn" onclick="confirmDeleteAll()" disabled
                         style="flex: 1; padding: 0.75rem 1.5rem; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; opacity: 0.5;">
                     Delete Everything
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Individual Account Confirmation Modal -->
+    <div id="deleteAccountConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: white; border-radius: 12px; max-width: 500px; width: 90%; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+                <h2 style="margin: 0 0 1rem 0; color: #dc3545;">Delete Account?</h2>
+            </div>
+
+            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
+                <p style="margin: 0 0 0.75rem 0; font-weight: bold; color: #856404;">
+                    This will permanently delete the account "<span id="deleteAccountConfirmName"></span>" and ALL of its transaction history.
+                </p>
+                <p style="margin: 0; font-weight: bold; color: #dc3545;">This operation CANNOT be undone!</p>
+            </div>
+
+            <p style="margin-bottom: 1.5rem; color: #666; text-align: center;">Type <strong>DELETE</strong> below to confirm:</p>
+
+            <input type="text" id="deleteAccountConfirmInput" placeholder="Type DELETE to confirm"
+                   style="width: 100%; padding: 0.75rem; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; margin-bottom: 1.5rem; text-align: center; font-weight: bold;"
+                   autocomplete="off">
+
+            <div style="display: flex; gap: 1rem;">
+                <button onclick="cancelDeleteAccount()"
+                        style="flex: 1; padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold;">
+                    Cancel
+                </button>
+                <button id="confirmDeleteAccountBtn" onclick="confirmDeleteAccount()" disabled
+                        style="flex: 1; padding: 0.75rem 1.5rem; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; opacity: 0.5;">
+                    Delete Account
                 </button>
             </div>
         </div>

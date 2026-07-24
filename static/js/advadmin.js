@@ -12,6 +12,7 @@ const API_URL = '/api';
 function initAdvAdmin() {
     loadSettings();
     updateHeaderCampName();
+    loadAccountsForDeletion();
 }
 
 // Update header with camp name from settings
@@ -211,6 +212,134 @@ async function confirmDeleteAll() {
         message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
 
         showError('Failed to delete all data: ' + error.message);
+    }
+}
+
+// ============================================================================
+// Individual Account Deletion
+// ============================================================================
+
+// Populate the account dropdown in the Danger Zone
+async function loadAccountsForDeletion() {
+    const select = document.getElementById('deleteAccountSelect');
+    if (!select) return;
+
+    try {
+        const response = await fetch(`${API_URL}/accounts`, { credentials: 'include' });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        // Safety layer: only inactive accounts can be deleted here. Active
+        // accounts must be deactivated first before they can be selected.
+        const accounts = (data.accounts || []).filter(account => !account.active);
+
+        if (accounts.length === 0) {
+            select.innerHTML = '<option value="">No inactive accounts</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">Select an inactive account…</option>';
+        accounts
+            .slice()
+            .sort((a, b) => a.account_name.localeCompare(b.account_name))
+            .forEach(account => {
+                const option = document.createElement('option');
+                option.value = account.id;
+                option.textContent = `${account.account_name} (${account.account_number})`;
+                select.appendChild(option);
+            });
+    } catch (error) {
+        console.error('Error loading accounts for deletion:', error);
+    }
+}
+
+// Show the delete-account confirmation modal for the selected account
+function deleteSelectedAccount() {
+    const select = document.getElementById('deleteAccountSelect');
+    const accountId = select.value;
+
+    if (!accountId) {
+        showError('Please select an account to delete');
+        return;
+    }
+
+    const accountName = select.options[select.selectedIndex].textContent;
+
+    const modal = document.getElementById('deleteAccountConfirmModal');
+    const input = document.getElementById('deleteAccountConfirmInput');
+    const confirmBtn = document.getElementById('confirmDeleteAccountBtn');
+
+    document.getElementById('deleteAccountConfirmName').textContent = accountName;
+
+    // Reset modal state
+    input.value = '';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.5';
+
+    modal.style.display = 'flex';
+    setTimeout(() => input.focus(), 100);
+
+    input.oninput = function() {
+        if (input.value.trim().toUpperCase() === 'DELETE') {
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+        } else {
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+        }
+    };
+
+    input.onkeypress = function(e) {
+        if (e.key === 'Enter' && !confirmBtn.disabled) {
+            confirmDeleteAccount();
+        }
+    };
+}
+
+// Cancel the individual account delete operation
+function cancelDeleteAccount() {
+    document.getElementById('deleteAccountConfirmModal').style.display = 'none';
+}
+
+// Confirm and execute deletion of the selected account and its transactions
+async function confirmDeleteAccount() {
+    const select = document.getElementById('deleteAccountSelect');
+    const accountId = select.value;
+    const accountName = select.options[select.selectedIndex]?.textContent || 'account';
+
+    const modal = document.getElementById('deleteAccountConfirmModal');
+    const statusDiv = document.getElementById('deleteAccountStatus');
+    const spinner = document.getElementById('deleteAccountSpinner');
+    const message = document.getElementById('deleteAccountMessage');
+
+    modal.style.display = 'none';
+
+    statusDiv.style.display = 'block';
+    spinner.style.display = 'block';
+    message.textContent = `Deleting ${accountName}...`;
+
+    try {
+        const response = await fetchDelete(`${API_URL}/accounts/${accountId}?force=true`);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete account');
+        }
+
+        const result = await response.json();
+
+        spinner.style.display = 'none';
+        message.innerHTML = `<span style="color: #28a745;">✓ Deleted ${escapeHtml(accountName)} and ${result.transactions_deleted || 0} transaction(s)</span>`;
+
+        showSuccess('Account and its transactions have been deleted');
+
+        select.value = '';
+        loadAccountsForDeletion();
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        spinner.style.display = 'none';
+        message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
+        showError('Failed to delete account: ' + error.message);
     }
 }
 
@@ -527,6 +656,9 @@ window.loadTestData = loadTestData;
 window.deleteAllData = deleteAllData;
 window.cancelDeleteAll = cancelDeleteAll;
 window.confirmDeleteAll = confirmDeleteAll;
+window.deleteSelectedAccount = deleteSelectedAccount;
+window.cancelDeleteAccount = cancelDeleteAccount;
+window.confirmDeleteAccount = confirmDeleteAccount;
 window.loadSettings = loadSettings;
 window.saveSettings = saveSettings;
 window.updateBackupTimeVisibility = updateBackupTimeVisibility;

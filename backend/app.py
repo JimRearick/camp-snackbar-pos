@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.12.1"
+    VERSION = "1.13.0"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -439,10 +439,19 @@ def update_account(account_id):
 @app.route('/api/accounts/<int:account_id>', methods=['DELETE'])
 @admin_required
 def delete_account(account_id):
-    """Delete account (only if no transactions exist)"""
+    """Delete account. If it has transactions, requires force=true to also delete them."""
+    force = request.args.get('force', 'false').lower() == 'true'
     conn = get_db()
 
     try:
+        if force:
+            account_row = conn.execute("SELECT active FROM accounts WHERE id = ?", (account_id,)).fetchone()
+            if account_row and account_row['active']:
+                conn.close()
+                return jsonify({
+                    'error': 'Cannot delete an active account and its transactions. Deactivate the account first.'
+                }), 400
+
         # Check if account has any transactions
         cursor = conn.execute(
             "SELECT COUNT(*) as count FROM transactions WHERE account_id = ?",
@@ -450,19 +459,32 @@ def delete_account(account_id):
         )
         transaction_count = cursor.fetchone()['count']
 
-        if transaction_count > 0:
+        if transaction_count > 0 and not force:
             conn.close()
             return jsonify({
-                'error': f'Cannot delete account - it has {transaction_count} transaction(s). Accounts with transactions cannot be deleted.'
+                'error': f'Cannot delete account - it has {transaction_count} transaction(s). Accounts with transactions cannot be deleted.',
+                'transaction_count': transaction_count
             }), 400
 
-        # No transactions, safe to delete
+        if transaction_count > 0:
+            conn.execute(
+                """DELETE FROM prep_queue WHERE transaction_id IN
+                   (SELECT id FROM transactions WHERE account_id = ?)""",
+                (account_id,)
+            )
+            conn.execute(
+                """DELETE FROM transaction_items WHERE transaction_id IN
+                   (SELECT id FROM transactions WHERE account_id = ?)""",
+                (account_id,)
+            )
+            conn.execute("DELETE FROM transactions WHERE account_id = ?", (account_id,))
+
         conn.execute("DELETE FROM accounts WHERE id = ?", (account_id,))
         conn.commit()
 
         socketio.emit('account_deleted', {'account_id': account_id})
 
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'transactions_deleted': transaction_count})
     except Exception as e:
         conn.rollback()
         return jsonify({'error': str(e)}), 500
