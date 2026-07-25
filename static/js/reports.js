@@ -99,17 +99,8 @@ async function loadSummary() {
         const accountsResponse = await fetch(`${API_URL}/accounts`);
         const accountsData = await accountsResponse.json();
 
-        const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
-        const transactionsData = await transactionsResponse.json();
-
-        // Total Accounts
-        document.getElementById('totalAccounts').textContent = summaryData.total_accounts;
-
-        // Active Accounts (accounts that have transactions)
-        const accountsWithTransactions = new Set(
-            transactionsData.transactions.map(t => t.account_id)
-        );
-        const activeAccounts = accountsWithTransactions.size;
+        // Active Accounts (accounts flagged active)
+        const activeAccounts = accountsData.accounts.filter(acc => acc.active).length;
         document.getElementById('activeAccounts').textContent = activeAccounts;
 
         // Total Sales (total spent)
@@ -120,6 +111,12 @@ async function loadSummary() {
 
         // Account Sales
         document.getElementById('accountSales').textContent = `$${summaryData.account_sales.toFixed(2)}`;
+
+        // Total Refundable Balance (positive balances - money owed back to families if unspent)
+        const refundableBalance = accountsData.accounts
+            .filter(acc => acc.current_balance > 0)
+            .reduce((sum, acc) => sum + acc.current_balance, 0);
+        document.getElementById('refundableBalance').textContent = `$${refundableBalance.toFixed(2)}`;
 
         // Total Balance Due (negative balances - money owed to camp)
         const balanceDue = accountsData.accounts
@@ -144,21 +141,10 @@ async function loadCategoryPieChart() {
         const salesResponse = await fetch(`${API_URL}/reports/sales`);
         const salesData = await salesResponse.json();
 
-        const productsResponse = await fetch(`${API_URL}/products`);
-        const productsData = await productsResponse.json();
-
-        // Create a map of product names to categories
-        const productToCategory = {};
-        productsData.categories.forEach(cat => {
-            cat.products.forEach(prod => {
-                productToCategory[prod.name] = cat.name;
-            });
-        });
-
         // Aggregate sales by category
         const categoryTotals = {};
         salesData.sales.forEach(sale => {
-            const category = productToCategory[sale.product_name] || 'Unknown';
+            const category = sale.category_name || 'Unknown';
             if (!categoryTotals[category]) {
                 categoryTotals[category] = 0;
             }
@@ -259,23 +245,12 @@ async function loadTopProducts() {
         const salesResponse = await fetch(`${API_URL}/reports/sales`);
         const salesData = await salesResponse.json();
 
-        const productsResponse = await fetch(`${API_URL}/products`);
-        const productsData = await productsResponse.json();
-
-        // Create a map of product names to categories
-        const productToCategory = {};
-        productsData.categories.forEach(cat => {
-            cat.products.forEach(prod => {
-                productToCategory[prod.name] = cat.name;
-            });
-        });
-
         // Get top 10 products by revenue
         const topProducts = salesData.sales
             .slice(0, 10)
             .map(product => ({
                 ...product,
-                category: productToCategory[product.product_name] || 'Unknown'
+                category: product.category_name || 'Unknown'
             }));
 
         const container = document.getElementById('topProductsList');
@@ -759,28 +734,17 @@ async function loadCategoryReport() {
         const salesResponse = await fetch(`${API_URL}/reports/sales`);
         const salesData = await salesResponse.json();
 
-        const productsResponse = await fetch(`${API_URL}/products`);
-        const productsData = await productsResponse.json();
-
         const container = document.getElementById('categoryTableContainer');
 
-        if (productsData.categories.length === 0) {
+        if (salesData.sales.length === 0) {
             container.innerHTML = '<div class="no-data">No category data available</div>';
             return;
         }
 
-        // Create a map of product names to categories
-        const productToCategory = {};
-        productsData.categories.forEach(cat => {
-            cat.products.forEach(prod => {
-                productToCategory[prod.name] = cat.name;
-            });
-        });
-
         // Aggregate sales by category
         const categoryTotals = {};
         salesData.sales.forEach(sale => {
-            const category = productToCategory[sale.product_name] || 'Unknown';
+            const category = sale.category_name || 'Unknown';
             if (!categoryTotals[category]) {
                 categoryTotals[category] = {
                     revenue: 0,
@@ -880,24 +844,22 @@ window.exportSummaryToCSV = async function() {
     const accountsResponse = await fetch(`${API_URL}/accounts`);
     const accountsData = await accountsResponse.json();
 
-    const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
-    const transactionsData = await transactionsResponse.json();
-
     // Calculate metrics
-    const accountsWithTransactions = new Set(
-        transactionsData.transactions.map(t => t.account_id)
-    );
-    const activeAccounts = accountsWithTransactions.size;
+    const activeAccounts = accountsData.accounts.filter(acc => acc.active).length;
 
     const balanceDue = accountsData.accounts
         .filter(acc => acc.current_balance < 0)
         .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
 
+    const refundableBalance = accountsData.accounts
+        .filter(acc => acc.current_balance > 0)
+        .reduce((sum, acc) => sum + acc.current_balance, 0);
+
     const headers = ['Metric', 'Value'];
     const rows = [
-        ['Total Accounts', summaryData.total_accounts],
         ['Active Accounts', activeAccounts],
         ['Total Sales', `$${summaryData.total_spent.toFixed(2)}`],
+        ['Total Refundable Balance', `$${refundableBalance.toFixed(2)}`],
         ['Total Balance Due', `$${balanceDue.toFixed(2)}`],
         ['Total Prepaid', `$${summaryData.total_prepaid.toFixed(2)}`],
         ['Total Remaining', `$${summaryData.total_remaining.toFixed(2)}`],
@@ -964,21 +926,10 @@ window.exportCategoryToCSV = async function() {
     const salesResponse = await fetch(`${API_URL}/reports/sales`);
     const salesData = await salesResponse.json();
 
-    const productsResponse = await fetch(`${API_URL}/products`);
-    const productsData = await productsResponse.json();
-
-    // Create a map of product names to categories
-    const productToCategory = {};
-    productsData.categories.forEach(cat => {
-        cat.products.forEach(prod => {
-            productToCategory[prod.name] = cat.name;
-        });
-    });
-
     // Aggregate sales by category
     const categoryTotals = {};
     salesData.sales.forEach(sale => {
-        const category = productToCategory[sale.product_name] || 'Unknown';
+        const category = sale.category_name || 'Unknown';
         if (!categoryTotals[category]) {
             categoryTotals[category] = {
                 revenue: 0,

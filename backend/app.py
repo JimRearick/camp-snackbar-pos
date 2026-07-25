@@ -187,7 +187,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.13.0"
+    VERSION = "1.14.0"
     return jsonify({
         'version': VERSION,
         'app_name': 'Camp Snackbar POS'
@@ -1608,21 +1608,28 @@ def get_sales_report():
     """Get product sales report"""
     conn = get_db()
     
+    # Join on product_id (a stable FK) rather than grouping by the historical
+    # product_name snapshot, so sales made before a product was renamed still
+    # roll up under its current name and category instead of showing as "Unknown".
     cursor = conn.execute("""
-        SELECT 
-            ti.product_name,
+        SELECT
+            COALESCE(p.name, ti.product_name) as product_name,
+            COALESCE(c.name, 'Unknown') as category_name,
             SUM(ti.quantity) as total_quantity,
             SUM(ti.line_total) as total_revenue,
             COUNT(DISTINCT ti.transaction_id) as transaction_count
         FROM transaction_items ti
-        GROUP BY ti.product_name
+        LEFT JOIN products p ON ti.product_id = p.id
+        LEFT JOIN categories c ON p.category_id = c.id
+        GROUP BY ti.product_id
         ORDER BY total_revenue DESC
     """)
-    
+
     sales = []
     for row in cursor.fetchall():
         sales.append({
             'product_name': row['product_name'],
+            'category_name': row['category_name'],
             'total_quantity': row['total_quantity'],
             'total_revenue': row['total_revenue'],
             'transaction_count': row['transaction_count']
