@@ -31,7 +31,7 @@
             <a href="#" class="active" onclick="switchTab('general'); updateActiveNav(this); return false;"><span class="icon">⚙️</span> General</a>
             <a href="#" onclick="switchTab('backups'); updateActiveNav(this); return false;"><span class="icon">💾</span> Backups</a>
             <a href="#" onclick="switchTab('prepqueue'); updateActiveNav(this); return false;"><span class="icon">⏱️</span> Prep Queue</a>
-            <a href="#" onclick="switchTab('testdata'); updateActiveNav(this); return false;"><span class="icon">🧪</span> Test Data</a>
+            <a href="#" onclick="switchTab('dangerzone'); updateActiveNav(this); return false;"><span class="icon">⚠️</span> Danger Zone</a>
         </nav>
 
         <div class="page-content">
@@ -147,8 +147,8 @@
                         </div>
 
                         <!-- Backup Log Table -->
-                        <div id="backupLogContainer" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;">
-                            <table id="backupLogTable" style="width: 100%; border-collapse: collapse; font-size: 0.9rem; display: flex; flex-direction: column; height: 100%;">
+                        <div id="backupLogContainer" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto; overflow-y: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;">
+                            <table id="backupLogTable" style="width: 100%; min-width: 750px; flex-shrink: 0; border-collapse: collapse; font-size: 0.9rem; display: flex; flex-direction: column; height: 100%;">
                                 <thead style="flex-shrink: 0; background: #f7fafc; border-bottom: 2px solid #e2e8f0; display: table; width: 100%; table-layout: fixed;">
                                     <tr>
                                         <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Type</th>
@@ -219,37 +219,13 @@
                 </div>
             </div>
 
-            <!-- Test Data Tab -->
-            <div id="testdataTab" class="tab-content">
+            <!-- Danger Zone Tab -->
+            <div id="dangerzoneTab" class="tab-content">
                 <div class="tab-header">
-                    <h2>🧪 Data Management</h2>
+                    <h2>⚠️ Danger Zone</h2>
                 </div>
-                <div style="display: flex; gap: 2rem; flex-wrap: wrap; max-width: 1200px;">
-                    <!-- Test Data Section -->
-                    <div style="flex: 1; min-width: 300px; padding: 1.5rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
-                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem;">Test Data</h3>
-                        <p style="color: #666; margin-bottom: 1.5rem;">
-                            Load sample test data for development and demo purposes.
-                            Test data includes 30 accounts (families, individuals, cabins) and 14 days of transaction history.
-                        </p>
-                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <button class="btn-primary" onclick="loadTestData()" style="background: #28a745; border-color: #28a745;">
-                                📥 Load Test Data
-                            </button>
-                        </div>
-                        <div id="testDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <div class="spinner" id="testDataSpinner" style="display: none;"></div>
-                                <span id="testDataMessage"></span>
-                            </div>
-                            <pre id="testDataOutput" style="margin-top: 0.5rem; padding: 0.5rem; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 300px; overflow-y: auto; display: none;"></pre>
-                        </div>
-                    </div>
-
-                    <!-- Danger Zone Section -->
-                    <div style="flex: 1; min-width: 300px; padding: 1.5rem; background: #fff5f5; border-radius: 8px; border-left: 4px solid #dc3545;">
-                        <h3 style="margin-top: 0; margin-bottom: 1rem; font-size: 1.1rem; color: #dc3545;">⚠️ Danger Zone</h3>
-
+                <div style="max-width: 600px;">
+                    <div style="padding: 1.5rem; background: #fff5f5; border-radius: 8px; border-left: 4px solid #dc3545;">
                         <p style="color: #666; margin-bottom: 0.75rem;">
                             <strong>Warning:</strong> Permanently delete a single account and all of its transaction history. This operation cannot be undone.
                             Only <strong>inactive</strong> accounts can be deleted — deactivate an account on the Admin page first.
@@ -262,25 +238,10 @@
                                 🗑️ Delete Account
                             </button>
                         </div>
-                        <div id="deleteAccountStatus" style="margin-bottom: 1.5rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
+                        <div id="deleteAccountStatus" style="padding: 1rem; background: white; border-radius: 4px; display: none;">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <div class="spinner" id="deleteAccountSpinner" style="display: none;"></div>
                                 <span id="deleteAccountMessage"></span>
-                            </div>
-                        </div>
-
-                        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #f5c6cb;">
-
-                        <p style="color: #666; margin-bottom: 1.5rem;">
-                            <strong>Warning:</strong> The following action will permanently delete all account and transaction data from the system. This operation cannot be undone.
-                        </p>
-                        <button class="btn-secondary" onclick="deleteAllData()" style="background: #dc3545; border-color: #dc3545; color: white;">
-                            🗑️ Delete All Accounts & Transactions
-                        </button>
-                        <div id="deleteDataStatus" style="margin-top: 1rem; padding: 1rem; background: white; border-radius: 4px; display: none;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <div class="spinner" id="deleteDataSpinner" style="display: none;"></div>
-                                <span id="deleteDataMessage"></span>
                             </div>
                         </div>
                     </div>
@@ -293,43 +254,6 @@
     <!-- Toast Messages -->
     <div id="successMessage" class="toast hidden"></div>
     <div id="errorMessage" class="toast toast-error hidden"></div>
-
-    <!-- Confirmation Modal -->
-    <div id="deleteConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center;">
-        <div style="background: white; border-radius: 12px; max-width: 500px; width: 90%; padding: 2rem; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
-                <h2 style="margin: 0 0 1rem 0; color: #dc3545;">Delete All Data?</h2>
-            </div>
-
-            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 1.25rem; margin-bottom: 1.5rem;">
-                <p style="margin: 0 0 0.75rem 0; font-weight: bold; color: #856404;">This action will permanently delete:</p>
-                <ul style="margin: 0; padding-left: 1.5rem; color: #856404;">
-                    <li>All customer accounts</li>
-                    <li>All transaction history</li>
-                    <li>All prep queue items</li>
-                </ul>
-                <p style="margin: 0.75rem 0 0 0; font-weight: bold; color: #dc3545;">This operation CANNOT be undone!</p>
-            </div>
-
-            <p style="margin-bottom: 1.5rem; color: #666; text-align: center;">Type <strong>DELETE</strong> below to confirm:</p>
-
-            <input type="text" id="deleteConfirmInput" placeholder="Type DELETE to confirm"
-                   style="width: 100%; padding: 0.75rem; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; margin-bottom: 1.5rem; text-align: center; font-weight: bold;"
-                   autocomplete="off">
-
-            <div style="display: flex; gap: 1rem;">
-                <button onclick="cancelDeleteAll()"
-                        style="flex: 1; padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold;">
-                    Cancel
-                </button>
-                <button id="confirmDeleteBtn" onclick="confirmDeleteAll()" disabled
-                        style="flex: 1; padding: 0.75rem 1.5rem; background: #dc3545; color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; font-weight: bold; opacity: 0.5;">
-                    Delete Everything
-                </button>
-            </div>
-        </div>
-    </div>
 
     <!-- Delete Individual Account Confirmation Modal -->
     <div id="deleteAccountConfirmModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; align-items: center; justify-content: center;">

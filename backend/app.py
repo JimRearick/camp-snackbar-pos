@@ -258,7 +258,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.15.1"
+    VERSION = "1.16.0"
     conn = get_db()
     schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
     conn.close()
@@ -1431,44 +1431,6 @@ def delete_user(user_id):
         conn.close()
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/load-test-data', methods=['POST'])
-@admin_required
-def load_test_data():
-    """Load test data (Admin only)"""
-    import subprocess
-    import os
-
-    # Path to the test data script
-    script_path = os.path.join(os.path.dirname(__file__), 'load_test_data.py')
-
-    if not os.path.exists(script_path):
-        return jsonify({'error': 'Test data script not found'}), 404
-
-    try:
-        # Run the test data script
-        result = subprocess.run(
-            ['python3', script_path],
-            capture_output=True,
-            text=True,
-            timeout=60  # 60 second timeout
-        )
-
-        if result.returncode != 0:
-            return jsonify({
-                'error': 'Failed to load test data',
-                'output': result.stderr
-            }), 500
-
-        return jsonify({
-            'success': True,
-            'message': 'Test data loaded successfully!',
-            'output': result.stdout
-        })
-    except subprocess.TimeoutExpired:
-        return jsonify({'error': 'Test data loading timed out'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
 @app.route('/api/admin/test-data', methods=['DELETE'])
 @admin_required
 def delete_test_data():
@@ -1525,54 +1487,6 @@ def delete_test_data():
             'message': f'Deleted {len(test_account_ids)} test accounts and their associated data'
         })
     except Exception as e:
-        conn.close()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/all-data', methods=['DELETE'])
-@admin_required
-def delete_all_data():
-    """Delete ALL accounts and transactions (Admin only)"""
-    conn = get_db()
-
-    try:
-        # Count existing records before deletion
-        cursor = conn.execute("SELECT COUNT(*) as count FROM accounts")
-        account_count = cursor.fetchone()['count']
-
-        cursor = conn.execute("SELECT COUNT(*) as count FROM transactions")
-        transaction_count = cursor.fetchone()['count']
-
-        if account_count == 0 and transaction_count == 0:
-            conn.close()
-            return jsonify({'message': 'No data to delete'})
-
-        # Delete all prep queue items
-        conn.execute("DELETE FROM prep_queue")
-
-        # Delete all transaction items
-        conn.execute("DELETE FROM transaction_items")
-
-        # Delete all transactions
-        conn.execute("DELETE FROM transactions")
-
-        # Delete all accounts
-        conn.execute("DELETE FROM accounts")
-
-        conn.commit()
-        conn.close()
-
-        # Notify all clients that data has been cleared
-        socketio.emit('data_cleared', {
-            'accounts_deleted': account_count,
-            'transactions_deleted': transaction_count
-        })
-
-        return jsonify({
-            'success': True,
-            'message': f'Deleted all data: {account_count} accounts and {transaction_count} transactions'
-        })
-    except Exception as e:
-        conn.rollback()
         conn.close()
         return jsonify({'error': str(e)}), 500
 

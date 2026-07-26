@@ -76,146 +76,6 @@ function switchTab(tabName) {
 }
 
 // ============================================================================
-// Test Data Management
-// ============================================================================
-
-async function loadTestData() {
-    if (!confirm('Load test data? This will create 30 sample accounts and 14 days of transaction history. Any existing test data will be replaced.')) {
-        return;
-    }
-
-    const statusDiv = document.getElementById('testDataStatus');
-    const spinner = document.getElementById('testDataSpinner');
-    const message = document.getElementById('testDataMessage');
-    const output = document.getElementById('testDataOutput');
-
-    // Show status and spinner
-    statusDiv.style.display = 'block';
-    spinner.style.display = 'block';
-    message.textContent = 'Loading test data...';
-    output.style.display = 'none';
-    output.textContent = '';
-
-    try {
-        const response = await fetchPost(`${API_URL}/admin/load-test-data`, {});
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to load test data');
-        }
-
-        const result = await response.json();
-
-        // Hide spinner
-        spinner.style.display = 'none';
-
-        // Show success message
-        message.innerHTML = `<span style="color: #28a745;">✓ ${result.message}</span>`;
-
-        // Show output if available
-        if (result.output) {
-            output.textContent = result.output;
-            output.style.display = 'block';
-        }
-
-        showSuccess('Test data loaded successfully!');
-    } catch (error) {
-        console.error('Error loading test data:', error);
-        spinner.style.display = 'none';
-        message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
-        showError('Failed to load test data: ' + error.message);
-    }
-}
-
-// Show the delete all data confirmation modal
-function deleteAllData() {
-    const modal = document.getElementById('deleteConfirmModal');
-    const input = document.getElementById('deleteConfirmInput');
-    const confirmBtn = document.getElementById('confirmDeleteBtn');
-
-    // Reset modal state
-    input.value = '';
-    confirmBtn.disabled = true;
-    confirmBtn.style.opacity = '0.5';
-
-    // Show modal
-    modal.style.display = 'flex';
-
-    // Focus the input
-    setTimeout(() => input.focus(), 100);
-
-    // Enable confirm button when "DELETE" is typed
-    input.oninput = function() {
-        if (input.value.trim().toUpperCase() === 'DELETE') {
-            confirmBtn.disabled = false;
-            confirmBtn.style.opacity = '1';
-        } else {
-            confirmBtn.disabled = true;
-            confirmBtn.style.opacity = '0.5';
-        }
-    };
-
-    // Allow Enter key to confirm if button is enabled
-    input.onkeypress = function(e) {
-        if (e.key === 'Enter' && !confirmBtn.disabled) {
-            confirmDeleteAll();
-        }
-    };
-}
-
-// Cancel the delete operation
-function cancelDeleteAll() {
-    const modal = document.getElementById('deleteConfirmModal');
-    modal.style.display = 'none';
-}
-
-// Confirm and execute the delete all data operation
-async function confirmDeleteAll() {
-    const modal = document.getElementById('deleteConfirmModal');
-    const statusDiv = document.getElementById('deleteDataStatus');
-    const spinner = document.getElementById('deleteDataSpinner');
-    const message = document.getElementById('deleteDataMessage');
-
-    // Close modal
-    modal.style.display = 'none';
-
-    // Show status and spinner
-    statusDiv.style.display = 'block';
-    spinner.style.display = 'block';
-    message.textContent = 'Deleting all data...';
-
-    try {
-        const response = await fetchDelete(`${API_URL}/admin/all-data`);
-
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || 'Failed to delete all data');
-        }
-
-        const result = await response.json();
-
-        // Hide spinner
-        spinner.style.display = 'none';
-
-        // Show success message
-        message.innerHTML = `<span style="color: #28a745;">✓ ${escapeHtml(result.message || 'All accounts and transactions have been deleted')}</span>`;
-
-        showSuccess(result.message || 'All accounts and transactions have been deleted');
-
-    } catch (error) {
-        console.error('Error deleting all data:', error);
-
-        // Hide spinner
-        spinner.style.display = 'none';
-
-        // Show error message
-        message.innerHTML = `<span style="color: #dc3545;">✗ Error: ${escapeHtml(error.message)}</span>`;
-
-        showError('Failed to delete all data: ' + error.message);
-    }
-}
-
-// ============================================================================
 // Individual Account Deletion
 // ============================================================================
 
@@ -588,7 +448,7 @@ async function refreshBackupLog() {
                         </td>
                         <td style="padding: 0.75rem; width: 10%; color: #4a5568;">${size}</td>
                         <td style="padding: 0.75rem; width: 18%; color: #4a5568; font-size: 0.85rem;">${date}</td>
-                        <td style="padding: 0.75rem; width: 36%; color: #718096; font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${backup.error_message || filename}">
+                        <td style="padding: 0.75rem; width: 36%; color: #718096; font-size: 0.85rem; white-space: normal; word-break: break-word;" title="${backup.error_message || filename}">
                             ${backup.error_message || filename}
                         </td>
                     </tr>
@@ -652,10 +512,6 @@ async function viewBackupLog() {
 
 window.initAdvAdmin = initAdvAdmin;
 window.switchTab = switchTab;
-window.loadTestData = loadTestData;
-window.deleteAllData = deleteAllData;
-window.cancelDeleteAll = cancelDeleteAll;
-window.confirmDeleteAll = confirmDeleteAll;
 window.deleteSelectedAccount = deleteSelectedAccount;
 window.cancelDeleteAccount = cancelDeleteAccount;
 window.confirmDeleteAccount = confirmDeleteAccount;
