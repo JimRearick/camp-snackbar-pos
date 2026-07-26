@@ -25,12 +25,12 @@ CREATE TABLE user_sessions (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Accounts table (families or individuals)
+-- Accounts table (families, individuals, or staff)
 CREATE TABLE accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     account_number TEXT UNIQUE NOT NULL,
     account_name TEXT NOT NULL,
-    account_type TEXT NOT NULL CHECK(account_type IN ('family', 'individual')),
+    account_type TEXT NOT NULL CHECK(account_type IN ('family', 'individual', 'staff')),
     family_members TEXT,
     active BOOLEAN DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

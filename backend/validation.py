@@ -17,7 +17,7 @@ class AccountSchema(Schema):
     )
     account_type = fields.Str(
         required=True,
-        validate=validate.OneOf(['family', 'individual'], error="Account type must be 'family' or 'individual'")
+        validate=validate.OneOf(['family', 'individual', 'staff'], error="Account type must be 'family', 'individual', or 'staff'")
     )
     notes = fields.Str(
         validate=validate.Length(max=500, error="Notes must not exceed 500 characters"),

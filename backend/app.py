@@ -10,6 +10,7 @@ from flask_wtf.csrf import CSRFProtect, generate_csrf
 import sqlite3
 import json
 import os
+import re
 from datetime import datetime, timedelta
 from functools import wraps
 import secrets
@@ -60,6 +61,7 @@ def load_user(user_id):
 DB_PATH = os.getenv('DB_PATH', 'camp_snackbar.db')
 BACKUP_DIR = os.getenv('BACKUP_DIR', 'backups')
 STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static')
+MIGRATIONS_DIR = os.path.join(os.path.dirname(__file__), 'migrations')
 
 # Create backup directory if it doesn't exist
 os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -85,6 +87,69 @@ def init_db():
     conn.executescript(schema)
     conn.commit()
     conn.close()
+
+def get_migrations():
+    """List migration files as (version, filename, path), sorted by version.
+
+    Each file's leading number (e.g. 002_add_staff_account_type.sql -> 2) is
+    its schema version. schema.sql is expected to always reflect the result
+    of applying every migration here, so fresh databases can skip straight
+    to the latest version.
+    """
+    if not os.path.isdir(MIGRATIONS_DIR):
+        return []
+
+    migrations = []
+    for filename in os.listdir(MIGRATIONS_DIR):
+        match = re.match(r'^(\d+)_.*\.sql$', filename)
+        if match:
+            version = int(match.group(1))
+            migrations.append((version, filename, os.path.join(MIGRATIONS_DIR, filename)))
+
+    migrations.sort(key=lambda m: m[0])
+    return migrations
+
+def get_latest_schema_version():
+    """The schema version this codebase expects (highest migration number)."""
+    migrations = get_migrations()
+    return migrations[-1][0] if migrations else 0
+
+def apply_migrations(fresh_install):
+    """Bring the database up to the latest schema version.
+
+    On a fresh install, schema.sql already reflects the latest schema, so we
+    just record that version without re-running migration SQL (some of which,
+    like ALTER TABLE ADD COLUMN, isn't safe to run twice). On an existing
+    database, run each pending migration in order and advance the version
+    after each one succeeds.
+    """
+    migrations = get_migrations()
+    latest_version = migrations[-1][0] if migrations else 0
+
+    conn = get_db()
+    try:
+        if fresh_install:
+            conn.execute(f"PRAGMA user_version = {latest_version}")
+            conn.commit()
+            return
+
+        current_version = conn.execute("PRAGMA user_version").fetchone()[0]
+        pending = [m for m in migrations if m[0] > current_version]
+
+        for version, filename, path in pending:
+            print(f"Applying migration {filename} (schema version {version})...")
+            with open(path, 'r') as f:
+                sql = f.read()
+            try:
+                conn.executescript(sql)
+                conn.execute(f"PRAGMA user_version = {version}")
+                conn.commit()
+                print(f"✓ Schema now at version {version}")
+            except Exception as e:
+                conn.rollback()
+                raise RuntimeError(f"Migration {filename} failed: {e}") from e
+    finally:
+        conn.close()
 
 def calculate_account_balance(conn, account_id):
     """Calculate account balance from transaction history"""
@@ -187,10 +252,14 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.14.0"
+    VERSION = "1.15.0"
+    conn = get_db()
+    schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
+    conn.close()
     return jsonify({
         'version': VERSION,
-        'app_name': 'Camp Snackbar POS'
+        'app_name': 'Camp Snackbar POS',
+        'schema_version': schema_version
     })
 
 def get_redirect_for_role(role):
@@ -2099,9 +2168,11 @@ def run_scheduler():
 # Application Entry Point
 # ============================================================================
 
-# Initialize database if it doesn't exist
-if not os.path.exists(DB_PATH):
+# Initialize database if it doesn't exist, then bring schema up to date
+db_is_new = not os.path.exists(DB_PATH)
+if db_is_new:
     init_db()
+apply_migrations(fresh_install=db_is_new)
 
 # Start scheduler in background thread (runs under both direct and Gunicorn)
 scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
