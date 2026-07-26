@@ -140,6 +140,10 @@ def apply_migrations(fresh_install):
             print(f"Applying migration {filename} (schema version {version})...")
             with open(path, 'r') as f:
                 sql = f.read()
+            # Foreign key enforcement can only be toggled outside a transaction,
+            # and table-rebuild migrations need it off (e.g. DROP TABLE accounts
+            # would otherwise fail because transactions.account_id references it).
+            conn.execute("PRAGMA foreign_keys = OFF")
             try:
                 conn.executescript(sql)
                 conn.execute(f"PRAGMA user_version = {version}")
@@ -148,6 +152,8 @@ def apply_migrations(fresh_install):
             except Exception as e:
                 conn.rollback()
                 raise RuntimeError(f"Migration {filename} failed: {e}") from e
+            finally:
+                conn.execute("PRAGMA foreign_keys = ON")
     finally:
         conn.close()
 
@@ -252,7 +258,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.15.0"
+    VERSION = "1.15.1"
     conn = get_db()
     schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
     conn.close()
