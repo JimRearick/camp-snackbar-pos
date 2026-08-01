@@ -104,10 +104,21 @@
             <div id="accountsTab" class="tab-content active">
                 <div class="tab-header">
                     <h2>Account Management</h2>
-                    <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <select id="accountTypeFilter" class="filter-select" onchange="filterAccountsTable()">
+                            <option value="">All Types</option>
+                            <option value="family">Family</option>
+                            <option value="individual">Individual</option>
+                            <option value="staff">Staff</option>
+                        </select>
+                        <select id="accountBalanceFilter" class="filter-select" onchange="filterAccountsTable()">
+                            <option value="">Any Balance</option>
+                            <option value="positive">Positive</option>
+                            <option value="negative">Negative</option>
+                        </select>
                         <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.5rem;">
-                            <input type="checkbox" id="showInactiveAccounts" onchange="loadAccounts()">
-                            <span>Show Inactive</span>
+                            <input type="checkbox" id="showInactiveAccounts" onchange="filterAccountsTable()">
+                            <span>Show Inactive Only</span>
                         </label>
                         <div class="search-box">
                             <input type="text" id="accountSearchInput" class="search-input"

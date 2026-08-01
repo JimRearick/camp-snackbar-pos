@@ -751,13 +751,25 @@ function displayAccountsTable(accountsList) {
 
 function filterAccountsTable() {
     const searchTerm = document.getElementById('accountSearchInput').value.toLowerCase();
-    const showInactive = document.getElementById('showInactiveAccounts')?.checked || false;
+    const showInactiveOnly = document.getElementById('showInactiveAccounts')?.checked || false;
+    const typeFilter = document.getElementById('accountTypeFilter')?.value || '';
+    const balanceFilter = document.getElementById('accountBalanceFilter')?.value || '';
 
     let filtered = allAccounts;
 
-    // Apply status filter first - show active accounts always, show inactive only if checked
-    if (!showInactive) {
-        filtered = filtered.filter(acc => acc.active !== false);
+    // Status filter: active accounts by default, or only inactive ones when checked
+    filtered = filtered.filter(acc => showInactiveOnly ? acc.active === false : acc.active !== false);
+
+    // Account type filter
+    if (typeFilter) {
+        filtered = filtered.filter(account => account.account_type === typeFilter);
+    }
+
+    // Balance filter
+    if (balanceFilter === 'positive') {
+        filtered = filtered.filter(account => account.current_balance > 0);
+    } else if (balanceFilter === 'negative') {
+        filtered = filtered.filter(account => account.current_balance < 0);
     }
 
     // Then apply search filter

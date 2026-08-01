@@ -258,7 +258,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.16.1"
+    VERSION = "1.17.0"
     conn = get_db()
     schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
     conn.close()
@@ -1591,6 +1591,31 @@ def get_summary_report():
 
     conn.close()
     return jsonify(summary)
+
+@app.route('/api/reports/account-purchase-stats', methods=['GET'])
+def get_account_purchase_stats():
+    """Get purchase count and total spent per account, aggregated in SQL
+    so it's accurate regardless of how many transactions exist (the
+    paginated /api/transactions endpoint caps at 1000 per request)."""
+    conn = get_db()
+
+    cursor = conn.execute("""
+        SELECT account_id, COUNT(*) as purchase_count, SUM(ABS(total_amount)) as total_spent
+        FROM transactions
+        WHERE transaction_type = 'purchase'
+        GROUP BY account_id
+    """)
+
+    stats = {
+        row['account_id']: {
+            'purchase_count': row['purchase_count'],
+            'total_spent': row['total_spent']
+        }
+        for row in cursor.fetchall()
+    }
+
+    conn.close()
+    return jsonify({'stats': stats})
 
 @app.route('/api/reports/sales', methods=['GET'])
 def get_sales_report():

@@ -113,14 +113,16 @@ async function loadSummary() {
         document.getElementById('accountSales').textContent = `$${summaryData.account_sales.toFixed(2)}`;
 
         // Total Refundable Balance (positive balances - money owed back to families if unspent)
+        // Staff accounts are excluded - their balance tracks subsidized benefit usage, not a refundable prepayment
         const refundableBalance = accountsData.accounts
-            .filter(acc => acc.current_balance > 0)
+            .filter(acc => acc.current_balance > 0 && acc.account_type !== 'staff')
             .reduce((sum, acc) => sum + acc.current_balance, 0);
         document.getElementById('refundableBalance').textContent = `$${refundableBalance.toFixed(2)}`;
 
         // Total Balance Due (negative balances - money owed to camp)
+        // Staff accounts are excluded - their balance tracks subsidized benefit usage, not a receivable
         const balanceDue = accountsData.accounts
-            .filter(acc => acc.current_balance < 0)
+            .filter(acc => acc.current_balance < 0 && acc.account_type !== 'staff')
             .reduce((sum, acc) => sum + Math.abs(acc.current_balance), 0);
         document.getElementById('totalBalanceDue').textContent = `$${balanceDue.toFixed(2)}`;
 
@@ -673,17 +675,16 @@ window.loadAccountBalances = async function() {
             return;
         }
 
-        // Get transaction counts and totals for each account
-        const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
-        const transactionsData = await transactionsResponse.json();
+        // Get transaction counts and totals for each account, aggregated server-side
+        // (fetching all transactions client-side silently truncated at 1000 rows)
+        const statsResponse = await fetch(`${API_URL}/reports/account-purchase-stats`);
+        const statsData = await statsResponse.json();
 
         const purchaseCounts = {};
         const purchaseTotals = {};
-        transactionsData.transactions.forEach(transaction => {
-            if (transaction.transaction_type === 'purchase') {
-                purchaseCounts[transaction.account_id] = (purchaseCounts[transaction.account_id] || 0) + 1;
-                purchaseTotals[transaction.account_id] = (purchaseTotals[transaction.account_id] || 0) + Math.abs(transaction.total_amount);
-            }
+        Object.entries(statsData.stats).forEach(([accountId, stat]) => {
+            purchaseCounts[accountId] = stat.purchase_count;
+            purchaseTotals[accountId] = stat.total_spent;
         });
 
         let html = `
@@ -893,17 +894,16 @@ window.exportAccountBalancesToCSV = async function() {
     const response = await fetch(url);
     const data = await response.json();
 
-    // Get transaction counts and totals for each account
-    const transactionsResponse = await fetch(`${API_URL}/transactions?limit=10000`);
-    const transactionsData = await transactionsResponse.json();
+    // Get transaction counts and totals for each account, aggregated server-side
+    // (fetching all transactions client-side silently truncated at 1000 rows)
+    const statsResponse = await fetch(`${API_URL}/reports/account-purchase-stats`);
+    const statsData = await statsResponse.json();
 
     const purchaseCounts = {};
     const purchaseTotals = {};
-    transactionsData.transactions.forEach(transaction => {
-        if (transaction.transaction_type === 'purchase') {
-            purchaseCounts[transaction.account_id] = (purchaseCounts[transaction.account_id] || 0) + 1;
-            purchaseTotals[transaction.account_id] = (purchaseTotals[transaction.account_id] || 0) + Math.abs(transaction.total_amount);
-        }
+    Object.entries(statsData.stats).forEach(([accountId, stat]) => {
+        purchaseCounts[accountId] = stat.purchase_count;
+        purchaseTotals[accountId] = stat.total_spent;
     });
 
     const headers = ['Name', 'Type', 'Purchase Count', 'Total Spent', 'Current Balance'];
