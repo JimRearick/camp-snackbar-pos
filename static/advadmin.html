@@ -29,7 +29,8 @@
         <!-- In-Page Tab Navigation -->
         <nav class="tab-nav-bar">
             <a href="#" class="active" onclick="switchTab('general'); updateActiveNav(this); return false;"><span class="icon">⚙️</span> General</a>
-            <a href="#" onclick="switchTab('backups'); updateActiveNav(this); return false;"><span class="icon">💾</span> Backups</a>
+            <a href="#" onclick="switchTab('backupsettings'); updateActiveNav(this); return false;"><span class="icon">💾</span> Backup Settings</a>
+            <a href="#" onclick="switchTab('backuphistory'); updateActiveNav(this); return false;"><span class="icon">💾</span> Backups</a>
             <a href="#" onclick="switchTab('prepqueue'); updateActiveNav(this); return false;"><span class="icon">⏱️</span> Prep Queue</a>
             <a href="#" onclick="switchTab('dangerzone'); updateActiveNav(this); return false;"><span class="icon">⚠️</span> Danger Zone</a>
         </nav>
@@ -62,128 +63,126 @@
                 </div>
             </div>
 
-            <!-- Backups Tab -->
-            <div id="backupsTab" class="tab-content">
+            <!-- Backup Settings Tab -->
+            <div id="backupsettingsTab" class="tab-content">
                 <div class="tab-header">
-                    <h2>💾 Backup Management</h2>
+                    <h2>💾 Backup Settings</h2>
                 </div>
 
-                <!-- Two-column layout for tablet optimization -->
-                <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 2rem; max-width: 1400px;">
+                <div class="admin-form" style="max-width: 600px;">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;" onchange="updateBackupTimeVisibility()">
+                            <span>Enable scheduled backups</span>
+                        </label>
+                        <small style="color: #666;">Automatically backup the database daily</small>
+                    </div>
 
-                    <!-- Left Column: Settings & Actions -->
-                    <div class="admin-form">
-                        <h3 style="margin-top: 0; font-size: 1.2rem; color: #2d3748;">⚙️ Configuration</h3>
+                    <div class="form-group" id="backupTimeGroup">
+                        <label for="backupTime">Backup Time (Local)</label>
+                        <input type="time" id="backupTime" class="form-input" value="00:00">
+                        <small style="color: #666;">Daily backup time in server's local timezone (24-hour format). <strong>Requires app restart to take effect.</strong></small>
+                    </div>
 
-                        <div class="form-group">
-                            <label>Automatic Backups</label>
-                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                                <input type="checkbox" id="backupEnabled" style="width: auto; cursor: pointer;" onchange="updateBackupTimeVisibility()">
-                                <span>Enable scheduled backups</span>
+                    <div class="form-group">
+                        <label for="internetBackupUrl">Remote Backup Server (Optional)</label>
+                        <input type="text" id="internetBackupUrl" class="form-input" placeholder="user@backup-server.com:/var/backups/">
+                        <small style="color: #666;">
+                            Format: <code>user@host:/path/</code><br>
+                            <a href="/static/BACKUP_SETUP.md" target="_blank" style="color: #667eea;">Setup guide</a>
+                        </small>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+                        <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
+                    </div>
+
+                    <!-- Restart Warning -->
+                    <div style="margin-top: 1.5rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
+                        <strong>⚠️ Important:</strong> Changes to backup time or enable/disable settings require an <strong>app restart</strong> to take effect.
+                        <br>
+                        <small style="margin-top: 0.5rem; display: block;">Run: <code style="background: #fff; padding: 0.2rem 0.4rem; border-radius: 3px; border: 1px solid #ddd;">docker compose restart</code></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backups Tab (manual actions + history) -->
+            <div id="backuphistoryTab" class="tab-content">
+                <div class="tab-header">
+                    <h2>💾 Backups</h2>
+                </div>
+
+                <div style="max-width: 1400px;">
+                    <h3 style="font-size: 1.2rem; color: #2d3748; margin-bottom: 1rem;">🔧 Manual Actions</h3>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+                        <button class="btn-secondary" onclick="createManualBackup(false)" style="flex: 1 1 220px;">
+                            💾 Create Local Backup Now
+                        </button>
+                        <button class="btn-secondary" onclick="createManualBackup(true)" style="flex: 1 1 220px;">
+                            ☁️ Backup to Remote Server Now
+                        </button>
+                        <button class="btn-secondary" onclick="refreshBackupLog()" style="flex: 1 1 220px;">
+                            🔄 Refresh Backup Log
+                        </button>
+                    </div>
+
+                    <hr style="margin-bottom: 1.5rem; border: none; border-top: 1px solid #e2e8f0;">
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <h3 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📋 History</h3>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #666;">
+                                <input type="checkbox" id="autoRefreshLog" checked onchange="toggleAutoRefresh()" style="cursor: pointer;">
+                                Auto-refresh
                             </label>
-                            <small style="color: #666;">Automatically backup the database daily</small>
-                        </div>
-
-                        <div class="form-group" id="backupTimeGroup">
-                            <label for="backupTime">Backup Time (Local)</label>
-                            <input type="time" id="backupTime" class="form-input" value="00:00">
-                            <small style="color: #666;">Daily backup time in server's local timezone (24-hour format). <strong>Requires app restart to take effect.</strong></small>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="internetBackupUrl">Remote Backup Server (Optional)</label>
-                            <input type="text" id="internetBackupUrl" class="form-input" placeholder="user@backup-server.com:/var/backups/">
-                            <small style="color: #666;">
-                                Format: <code>user@host:/path/</code><br>
-                                <a href="/static/BACKUP_SETUP.md" target="_blank" style="color: #667eea;">Setup guide</a>
-                            </small>
-                        </div>
-
-                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                            <button class="btn-primary" onclick="saveSettings()">💾 Save Settings</button>
-                            <button class="btn-secondary" onclick="loadSettings()">🔄 Reset</button>
-                        </div>
-
-                        <!-- Restart Warning -->
-                        <div style="margin-top: 1.5rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; color: #856404;">
-                            <strong>⚠️ Important:</strong> Changes to backup time or enable/disable settings require an <strong>app restart</strong> to take effect.
-                            <br>
-                            <small style="margin-top: 0.5rem; display: block;">Run: <code style="background: #fff; padding: 0.2rem 0.4rem; border-radius: 3px; border: 1px solid #ddd;">docker compose restart</code></small>
-                        </div>
-
-                        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #e2e8f0;">
-
-                        <h3 style="font-size: 1.2rem; color: #2d3748; margin-bottom: 1rem;">🔧 Manual Actions</h3>
-
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            <button class="btn-secondary" onclick="createManualBackup(false)" style="justify-content: flex-start;">
-                                💾 Create Local Backup Now
-                            </button>
-                            <button class="btn-secondary" onclick="createManualBackup(true)" style="justify-content: flex-start;">
-                                ☁️ Backup to Remote Server Now
-                            </button>
-                            <button class="btn-secondary" onclick="refreshBackupLog()" style="justify-content: flex-start;">
-                                🔄 Refresh Backup Log
-                            </button>
+                            <select id="logFilter" class="form-input" style="width: auto; padding: 0.4rem;" onchange="refreshBackupLog()">
+                                <option value="all">All Backups</option>
+                                <option value="auto">Automatic Only</option>
+                                <option value="manual">Manual Only</option>
+                                <option value="failed">Failed Only</option>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Right Column: Backup Log -->
-                    <div style="display: flex; flex-direction: column; max-height: calc(100vh - 200px); min-height: 500px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-shrink: 0;">
-                            <h3 style="margin: 0; font-size: 1.2rem; color: #2d3748;">📋 Backup History</h3>
-                            <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #666;">
-                                    <input type="checkbox" id="autoRefreshLog" checked onchange="toggleAutoRefresh()" style="cursor: pointer;">
-                                    Auto-refresh
-                                </label>
-                                <select id="logFilter" class="form-input" style="width: auto; padding: 0.4rem;" onchange="refreshBackupLog()">
-                                    <option value="all">All Backups</option>
-                                    <option value="auto">Automatic Only</option>
-                                    <option value="manual">Manual Only</option>
-                                    <option value="failed">Failed Only</option>
-                                </select>
+                    <!-- Backup Log Table -->
+                    <div id="backupLogContainer" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto;">
+                        <table id="backupLogTable" style="width: 100%; min-width: 750px; border-collapse: collapse; font-size: 0.9rem;">
+                            <thead style="background: #f7fafc; border-bottom: 2px solid #e2e8f0; display: table; width: 100%; table-layout: fixed;">
+                                <tr>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Type</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Source</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Status</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 10%;">Size</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 18%;">Date/Time</th>
+                                    <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 36%;">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backupLogBody" style="display: block; max-height: 500px; overflow-y: auto; width: 100%;">
+                                <tr style="display: table; width: 100%; table-layout: fixed;">
+                                    <td colspan="6" style="padding: 2rem; text-align: center; color: #a0aec0;">
+                                        Loading backup history...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Backup Statistics -->
+                    <div id="backupStats" style="margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 8px; font-size: 0.9rem; color: #4a5568; flex-shrink: 0;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+                            <div>
+                                <strong>Total Backups:</strong> <span id="statTotal">-</span>
                             </div>
-                        </div>
-
-                        <!-- Backup Log Table -->
-                        <div id="backupLogContainer" style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto; overflow-y: hidden; flex: 1; min-height: 0; display: flex; flex-direction: column;">
-                            <table id="backupLogTable" style="width: 100%; min-width: 750px; flex-shrink: 0; border-collapse: collapse; font-size: 0.9rem; display: flex; flex-direction: column; height: 100%;">
-                                <thead style="flex-shrink: 0; background: #f7fafc; border-bottom: 2px solid #e2e8f0; display: table; width: 100%; table-layout: fixed;">
-                                    <tr>
-                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Type</th>
-                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Source</th>
-                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 12%;">Status</th>
-                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 10%;">Size</th>
-                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 18%;">Date/Time</th>
-                                        <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #4a5568; width: 36%;">Details</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="backupLogBody" style="flex: 1; overflow-y: auto; display: block;">
-                                    <tr style="display: table; width: 100%; table-layout: fixed;">
-                                        <td colspan="6" style="padding: 2rem; text-align: center; color: #a0aec0;">
-                                            Loading backup history...
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Backup Statistics -->
-                        <div id="backupStats" style="margin-top: 1rem; padding: 1rem; background: #f7fafc; border-radius: 8px; font-size: 0.9rem; color: #4a5568; flex-shrink: 0;">
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
-                                <div>
-                                    <strong>Total Backups:</strong> <span id="statTotal">-</span>
-                                </div>
-                                <div>
-                                    <strong>Automatic:</strong> <span id="statAuto">-</span>
-                                </div>
-                                <div>
-                                    <strong>Manual:</strong> <span id="statManual">-</span>
-                                </div>
-                                <div>
-                                    <strong>Success Rate:</strong> <span id="statSuccessRate">-</span>
-                                </div>
+                            <div>
+                                <strong>Automatic:</strong> <span id="statAuto">-</span>
+                            </div>
+                            <div>
+                                <strong>Manual:</strong> <span id="statManual">-</span>
+                            </div>
+                            <div>
+                                <strong>Success Rate:</strong> <span id="statSuccessRate">-</span>
                             </div>
                         </div>
                     </div>

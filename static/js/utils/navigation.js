@@ -48,15 +48,6 @@ const NAV_BUTTONS = [
         label: 'Reports',
         showForRoles: ['admin'],
         hideOnPages: ['reports.html']
-    },
-    {
-        id: 'advAdminNavBtn',
-        href: '/advadmin.html',
-        icon: '⚙️',
-        label: 'Adv',
-        showForRoles: ['admin'],
-        hideOnPages: ['advadmin.html'],
-        requiresQueryParam: 'adv'  // Only show if ?adv is in URL
     }
 ];
 
@@ -126,14 +117,6 @@ export async function renderNavigationHeader({ containerSelector, user, pageName
         // Check if button should be hidden on current page
         if (button.hideOnPages && button.hideOnPages.includes(currentPage)) {
             return;
-        }
-
-        // Check if button requires a query parameter
-        if (button.requiresQueryParam) {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (!urlParams.has(button.requiresQueryParam)) {
-                return;
-            }
         }
 
         navButtons.push(`
@@ -243,6 +226,16 @@ async function displayUserInfo(user) {
 export async function initNavigation(user, pageName, options = {}) {
     // Get current page to determine defaults
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+    // ?adv is a shortcut straight into Advanced Admin rather than just
+    // revealing a link to click - jump there immediately for admins
+    if (currentPage !== 'advadmin.html' && user.role === 'admin') {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('adv')) {
+            window.location.href = '/advadmin.html';
+            return;
+        }
+    }
 
     // Set defaults based on page type
     let defaults = {

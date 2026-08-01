@@ -64,8 +64,8 @@ function switchTab(tabName) {
         }
     });
 
-    // Load backup log when switching to backups tab
-    if (tabName === 'backups' && typeof refreshBackupLog === 'function') {
+    // Load backup log when switching to the backup history tab
+    if (tabName === 'backuphistory' && typeof refreshBackupLog === 'function') {
         refreshBackupLog();
         // Start auto-refresh if enabled
         const autoRefreshCheckbox = document.getElementById('autoRefreshLog');

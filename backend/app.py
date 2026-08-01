@@ -258,7 +258,7 @@ def validate_session():
 @app.route('/api/version', methods=['GET'])
 def get_version():
     """Get application version info - update VERSION on each release"""
-    VERSION = "1.16.0"
+    VERSION = "1.16.1"
     conn = get_db()
     schema_version = conn.execute("PRAGMA user_version").fetchone()[0]
     conn.close()
